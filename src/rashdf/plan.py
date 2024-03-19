@@ -1,6 +1,6 @@
 from .geom import RasGeomHdf
 
-import geopandas as gpd
+from geopandas import GeoDataFrame
 
 
 class RasPlanHdf(RasGeomHdf):
@@ -9,5 +9,5 @@ class RasPlanHdf(RasGeomHdf):
         """Open a HEC-RAS Plan HDF file."""
         super().__init__(hdf_file)
 
-    def enroachment_points(self) -> gpd.GeoDataFrame:
-        pass
+    def enroachment_points(self) -> GeoDataFrame:
+        raise NotImplementedError

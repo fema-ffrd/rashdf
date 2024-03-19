@@ -14,10 +14,10 @@ class RasHdf(h5py.File):
         kwargs : dict
             Additional keyword arguments to pass to h5py.File
         """
-        super().__init__(name, mode="r" **kwargs)
+        super().__init__(name, mode="r", **kwargs)
 
     @classmethod
-    def open_uri(cls, uri: str, fsspec_kwargs: dict, h5py_kwargs: dict) -> 'RasHdf':
+    def open_uri(cls, uri: str, fsspec_kwargs: dict = {}, h5py_kwargs: dict = {}) -> 'RasHdf':
         """Open a HEC-RAS HDF file from a URI.
 
         Parameters
@@ -41,5 +41,5 @@ class RasHdf(h5py.File):
         >>> results_hdf = RasHdf.open_uri("s3://my-bucket/results.hdf")
         """
         import fsspec
-        remote_file = fsspec.open(uri, mode="rb" **fsspec_kwargs)
+        remote_file = fsspec.open(uri, mode="rb", **fsspec_kwargs)
         return cls(remote_file.open(), **h5py_kwargs)

@@ -1,5 +1,5 @@
 # rashdf
-Read data HEC-RAS HDF files.
+Read data from HEC-RAS HDF files.
 
 ## Setup
 Create a virtual environment in the project directory:
