@@ -9,10 +9,6 @@ from typing import Optional
 
 class RasGeomHdf(RasHdf):
 
-    def __init__(self, hdf_file: str):
-        """Open a HEC-RAS Geometry HDF file."""
-        super().__init__(hdf_file)
-
     def projection(self) -> Optional[CRS]:
         """Return the projection of the RAS geometry as a
         pyproj.CRS object.
