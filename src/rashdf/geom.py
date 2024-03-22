@@ -49,26 +49,30 @@ class RasGeomHdf(RasHdf):
             A GeoDataFrame containing the 2D flow mesh cell polygons.
         """
         mesh_area_names = [convert_ras_hdf_string(n) for n in self["/Geometry/2D Flow Areas/Attributes"]["Name"][()]]
-        cell_dict = {"mesh_name":[], "cell_id":[], "face_id_list":[]}
+        cell_df_list = list()
         for mesh_name in mesh_area_names:
             cell_face_info = self[f"/Geometry/2D Flow Areas/{mesh_name}/Cells Face and Orientation Info"][()]
             cell_face_values = self[f"/Geometry/2D Flow Areas/{mesh_name}/Cells Face and Orientation Values"][()]
             cell_id = -1
+            cell_dict = {"mesh_name":[], "cell_id":[], "face_id_list":[], "face_cnt":[]}
             for starting_row, count in cell_face_info:
                 cell_id+=1
                 cell_dict["mesh_name"].append(mesh_name)
                 cell_dict["cell_id"].append(cell_id)
-                cell_dict["face_id_list"].append(list(cell_face_values[starting_row:starting_row+count, 0]))
-        cell_df = pd.DataFrame(cell_dict)
-        cell_df = cell_df[len(cell_df["face_id_list"]) > 1]
-        face_dict = self.mesh_cell_faces()[["face_id", "geometry"]].set_index("face_id", inplace=False).to_dict()["geometry"]
-        def polygonize(face_id_list):
-            ring_coords = list()
-            for fid in face_id_list:
-                ring_coords += face_dict[fid].coords
-            return Polygon(ring_coords)
-        cell_df["geometry"] = cell_df["face_id_list"].apply(lambda x: polygonize(x))
-        return GeoDataFrame(cell_df.drop("face_id_list", axis=1, inplace=False), geometry="geometry")
+                face_id_list = list(cell_face_values[starting_row:starting_row+count, 0])
+                cell_dict["face_id_list"].append(face_id_list)
+                cell_dict["face_cnt"].append(len(face_id_list))
+            cell_df = pd.DataFrame(cell_dict)
+            cell_df = cell_df[cell_df["face_cnt"] > 1]
+            face_dict = self.mesh_cell_faces()[["face_id", "geometry"]].set_index("face_id", inplace=False).to_dict()["geometry"]
+            def polygonize(face_id_list):
+                ring_coords = list()
+                for fid in face_id_list:
+                    ring_coords += face_dict[fid].coords
+                return Polygon(set(ring_coords))
+            cell_df["geometry"] = cell_df["face_id_list"].apply(lambda x: polygonize(x))
+            cell_df_list.append(cell_df)
+        return GeoDataFrame(pd.concat(cell_df_list).drop("face_id_list", axis=1, inplace=False), geometry="geometry")
 
     def mesh_cell_points(self) -> GeoDataFrame:
         """Return the 2D flow mesh cell points.
