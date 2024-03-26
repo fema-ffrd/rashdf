@@ -1,0 +1,17 @@
+{
+    "python.testing.pytestArgs": [
+        "."
+    ],
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestEnabled": true,
+    "python.formatting.provider": "none",
+    "editor.formatOnSave": true,
+    "python.formatting.blackArgs": [
+        "--line-length=120"
+    ],
+    "python.languageServer": "Pylance",
+    "python.linting.lintOnSave": true,
+    "[python]": {
+        "editor.defaultFormatter": "ms-python.black-formatter"
+    }
+}

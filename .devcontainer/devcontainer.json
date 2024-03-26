@@ -1,0 +1,47 @@
+{
+	"name": "Ubuntu",
+	// Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
+	"build": {
+		"dockerfile": "Dockerfile"
+	},
+	"features": {
+		"ghcr.io/devcontainers/features/git:1": {},
+		"ghcr.io/devcontainers/features/aws-cli:1": {}
+	},
+	// mount aws credentials folder to dev container
+	"mounts": [
+		"source=${localEnv:HOME}${localEnv:USERPROFILE}/.aws,target=/home/mambauser/.aws,type=bind,consistency=cached"
+	],
+	// uncomment to enable gpu in the container
+	// "runArgs": [
+	// 	"--gpus=all"
+	// ],
+	// Configure tool-specific properties.
+	"customizations": {
+		"settings": {
+			"python.defaultInterpreterPath": "/opt/conda/bin/python",
+			"python.linting.enabled": true,
+			"python.linting.pylintEnabled": true,
+			"editor.defaultFormatter": "ms-python.python",
+			"python.formatting.provider": "black",
+			"python.formatting.blackPath": "/opt/conda/bin/black",
+			"python.linting.pylintPath": "/opt/conda/bin/pylint",
+			"python.editor.defaultFormatter": "ms-python.black-formatter",
+			"editor.formatOnSave": true,
+			"python.languageServer": "Pylance",
+			"python.linting.lintOnSave": true,
+			"python.analysis.extraPaths": [
+				"${workspaceFolder}/src"
+			]
+		},
+		"vscode": {
+			"extensions": [
+				"ms-python.python",
+				"njpwerner.autodocstring",
+				"ms-python.pylint",
+				"github.copilot",
+				"ms-python.python"
+			]
+		}
+	}
+}
