@@ -27,27 +27,51 @@ class RasGeomHdf(RasHdf):
         if type(proj_wkt) == bytes or type(proj_wkt) == np.bytes_:
             proj_wkt = proj_wkt.decode("utf-8")
         return CRS.from_wkt(proj_wkt)
+    
+    def mesh_area_names(self) -> Optional[list]:
+        """Return a list of the 2D mesh area names of 
+        the RAS geometry.
+        
+        Returns
+        -------
+        list
+            A list of the 2D mesh area names (str) within the RAS geometry if 2D areas exist.
+            Otherwise, returns None.
+        """
+        if "/Geometry/2D Flow Areas" not in self:
+            return None
+        return list([convert_ras_hdf_string(n) for n in self["/Geometry/2D Flow Areas/Attributes"]["Name"][()]])
 
-    def mesh_areas(self) -> GeoDataFrame:
+    def mesh_areas(self) -> Optional[GeoDataFrame]:
         """Return 2D flow area perimeter polygons.
         
         Returns
         -------
         GeoDataFrame
-            A GeoDataFrame containing the 2D flow area perimeter polygons.
+            A GeoDataFrame containing the 2D flow area perimeter polygons if 2D areas exist.
+            Otherwise, returns None.
         """
-        mesh_area_names = [convert_ras_hdf_string(n) for n in self["/Geometry/2D Flow Areas/Attributes"]["Name"][()]]
+        # get mesh area names
+        mesh_area_names = self.mesh_area_names()
+        if not mesh_area_names:
+            return None
         mesh_area_polygons = [Polygon(self[f"/Geometry/2D Flow Areas/{n}/Perimeter"]) for n in mesh_area_names]
-        return GeoDataFrame({"name" : mesh_area_names, "geometry" : mesh_area_polygons}, geometry="geometry")
+        return GeoDataFrame({"mesh_name" : mesh_area_names, "geometry" : mesh_area_polygons}, geometry="geometry", crs=self.projection())
 
-    def mesh_cell_polygons(self) -> GeoDataFrame:
+    def mesh_cell_polygons(self) -> Optional[GeoDataFrame]:
         """Return the 2D flow mesh cell polygons.
         
         Returns
         -------
         GeoDataFrame
-            A GeoDataFrame containing the 2D flow mesh cell polygons.
+            A GeoDataFrame containing the 2D flow mesh cell polygons if 2D areas exist.
+            Otherwise, returns None.
         """
+        # get mesh area names
+        mesh_area_names = self.mesh_area_names()
+        if not mesh_area_names:
+            return None
+        
         # recursive coord cleaning
         def clean_coords(end_coord: list = None) -> None:
             if not end_coord:
@@ -77,7 +101,6 @@ class RasGeomHdf(RasHdf):
 
         # assemble cell poly df
         cell_dict = {"mesh_name":[], "cell_id":[], "face_id_list":[]}
-        mesh_area_names = [convert_ras_hdf_string(n) for n in self["/Geometry/2D Flow Areas/Attributes"]["Name"][()]]
         for mesh_name in mesh_area_names:
             cell_face_info = self[f"/Geometry/2D Flow Areas/{mesh_name}/Cells Face and Orientation Info"][()]
             cell_face_values = self[f"/Geometry/2D Flow Areas/{mesh_name}/Cells Face and Orientation Values"][()]
@@ -91,17 +114,20 @@ class RasGeomHdf(RasHdf):
         cell_df["face_coord_list"] = cell_df.apply(lambda x: list([face_dict[str(face_id)+x.mesh_name] for face_id in x.face_id_list]), axis=1)
         cell_df["geometry"] = cell_df["face_coord_list"].apply(polygonize)
 
-        return GeoDataFrame(cell_df[["mesh_name", "cell_id", "geometry"]], geometry="geometry")
+        return GeoDataFrame(cell_df[["mesh_name", "cell_id", "geometry"]], geometry="geometry", crs=self.projection())
 
-    def mesh_cell_points(self) -> GeoDataFrame:
+    def mesh_cell_points(self) -> Optional[GeoDataFrame]:
         """Return the 2D flow mesh cell points.
         
         Returns
         -------
         GeoDataFrame
-            A GeoDataFrame containing the 2D flow mesh cell points.
+            A GeoDataFrame containing the 2D flow mesh cell points if 2D areas exist.
+            Otherwise, returns None.
         """
-        mesh_area_names = [convert_ras_hdf_string(n) for n in self["/Geometry/2D Flow Areas/Attributes"]["Name"][()]]
+        mesh_area_names = self.mesh_area_names()
+        if not mesh_area_names:
+            return None
         pnt_dict = {"mesh_name":[], "cell_id":[], "geometry":[]}
         for mesh_name in mesh_area_names:
             cell_pnt_coords = self[f"/Geometry/2D Flow Areas/{mesh_name}/Cells Center Coordinate"][()]
@@ -109,17 +135,20 @@ class RasGeomHdf(RasHdf):
             pnt_dict["mesh_name"] += [mesh_name]*cell_cnt
             pnt_dict["cell_id"] += range(cell_cnt)
             pnt_dict["geometry"] += [Point(*coords) for coords in cell_pnt_coords]
-        return GeoDataFrame(pnt_dict, geometry="geometry")
+        return GeoDataFrame(pnt_dict, geometry="geometry", crs=self.projection())
 
-    def mesh_cell_faces(self) -> GeoDataFrame:
+    def mesh_cell_faces(self) -> Optional[GeoDataFrame]:
         """Return the 2D flow mesh cell faces.
         
         Returns
         -------
         GeoDataFrame
-            A GeoDataFrame containing the 2D flow mesh cell faces.
+            A GeoDataFrame containing the 2D flow mesh cell faces if 2D areas exist.
+            Otherwise, returns None.
         """
-        mesh_area_names = [convert_ras_hdf_string(n) for n in self["/Geometry/2D Flow Areas/Attributes"]["Name"][()]]
+        mesh_area_names = self.mesh_area_names()
+        if not mesh_area_names:
+            return None        
         face_dict = {"mesh_name":[], "face_id":[], "geometry":[]}
         for mesh_name in mesh_area_names:
             facepoints_index = self[f"/Geometry/2D Flow Areas/{mesh_name}/Faces FacePoint Indexes"][()]
@@ -138,7 +167,7 @@ class RasGeomHdf(RasHdf):
                     coordinates += list(faces_perimeter_values[starting_row:starting_row+count])
                 coordinates.append(facepoints_coordinates[pnt_b_index])
                 face_dict["geometry"].append(LineString(coordinates))
-        return GeoDataFrame(face_dict, geometry="geometry")
+        return GeoDataFrame(face_dict, geometry="geometry", crs=self.projection())
 
     def bc_lines(self) -> GeoDataFrame:
         raise NotImplementedError
