@@ -40,7 +40,7 @@ class RasGeomHdf(RasHdf):
         """
         if "/Geometry/2D Flow Areas" not in self:
             return None
-        return list([convert_ras_hdf_string(n) for n in self["/Geometry/2D Flow Areas/Attributes"]["Name"][()]])
+        return list([convert_ras_hdf_string(n) for n in self["/Geometry/2D Flow Areas/Attributes"][()]["Name"]])
 
     def mesh_areas(self) -> Optional[GeoDataFrame]:
         """Return 2D flow area perimeter polygons.
@@ -55,7 +55,7 @@ class RasGeomHdf(RasHdf):
         mesh_area_names = self.mesh_area_names()
         if not mesh_area_names:
             return None
-        mesh_area_polygons = [Polygon(self[f"/Geometry/2D Flow Areas/{n}/Perimeter"]) for n in mesh_area_names]
+        mesh_area_polygons = [Polygon(self[f"/Geometry/2D Flow Areas/{n}/Perimeter"][()]) for n in mesh_area_names]
         return GeoDataFrame({"mesh_name" : mesh_area_names, "geometry" : mesh_area_polygons}, geometry="geometry", crs=self.projection())
 
     def mesh_cell_polygons(self) -> Optional[GeoDataFrame]:
@@ -129,12 +129,12 @@ class RasGeomHdf(RasHdf):
         if not mesh_area_names:
             return None
         pnt_dict = {"mesh_name":[], "cell_id":[], "geometry":[]}
-        for mesh_name in mesh_area_names:
-            cell_pnt_coords = self[f"/Geometry/2D Flow Areas/{mesh_name}/Cells Center Coordinate"][()]
-            cell_cnt = cell_pnt_coords.shape[0]
-            pnt_dict["mesh_name"] += [mesh_name]*cell_cnt
-            pnt_dict["cell_id"] += range(cell_cnt)
-            pnt_dict["geometry"] += [Point(*coords) for coords in cell_pnt_coords]
+        for i, mesh_name in enumerate(mesh_area_names):
+            starting_row, count = self["/Geometry/2D Flow Areas/Cell Info"][()][i]
+            cell_pnt_coords = self["/Geometry/2D Flow Areas/Cell Points"][()][starting_row:starting_row+count]
+            pnt_dict["mesh_name"] += [mesh_name]*cell_pnt_coords.shape[0]
+            pnt_dict["cell_id"] += range(count)
+            pnt_dict["geometry"] += list(np.vectorize(lambda coords: Point(coords), signature="(n)->()")(cell_pnt_coords))
         return GeoDataFrame(pnt_dict, geometry="geometry", crs=self.projection())
 
     def mesh_cell_faces(self) -> Optional[GeoDataFrame]:
