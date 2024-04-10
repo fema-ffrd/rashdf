@@ -2,6 +2,7 @@ from src.rashdf import RasGeomHdf
 
 import h5py
 from pyproj import CRS
+import os
 
 
 def test_projection(tmp_path):
@@ -13,3 +14,27 @@ def test_projection(tmp_path):
     ras_hdf = RasGeomHdf(tmp_path / "test.hdf")
     # Test the projection
     assert ras_hdf.projection() == CRS.from_wkt(wkt)
+
+def test_mesh_area_names(test_data_root = os.path.dirname(__file__).replace("tests", "data")):
+    ghdf = RasGeomHdf(os.path.join(test_data_root, "2d_geom/Richland_Lower.g01.hdf"))
+    assert ghdf.mesh_area_names() == ['NorthOverbank', 'SouthOverbank']
+
+def test_mesh_areas(test_data_root = os.path.dirname(__file__).replace("tests", "data")):
+    ghdf = RasGeomHdf(os.path.join(test_data_root, "2d_geom/Richland_Lower.g01.hdf"))
+    json = open(os.path.join(test_data_root, "2d_geom/mesh_areas.json")).read()
+    assert ghdf.mesh_areas().to_json() == json
+
+def test_mesh_cell_faces(test_data_root = os.path.dirname(__file__).replace("tests", "data")):
+    ghdf = RasGeomHdf(os.path.join(test_data_root, "2d_geom/Richland_Lower.g01.hdf"))
+    json = open(os.path.join(test_data_root, "2d_geom/mesh_cell_faces.json")).read()
+    assert ghdf.mesh_cell_faces().to_json() == json
+
+def test_mesh_cell_points(test_data_root = os.path.dirname(__file__).replace("tests", "data")):
+    ghdf = RasGeomHdf(os.path.join(test_data_root, "2d_geom/Richland_Lower.g01.hdf"))
+    json = open(os.path.join(test_data_root, "2d_geom/mesh_cell_points.json")).read()
+    assert ghdf.mesh_cell_points().to_json() == json
+
+def test_mesh_cell_polygons(test_data_root = os.path.dirname(__file__).replace("tests", "data")):
+    ghdf = RasGeomHdf(os.path.join(test_data_root, "2d_geom/Richland_Lower.g01.hdf"))
+    json = open(os.path.join(test_data_root, "2d_geom/mesh_cell_polygons.json")).read()
+    assert ghdf.mesh_cell_polygons().to_json() == json
