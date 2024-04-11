@@ -89,3 +89,6 @@ target/
 
 # But don't ignore the data folder itself
 !*/data/
+
+# mock user testing
+/mock_user.py

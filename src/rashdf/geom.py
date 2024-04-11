@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 from geopandas import GeoDataFrame
 from pyproj import CRS
-from shapely import Polygon, Point, LineString
+from shapely import Polygon, Point, LineString, polygonize
 
 from typing import Optional
 
@@ -51,7 +51,6 @@ class RasGeomHdf(RasHdf):
             A GeoDataFrame containing the 2D flow area perimeter polygons if 2D areas exist.
             Otherwise, returns None.
         """
-        # get mesh area names
         mesh_area_names = self.mesh_area_names()
         if not mesh_area_names:
             return None
@@ -67,54 +66,32 @@ class RasGeomHdf(RasHdf):
             A GeoDataFrame containing the 2D flow mesh cell polygons if 2D areas exist.
             Otherwise, returns None.
         """
-        # get mesh area names
         mesh_area_names = self.mesh_area_names()
         if not mesh_area_names:
             return None
-        
-        # recursive coord cleaning
-        def clean_coords(end_coord: list = None) -> None:
-            if not end_coord:
-                target = raw_coords.pop(0)
-            else:
-                i = -1
-                for face in raw_coords:
-                    i+=1
-                    if end_coord == face[0]:
-                        target = raw_coords.pop(i)
-                    elif end_coord == face[-1]:
-                        target = raw_coords.pop(i)
-                        target=list(reversed(target))
-            [cleaned_coords.append(coord) for coord in target]
-            if raw_coords: clean_coords(target[-1])
-        def polygonize(face_coord_list) -> Polygon:
-            global cleaned_coords; global raw_coords
-            cleaned_coords=list(); raw_coords=face_coord_list
-            clean_coords()
-            return Polygon(cleaned_coords)
 
-        # assemble face dict
-        face_df = self.mesh_cell_faces()
-        face_df["face_code"] = face_df["face_id"].astype(str)+face_df["mesh_name"]
-        face_df["coords"] = face_df["geometry"].apply(lambda face: face.coords)
-        face_dict = face_df[["face_code", "coords"]].set_index("face_code", inplace=False).to_dict()["coords"]
+        face_gdf = self.mesh_cell_faces()
 
-        # assemble cell poly df
-        cell_dict = {"mesh_name":[], "cell_id":[], "face_id_list":[]}
-        for mesh_name in mesh_area_names:
+        cell_dict = {"mesh_name":[], "cell_id":[], "geometry":[]}
+        for i, mesh_name in enumerate(mesh_area_names):
+            cell_cnt = self["/Geometry/2D Flow Areas/Cell Info"][()][i][1]
+            cell_ids = list(range(cell_cnt))
             cell_face_info = self[f"/Geometry/2D Flow Areas/{mesh_name}/Cells Face and Orientation Info"][()]
-            cell_face_values = self[f"/Geometry/2D Flow Areas/{mesh_name}/Cells Face and Orientation Values"][()]
-            cell_cnt = cell_face_info.shape[0]
+            cell_face_values = self[f"/Geometry/2D Flow Areas/{mesh_name}/Cells Face and Orientation Values"][()][:,0]           
+            face_id_lists = list(
+                np.vectorize(
+                    lambda cell_id: str(cell_face_values[cell_face_info[cell_id][0]:cell_face_info[cell_id][0]+cell_face_info[cell_id][1]])
+                )(cell_ids)
+            )
+            mesh_faces = face_gdf[face_gdf.mesh_name == mesh_name][["face_id", "geometry"]].set_index("face_id").to_numpy()
             cell_dict["mesh_name"] += [mesh_name]*cell_cnt
-            cell_dict["cell_id"] += range(cell_cnt)
-            cell_dict["face_id_list"] += list(cell_face_values[starting_row:starting_row+count, 0] for starting_row, count in cell_face_info)
-        cell_dict["face_cnt"] = list([len(l) for l in cell_dict["face_id_list"]])
-        cell_df = pd.DataFrame(cell_dict)
-        cell_df = cell_df[cell_df.face_cnt > 1]
-        cell_df["face_coord_list"] = cell_df.apply(lambda x: list([face_dict[str(face_id)+x.mesh_name] for face_id in x.face_id_list]), axis=1)
-        cell_df["geometry"] = cell_df["face_coord_list"].apply(polygonize)
-
-        return GeoDataFrame(cell_df[["mesh_name", "cell_id", "geometry"]], geometry="geometry", crs=self.projection())
+            cell_dict["cell_id"] += cell_ids
+            cell_dict["geometry"] += list(
+                np.vectorize(
+                    lambda face_id_list: polygonize(np.ravel(mesh_faces[np.array(face_id_list.strip("[]").split()).astype(int)]))
+                )(face_id_lists)
+            )
+        return GeoDataFrame(cell_dict, geometry="geometry", crs=self.projection())
 
     def mesh_cell_points(self) -> Optional[GeoDataFrame]:
         """Return the 2D flow mesh cell points.
