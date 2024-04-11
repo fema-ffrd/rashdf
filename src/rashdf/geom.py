@@ -88,7 +88,7 @@ class RasGeomHdf(RasHdf):
             cell_dict["cell_id"] += cell_ids
             cell_dict["geometry"] += list(
                 np.vectorize(
-                    lambda face_id_list: polygonize(np.ravel(mesh_faces[np.array(face_id_list.strip("[]").split()).astype(int)]))
+                    lambda face_id_list: polygonize(np.ravel(mesh_faces[np.array(face_id_list.strip("[]").split()).astype(int)])).geoms[0]
                 )(face_id_lists)
             )
         return GeoDataFrame(cell_dict, geometry="geometry", crs=self.projection())
