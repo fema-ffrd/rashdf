@@ -28,7 +28,7 @@ class RasGeomHdf(RasHdf):
             proj_wkt = proj_wkt.decode("utf-8")
         return CRS.from_wkt(proj_wkt)
     
-    def mesh_area_names(self) -> Optional[list]:
+    def mesh_area_names(self) -> list:
         """Return a list of the 2D mesh area names of 
         the RAS geometry.
         
@@ -36,39 +36,36 @@ class RasGeomHdf(RasHdf):
         -------
         list
             A list of the 2D mesh area names (str) within the RAS geometry if 2D areas exist.
-            Otherwise, returns None.
         """
         if "/Geometry/2D Flow Areas" not in self:
-            return None
+            return list()
         return list([convert_ras_hdf_string(n) for n in self["/Geometry/2D Flow Areas/Attributes"][()]["Name"]])
 
-    def mesh_areas(self) -> Optional[GeoDataFrame]:
+    def mesh_areas(self) -> GeoDataFrame:
         """Return 2D flow area perimeter polygons.
         
         Returns
         -------
         GeoDataFrame
             A GeoDataFrame containing the 2D flow area perimeter polygons if 2D areas exist.
-            Otherwise, returns None.
         """
         mesh_area_names = self.mesh_area_names()
         if not mesh_area_names:
-            return None
+            return GeoDataFrame()
         mesh_area_polygons = [Polygon(self[f"/Geometry/2D Flow Areas/{n}/Perimeter"][()]) for n in mesh_area_names]
         return GeoDataFrame({"mesh_name" : mesh_area_names, "geometry" : mesh_area_polygons}, geometry="geometry", crs=self.projection())
 
-    def mesh_cell_polygons(self) -> Optional[GeoDataFrame]:
+    def mesh_cell_polygons(self) -> GeoDataFrame:
         """Return the 2D flow mesh cell polygons.
         
         Returns
         -------
         GeoDataFrame
             A GeoDataFrame containing the 2D flow mesh cell polygons if 2D areas exist.
-            Otherwise, returns None.
         """
         mesh_area_names = self.mesh_area_names()
         if not mesh_area_names:
-            return None
+            return GeoDataFrame()
 
         face_gdf = self.mesh_cell_faces()
 
@@ -93,18 +90,17 @@ class RasGeomHdf(RasHdf):
             )
         return GeoDataFrame(cell_dict, geometry="geometry", crs=self.projection())
 
-    def mesh_cell_points(self) -> Optional[GeoDataFrame]:
+    def mesh_cell_points(self) -> GeoDataFrame:
         """Return the 2D flow mesh cell points.
         
         Returns
         -------
         GeoDataFrame
             A GeoDataFrame containing the 2D flow mesh cell points if 2D areas exist.
-            Otherwise, returns None.
         """
         mesh_area_names = self.mesh_area_names()
         if not mesh_area_names:
-            return None
+            return GeoDataFrame()
         pnt_dict = {"mesh_name":[], "cell_id":[], "geometry":[]}
         for i, mesh_name in enumerate(mesh_area_names):
             starting_row, count = self["/Geometry/2D Flow Areas/Cell Info"][()][i]
@@ -114,18 +110,17 @@ class RasGeomHdf(RasHdf):
             pnt_dict["geometry"] += list(np.vectorize(lambda coords: Point(coords), signature="(n)->()")(cell_pnt_coords))
         return GeoDataFrame(pnt_dict, geometry="geometry", crs=self.projection())
 
-    def mesh_cell_faces(self) -> Optional[GeoDataFrame]:
+    def mesh_cell_faces(self) -> GeoDataFrame:
         """Return the 2D flow mesh cell faces.
         
         Returns
         -------
         GeoDataFrame
             A GeoDataFrame containing the 2D flow mesh cell faces if 2D areas exist.
-            Otherwise, returns None.
         """
         mesh_area_names = self.mesh_area_names()
         if not mesh_area_names:
-            return None        
+            return GeoDataFrame()
         face_dict = {"mesh_name":[], "face_id":[], "geometry":[]}
         for mesh_name in mesh_area_names:
             facepoints_index = self[f"/Geometry/2D Flow Areas/{mesh_name}/Faces FacePoint Indexes"][()]
