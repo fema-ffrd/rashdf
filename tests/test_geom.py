@@ -17,30 +17,30 @@ def test_projection(tmp_path):
     assert ras_hdf.projection() == CRS.from_wkt(wkt)
 
 def test_mesh_area_names():
-    geom = TEST_DATA / "2d_geom/Richland_Lower.g01.hdf"
+    geom = TEST_DATA / "ras/Muncie.g05.hdf"
     with RasGeomHdf(geom) as ghdf:
-        assert ghdf.mesh_area_names() == ['NorthOverbank', 'SouthOverbank']
+        assert ghdf.mesh_area_names() == ["2D Interior Area", "Perimeter_NW"]
 
 def test_mesh_areas():
-    geom = TEST_DATA / "2d_geom/Richland_Lower.g01.hdf"
+    geom = TEST_DATA / "ras/Muncie.g05.hdf"
     with RasGeomHdf(geom) as ghdf:
-        with open(TEST_DATA / "2d_geom/mesh_areas.json") as json:
+        with open(TEST_DATA / "json/mesh_areas.json") as json:
             assert ghdf.mesh_areas().to_json() == json.read()
 
 def test_mesh_cell_faces():
-    geom = TEST_DATA / "2d_geom/Richland_Lower.g01.hdf"
+    geom = TEST_DATA / "ras/Muncie.g05.hdf"
     with RasGeomHdf(geom) as ghdf:
-        with open(TEST_DATA / "2d_geom/mesh_cell_faces.json") as json:
+        with open(TEST_DATA / "json/mesh_cell_faces.json") as json:
             assert ghdf.mesh_cell_faces().to_json() == json.read()
 
 def test_mesh_cell_points():
-    geom = TEST_DATA / "2d_geom/Richland_Lower.g01.hdf"
+    geom = TEST_DATA / "ras/Muncie.g05.hdf"
     with RasGeomHdf(geom) as ghdf:
-        with open(TEST_DATA / "2d_geom/mesh_cell_points.json") as json:
+        with open(TEST_DATA / "json/mesh_cell_points.json") as json:
             assert ghdf.mesh_cell_points().to_json() == json.read()
 
 def test_mesh_cell_polygons():
-    geom = TEST_DATA / "2d_geom/Richland_Lower.g01.hdf"
+    geom = TEST_DATA / "ras/Muncie.g05.hdf"
     with RasGeomHdf(geom) as ghdf:
-        with open(TEST_DATA / "2d_geom/mesh_cell_polygons.json") as json:
+        with open(TEST_DATA / "json/mesh_cell_polygons.json") as json:
             assert ghdf.mesh_cell_polygons().to_json() == json.read()
