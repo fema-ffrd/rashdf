@@ -3,7 +3,7 @@ name = "rashdf"
 description = "Read data from HEC-RAS HDF files."
 readme = "README.md"
 classifiers = [
-    "Development Status :: 3 - Beta",
+    "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
