@@ -180,7 +180,37 @@ class RasGeomHdf(RasHdf):
         )
 
     def breaklines(self) -> GeoDataFrame:
-        raise NotImplementedError
+        """Return the 2D mesh area breaklines.
+        
+        Returns
+        -------
+        GeoDataFrame
+            A GeoDataFrame containing the 2D mesh area breaklines if they exist.
+        """
+        if "/Geometry/2D Flow Area Break Lines" not in self:
+            return GeoDataFrame()
+        bl_line_data = self["/Geometry/2D Flow Area Break Lines"]
+        bl_line_ids = range(bl_line_data["Attributes"][()].shape[0])
+        names = np.vectorize(convert_ras_hdf_string)(bl_line_data["Attributes"][()]["Name"])
+        multi_lines = list()
+        for i, polyline_info in enumerate(bl_line_data["Polyline Info"][()]):
+            pnt_start, pnt_cnt, part_start, part_cnt = polyline_info
+            points = bl_line_data["Polyline Points"][()][pnt_start:pnt_start+pnt_cnt]
+            parts = bl_line_data["Polyline Parts"][()][part_start:part_start+part_cnt]
+            multi_lines.append(
+                MultiLineString(
+                    list(points[part_pnt_start:part_pnt_start+part_pnt_cnt] for part_pnt_start, part_pnt_cnt in parts)
+                )
+            )
+        return GeoDataFrame(
+            {
+                "bl_id":bl_line_ids,
+                "name":names,
+                "geometry":multi_lines
+            },
+            geometry="geometry",
+            crs=self.projection()
+        )
 
     def refinement_regions(self) -> GeoDataFrame:
         raise NotImplementedError
