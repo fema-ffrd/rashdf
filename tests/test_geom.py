@@ -56,3 +56,9 @@ def test_breaklines():
     with RasGeomHdf(geom) as ghdf:
         with open(TEST_DATA / "json/breaklines.json") as json:
             assert ghdf.breaklines().to_json() == json.read()
+
+def test_refinement_regions():
+    geom = TEST_DATA / "ras/Muncie.g05.hdf"
+    with RasGeomHdf(geom) as ghdf:
+        with open(TEST_DATA / "json/refinement_regions.json") as json:
+            assert ghdf.refinement_regions().to_json() == json.read()

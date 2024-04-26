@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 from geopandas import GeoDataFrame
 from pyproj import CRS
-from shapely import Polygon, Point, LineString, MultiLineString, polygonize
+from shapely import Polygon, Point, LineString, MultiLineString, MultiPolygon, polygonize
 
 from typing import Optional
 
@@ -213,7 +213,37 @@ class RasGeomHdf(RasHdf):
         )
 
     def refinement_regions(self) -> GeoDataFrame:
-        raise NotImplementedError
+        """Return the 2D mesh area refinement regions.
+        
+        Returns
+        -------
+        GeoDataFrame
+            A GeoDataFrame containing the 2D mesh area refinement regions if they exist.
+        """
+        if "/Geometry/2D Flow Area Refinement Regions" not in self:
+            return GeoDataFrame()
+        rr_data = self["/Geometry/2D Flow Area Refinement Regions"]
+        rr_ids = range(rr_data["Attributes"][()].shape[0])
+        names = np.vectorize(convert_ras_hdf_string)(rr_data["Attributes"][()]["Name"])
+        multi_polygons = list()
+        for i, polygon_info in enumerate(rr_data["Polygon Info"][()]):
+            pnt_start, pnt_cnt, part_start, part_cnt = polygon_info
+            points = rr_data["Polygon Points"][()][pnt_start:pnt_start+pnt_cnt]
+            parts = rr_data["Polygon Parts"][()][part_start:part_start+part_cnt]
+            multi_polygons.append(
+                MultiLineString(
+                    list(points[part_pnt_start:part_pnt_start+part_pnt_cnt] for part_pnt_start, part_pnt_cnt in parts)
+                )
+            )
+        return GeoDataFrame(
+            {
+                "rr_id":rr_ids,
+                "name":names,
+                "geometry":multi_polygons
+            },
+            geometry="geometry",
+            crs=self.projection()
+        )
 
     def connections(self) -> GeoDataFrame:
         raise NotImplementedError
