@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 from geopandas import GeoDataFrame
 from pyproj import CRS
-from shapely import Polygon, Point, LineString, polygonize
+from shapely import Polygon, Point, LineString, MultiLineString, polygonize
 
 from typing import Optional
 
@@ -142,7 +142,42 @@ class RasGeomHdf(RasHdf):
         return GeoDataFrame(face_dict, geometry="geometry", crs=self.projection())
 
     def bc_lines(self) -> GeoDataFrame:
-        raise NotImplementedError
+        """Return the 2D mesh area boundary condition lines.
+        
+        Returns
+        -------
+        GeoDataFrame
+            A GeoDataFrame containing the 2D mesh area boundary condition lines if they exist.
+        """
+        if "/Geometry/Boundary Condition Lines" not in self:
+            return GeoDataFrame()
+        bc_line_data = self["/Geometry/Boundary Condition Lines"]
+        bc_line_ids = range(bc_line_data["Attributes"][()].shape[0])
+        v_conv_str = np.vectorize(convert_ras_hdf_string)
+        names = v_conv_str(bc_line_data["Attributes"][()]["Name"])
+        mesh_names = v_conv_str(bc_line_data["Attributes"][()]["SA-2D"])
+        types = v_conv_str(bc_line_data["Attributes"][()]["Type"])
+        multi_lines = list()
+        for i, polyline_info in enumerate(bc_line_data["Polyline Info"][()]):
+            pnt_start, pnt_cnt, part_start, part_cnt = polyline_info
+            points = bc_line_data["Polyline Points"][()][pnt_start:pnt_start+pnt_cnt]
+            parts = bc_line_data["Polyline Parts"][()][part_start:part_start+part_cnt]
+            multi_lines.append(
+                MultiLineString(
+                    list(points[part_pnt_start:part_pnt_start+part_pnt_cnt] for part_pnt_start, part_pnt_cnt in parts)
+                )
+            )
+        return GeoDataFrame(
+            {
+                "bc_line_id":bc_line_ids,
+                "name":names,
+                "mesh_name":mesh_names,
+                "type":types,
+                "geometry":multi_lines
+            },
+            geometry="geometry",
+            crs=self.projection()
+        )
 
     def breaklines(self) -> GeoDataFrame:
         raise NotImplementedError

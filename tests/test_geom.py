@@ -44,3 +44,9 @@ def test_mesh_cell_polygons():
     with RasGeomHdf(geom) as ghdf:
         with open(TEST_DATA / "json/mesh_cell_polygons.json") as json:
             assert ghdf.mesh_cell_polygons().to_json() == json.read()
+
+def test_bc_lines():
+    geom = TEST_DATA / "ras/Muncie.g05.hdf"
+    with RasGeomHdf(geom) as ghdf:
+        with open(TEST_DATA / "json/bc_lines.json") as json:
+            assert ghdf.bc_lines().to_json() == json.read()
