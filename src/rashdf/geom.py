@@ -158,8 +158,7 @@ class RasGeomHdf(RasHdf):
         mesh_names = v_conv_str(bc_line_data["Attributes"][()]["SA-2D"])
         types = v_conv_str(bc_line_data["Attributes"][()]["Type"])
         multi_lines = list()
-        for i, polyline_info in enumerate(bc_line_data["Polyline Info"][()]):
-            pnt_start, pnt_cnt, part_start, part_cnt = polyline_info
+        for pnt_start, pnt_cnt, part_start, part_cnt in bc_line_data["Polyline Info"][()]:
             points = bc_line_data["Polyline Points"][()][pnt_start:pnt_start+pnt_cnt]
             parts = bc_line_data["Polyline Parts"][()][part_start:part_start+part_cnt]
             multi_lines.append(
@@ -193,8 +192,7 @@ class RasGeomHdf(RasHdf):
         bl_line_ids = range(bl_line_data["Attributes"][()].shape[0])
         names = np.vectorize(convert_ras_hdf_string)(bl_line_data["Attributes"][()]["Name"])
         multi_lines = list()
-        for i, polyline_info in enumerate(bl_line_data["Polyline Info"][()]):
-            pnt_start, pnt_cnt, part_start, part_cnt = polyline_info
+        for pnt_start, pnt_cnt, part_start, part_cnt in bl_line_data["Polyline Info"][()]:
             points = bl_line_data["Polyline Points"][()][pnt_start:pnt_start+pnt_cnt]
             parts = bl_line_data["Polyline Parts"][()][part_start:part_start+part_cnt]
             multi_lines.append(
@@ -226,8 +224,7 @@ class RasGeomHdf(RasHdf):
         rr_ids = range(rr_data["Attributes"][()].shape[0])
         names = np.vectorize(convert_ras_hdf_string)(rr_data["Attributes"][()]["Name"])
         multi_polygons = list()
-        for i, polygon_info in enumerate(rr_data["Polygon Info"][()]):
-            pnt_start, pnt_cnt, part_start, part_cnt = polygon_info
+        for pnt_start, pnt_cnt, part_start, part_cnt in rr_data["Polygon Info"][()]:
             points = rr_data["Polygon Points"][()][pnt_start:pnt_start+pnt_cnt]
             parts = rr_data["Polygon Parts"][()][part_start:part_start+part_cnt]
             multi_polygons.append(
