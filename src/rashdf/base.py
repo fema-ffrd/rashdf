@@ -42,7 +42,7 @@ class RasHdf(h5py.File):
         --------
         >>> results_hdf = RasHdf.open_uri("s3://my-bucket/results.hdf")
         """
-        import fsspec
+        import fsspec  # type: ignore
 
         remote_file = fsspec.open(uri, mode="rb", **fsspec_kwargs)
         return cls(remote_file.open(), **h5py_kwargs)
