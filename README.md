@@ -3,9 +3,9 @@
 [![Release](https://github.com/fema-ffrd/rashdf/actions/workflows/release.yml/badge.svg)](https://github.com/fema-ffrd/rashdf/actions/workflows/release.yml)
 [![PyPI version](https://badge.fury.io/py/rashdf.svg)](https://badge.fury.io/py/rashdf)
 
-Read data from HEC-RAS HDF files.
+Read data from [HEC-RAS](https://www.hec.usace.army.mil/software/hec-ras/) [HDF](https://github.com/HDFGroup/hdf5) files.
 
-
+*Pronunciation: `raz·aitch·dee·eff`*
 
 ## Install
 A prerelease version of `rashdf` is available from PyPI:
