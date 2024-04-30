@@ -4,7 +4,14 @@ from .utils import convert_ras_hdf_string
 import numpy as np
 from geopandas import GeoDataFrame
 from pyproj import CRS
-from shapely import Polygon, Point, LineString, MultiLineString, MultiPolygon, polygonize
+from shapely import (
+    Polygon,
+    Point,
+    LineString,
+    MultiLineString,
+    MultiPolygon,
+    polygonize,
+)
 
 from typing import List, Optional
 
@@ -188,7 +195,7 @@ class RasGeomHdf(RasHdf):
 
     def bc_lines(self) -> GeoDataFrame:
         """Return the 2D mesh area boundary condition lines.
-        
+
         Returns
         -------
         GeoDataFrame
@@ -203,32 +210,41 @@ class RasGeomHdf(RasHdf):
         mesh_names = v_conv_str(bc_line_data["Attributes"][()]["SA-2D"])
         types = v_conv_str(bc_line_data["Attributes"][()]["Type"])
         geoms = list()
-        for pnt_start, pnt_cnt, part_start, part_cnt in bc_line_data["Polyline Info"][()]:
-            points = bc_line_data["Polyline Points"][()][pnt_start:pnt_start+pnt_cnt]
+        for pnt_start, pnt_cnt, part_start, part_cnt in bc_line_data["Polyline Info"][
+            ()
+        ]:
+            points = bc_line_data["Polyline Points"][()][
+                pnt_start : pnt_start + pnt_cnt
+            ]
             if part_cnt == 1:
                 geoms.append(LineString(points))
             else:
-                parts = bc_line_data["Polyline Parts"][()][part_start:part_start+part_cnt]
+                parts = bc_line_data["Polyline Parts"][()][
+                    part_start : part_start + part_cnt
+                ]
                 geoms.append(
                     MultiLineString(
-                        list(points[part_pnt_start:part_pnt_start+part_pnt_cnt] for part_pnt_start, part_pnt_cnt in parts)
+                        list(
+                            points[part_pnt_start : part_pnt_start + part_pnt_cnt]
+                            for part_pnt_start, part_pnt_cnt in parts
+                        )
                     )
                 )
         return GeoDataFrame(
             {
-                "bc_line_id":bc_line_ids,
-                "name":names,
-                "mesh_name":mesh_names,
-                "type":types,
-                "geometry":geoms
+                "bc_line_id": bc_line_ids,
+                "name": names,
+                "mesh_name": mesh_names,
+                "type": types,
+                "geometry": geoms,
             },
             geometry="geometry",
-            crs=self.projection()
+            crs=self.projection(),
         )
 
     def breaklines(self) -> GeoDataFrame:
         """Return the 2D mesh area breaklines.
-        
+
         Returns
         -------
         GeoDataFrame
@@ -238,32 +254,39 @@ class RasGeomHdf(RasHdf):
             return GeoDataFrame()
         bl_line_data = self["/Geometry/2D Flow Area Break Lines"]
         bl_line_ids = range(bl_line_data["Attributes"][()].shape[0])
-        names = np.vectorize(convert_ras_hdf_string)(bl_line_data["Attributes"][()]["Name"])
+        names = np.vectorize(convert_ras_hdf_string)(
+            bl_line_data["Attributes"][()]["Name"]
+        )
         geoms = list()
-        for pnt_start, pnt_cnt, part_start, part_cnt in bl_line_data["Polyline Info"][()]:
-            points = bl_line_data["Polyline Points"][()][pnt_start:pnt_start+pnt_cnt]
+        for pnt_start, pnt_cnt, part_start, part_cnt in bl_line_data["Polyline Info"][
+            ()
+        ]:
+            points = bl_line_data["Polyline Points"][()][
+                pnt_start : pnt_start + pnt_cnt
+            ]
             if part_cnt == 1:
                 geoms.append(LineString(points))
             else:
-                parts = bl_line_data["Polyline Parts"][()][part_start:part_start+part_cnt]
+                parts = bl_line_data["Polyline Parts"][()][
+                    part_start : part_start + part_cnt
+                ]
                 geoms.append(
                     MultiLineString(
-                        list(points[part_pnt_start:part_pnt_start+part_pnt_cnt] for part_pnt_start, part_pnt_cnt in parts)
+                        list(
+                            points[part_pnt_start : part_pnt_start + part_pnt_cnt]
+                            for part_pnt_start, part_pnt_cnt in parts
+                        )
                     )
                 )
         return GeoDataFrame(
-            {
-                "bl_id":bl_line_ids,
-                "name":names,
-                "geometry":geoms
-            },
+            {"bl_id": bl_line_ids, "name": names, "geometry": geoms},
             geometry="geometry",
-            crs=self.projection()
+            crs=self.projection(),
         )
 
     def refinement_regions(self) -> GeoDataFrame:
         """Return the 2D mesh area refinement regions.
-        
+
         Returns
         -------
         GeoDataFrame
@@ -276,24 +299,23 @@ class RasGeomHdf(RasHdf):
         names = np.vectorize(convert_ras_hdf_string)(rr_data["Attributes"][()]["Name"])
         geoms = list()
         for pnt_start, pnt_cnt, part_start, part_cnt in rr_data["Polygon Info"][()]:
-            points = rr_data["Polygon Points"][()][pnt_start:pnt_start+pnt_cnt]
+            points = rr_data["Polygon Points"][()][pnt_start : pnt_start + pnt_cnt]
             if part_cnt == 1:
                 geoms.append(Polygon(points))
             else:
-                parts = rr_data["Polygon Parts"][()][part_start:part_start+part_cnt]
+                parts = rr_data["Polygon Parts"][()][part_start : part_start + part_cnt]
                 geoms.append(
                     MultiPolygon(
-                        list(points[part_pnt_start:part_pnt_start+part_pnt_cnt] for part_pnt_start, part_pnt_cnt in parts)
+                        list(
+                            points[part_pnt_start : part_pnt_start + part_pnt_cnt]
+                            for part_pnt_start, part_pnt_cnt in parts
+                        )
                     )
                 )
         return GeoDataFrame(
-            {
-                "rr_id":rr_ids,
-                "name":names,
-                "geometry":geoms
-            },
+            {"rr_id": rr_ids, "name": names, "geometry": geoms},
             geometry="geometry",
-            crs=self.projection()
+            crs=self.projection(),
         )
 
     def connections(self) -> GeoDataFrame:

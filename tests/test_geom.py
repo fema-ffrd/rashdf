@@ -54,15 +54,18 @@ def test_mesh_cell_polygons():
     with RasGeomHdf(MUNCIE_G05) as ghdf:
         assert _gdf_matches_json(ghdf.mesh_cell_polygons(), mesh_cell_polygons_json)
 
+
 def test_bc_lines():
     bc_lines_json = TEST_JSON / "bc_lines.json"
     with RasGeomHdf(MUNCIE_G05) as ghdf:
         assert _gdf_matches_json(ghdf.bc_lines(), bc_lines_json)
 
+
 def test_breaklines():
     breaklines_json = TEST_JSON / "breaklines.json"
     with RasGeomHdf(MUNCIE_G05) as ghdf:
         assert _gdf_matches_json(ghdf.breaklines(), breaklines_json)
+
 
 def test_refinement_regions():
     rr_json = TEST_JSON / "refinement_regions.json"
