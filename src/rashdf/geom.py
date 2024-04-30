@@ -157,22 +157,25 @@ class RasGeomHdf(RasHdf):
         names = v_conv_str(bc_line_data["Attributes"][()]["Name"])
         mesh_names = v_conv_str(bc_line_data["Attributes"][()]["SA-2D"])
         types = v_conv_str(bc_line_data["Attributes"][()]["Type"])
-        multi_lines = list()
+        geoms = list()
         for pnt_start, pnt_cnt, part_start, part_cnt in bc_line_data["Polyline Info"][()]:
             points = bc_line_data["Polyline Points"][()][pnt_start:pnt_start+pnt_cnt]
-            parts = bc_line_data["Polyline Parts"][()][part_start:part_start+part_cnt]
-            multi_lines.append(
-                MultiLineString(
-                    list(points[part_pnt_start:part_pnt_start+part_pnt_cnt] for part_pnt_start, part_pnt_cnt in parts)
+            if part_cnt == 1:
+                geoms.append(LineString(points))
+            else:
+                parts = bc_line_data["Polyline Parts"][()][part_start:part_start+part_cnt]
+                geoms.append(
+                    MultiLineString(
+                        list(points[part_pnt_start:part_pnt_start+part_pnt_cnt] for part_pnt_start, part_pnt_cnt in parts)
+                    )
                 )
-            )
         return GeoDataFrame(
             {
                 "bc_line_id":bc_line_ids,
                 "name":names,
                 "mesh_name":mesh_names,
                 "type":types,
-                "geometry":multi_lines
+                "geometry":geoms
             },
             geometry="geometry",
             crs=self.projection()
@@ -191,20 +194,23 @@ class RasGeomHdf(RasHdf):
         bl_line_data = self["/Geometry/2D Flow Area Break Lines"]
         bl_line_ids = range(bl_line_data["Attributes"][()].shape[0])
         names = np.vectorize(convert_ras_hdf_string)(bl_line_data["Attributes"][()]["Name"])
-        multi_lines = list()
+        geoms = list()
         for pnt_start, pnt_cnt, part_start, part_cnt in bl_line_data["Polyline Info"][()]:
             points = bl_line_data["Polyline Points"][()][pnt_start:pnt_start+pnt_cnt]
-            parts = bl_line_data["Polyline Parts"][()][part_start:part_start+part_cnt]
-            multi_lines.append(
-                MultiLineString(
-                    list(points[part_pnt_start:part_pnt_start+part_pnt_cnt] for part_pnt_start, part_pnt_cnt in parts)
+            if part_cnt == 1:
+                geoms.append(LineString(points))
+            else:
+                parts = bl_line_data["Polyline Parts"][()][part_start:part_start+part_cnt]
+                geoms.append(
+                    MultiLineString(
+                        list(points[part_pnt_start:part_pnt_start+part_pnt_cnt] for part_pnt_start, part_pnt_cnt in parts)
+                    )
                 )
-            )
         return GeoDataFrame(
             {
                 "bl_id":bl_line_ids,
                 "name":names,
-                "geometry":multi_lines
+                "geometry":geoms
             },
             geometry="geometry",
             crs=self.projection()
@@ -223,20 +229,23 @@ class RasGeomHdf(RasHdf):
         rr_data = self["/Geometry/2D Flow Area Refinement Regions"]
         rr_ids = range(rr_data["Attributes"][()].shape[0])
         names = np.vectorize(convert_ras_hdf_string)(rr_data["Attributes"][()]["Name"])
-        multi_polygons = list()
+        geoms = list()
         for pnt_start, pnt_cnt, part_start, part_cnt in rr_data["Polygon Info"][()]:
             points = rr_data["Polygon Points"][()][pnt_start:pnt_start+pnt_cnt]
-            parts = rr_data["Polygon Parts"][()][part_start:part_start+part_cnt]
-            multi_polygons.append(
-                MultiLineString(
-                    list(points[part_pnt_start:part_pnt_start+part_pnt_cnt] for part_pnt_start, part_pnt_cnt in parts)
+            if part_cnt == 1:
+                geoms.append(Polygon(points))
+            else:
+                parts = rr_data["Polygon Parts"][()][part_start:part_start+part_cnt]
+                geoms.append(
+                    MultiPolygon(
+                        list(points[part_pnt_start:part_pnt_start+part_pnt_cnt] for part_pnt_start, part_pnt_cnt in parts)
+                    )
                 )
-            )
         return GeoDataFrame(
             {
                 "rr_id":rr_ids,
                 "name":names,
-                "geometry":multi_polygons
+                "geometry":geoms
             },
             geometry="geometry",
             crs=self.projection()
