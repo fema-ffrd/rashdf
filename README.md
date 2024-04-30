@@ -1,5 +1,14 @@
 # rashdf
+[![CI](https://github.com/fema-ffrd/rashdf/actions/workflows/continuous-integration.yml/badge.svg?branch=main)](https://github.com/fema-ffrd/rashdf/actions/workflows/continuous-integration.yml)
+[![Release](https://github.com/fema-ffrd/rashdf/actions/workflows/release.yml/badge.svg)](https://github.com/fema-ffrd/rashdf/actions/workflows/release.yml)
+[![PyPI version](https://badge.fury.io/py/rashdf.svg)](https://badge.fury.io/py/rashdf)
+
 Read data from HEC-RAS HDF files.
+
+## Install
+```bash
+$ pip install rashdf=0.1.0b1
+```
 
 ## Developer Setup
 Create a virtual environment in the project directory:
