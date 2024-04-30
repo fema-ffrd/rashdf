@@ -5,7 +5,10 @@
 
 Read data from HEC-RAS HDF files.
 
+
+
 ## Install
+A prerelease version of `rashdf` is available from PyPI:
 ```bash
 $ pip install rashdf=0.1.0b1
 ```
