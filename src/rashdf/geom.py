@@ -11,12 +11,12 @@ from typing import Optional
 
 
 class RasGeomHdf(RasHdf):
+    GEOM_PATH = "Geometry"
+    GEOM_STRUCTURES_PATH = f"{GEOM_PATH}/Structures"
+    FLOW_AREA_2D_PATH = f"{GEOM_PATH}/2D Flow Areas"
 
-    def __init__(self, name: str):
-        super().__init__(name)
-        self.geom_path = "Geometry"
-        self.geom_structures_path = "Geometry/Structures"
-        self.flow_area_2d_path = "Geometry/2D Flow Areas"
+    def __init__(self, name: str, **kwargs):
+        super().__init__(name, **kwargs)
 
     def projection(self) -> Optional[CRS]:
         """Return the projection of the RAS geometry as a
@@ -167,7 +167,7 @@ class RasGeomHdf(RasHdf):
         dict
             Dictionary filled with base geometry attributes.
         """
-        return self.get_attrs(self.geom_path)
+        return self.get_attrs(self.GEOM_PATH)
 
     def get_geom_structures_attrs(self):
         """Returns geometry structures attributes from a HEC-RAS HDF geom file.
@@ -177,7 +177,7 @@ class RasGeomHdf(RasHdf):
         dict
             Dictionary filled with geometry structures attributes.
         """
-        return self.get_attrs(self.geom_structures_path)
+        return self.get_attrs(self.GEOM_STRUCTURES_PATH)
 
     def get_geom_2d_flow_area_attrs(self):
         """Returns geometry 2d flow area attributes from a HEC-RAS HDF geom file.
@@ -188,9 +188,9 @@ class RasGeomHdf(RasHdf):
             Dictionary filled with geometry 2d flow area attributes.
         """
         try:
-            d2_flow_area = get_first_hdf_group(self.get(self.flow_area_2d_path))
+            d2_flow_area = get_first_hdf_group(self.get(self.FLOW_AREA_2D_PATH))
         except AttributeError:
-            raise AttributeError(f"Unable to get 2D Flow Area; {self.flow_area_2d_path} group not found in HDF5 file.")
+            raise AttributeError(f"Unable to get 2D Flow Area; {self.FLOW_AREA_2D_PATH} group not found in HDF5 file.")
 
         d2_flow_area_attrs = hdf5_attrs_to_dict(d2_flow_area.attrs)
 

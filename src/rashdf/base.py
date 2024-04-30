@@ -16,7 +16,7 @@ class RasHdf(h5py.File):
         kwargs : dict
             Additional keyword arguments to pass to h5py.File
         """
-        super().__init__(name, **kwargs)
+        super().__init__(name, mode="r", **kwargs)
 
     @classmethod
     def open_uri(cls, uri: str, fsspec_kwargs: dict = {}, h5py_kwargs: dict = {}) -> "RasHdf":
