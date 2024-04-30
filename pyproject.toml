@@ -16,7 +16,7 @@ version = "0.1.0-beta.1"
 dependencies = ["h5py", "geopandas"]
 
 [project.optional-dependencies]
-dev = ["pytest"]
+dev = ["pre-commit", "ruff", "pytest"]
 
 [project.urls]
 repository = "https://github.com/fema-ffrd/rashdf"

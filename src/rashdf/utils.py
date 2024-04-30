@@ -40,7 +40,7 @@ def parse_ras_simulation_window_datetime(datetime_str) -> datetime:
 def parse_run_time_window(window: str) -> Tuple[datetime, datetime]:
     """
     Parse a run time window string into a tuple of datetime objects.
-    
+
     Parameters
     ----------
         window (str): The run time window string to be parsed.
