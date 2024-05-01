@@ -2,12 +2,18 @@ from .base import RasHdf
 from .utils import convert_ras_hdf_string, get_first_hdf_group, hdf5_attrs_to_dict
 
 import numpy as np
-import pandas as pd
 from geopandas import GeoDataFrame
 from pyproj import CRS
-from shapely import Polygon, Point, LineString, polygonize
+from shapely import (
+    Polygon,
+    Point,
+    LineString,
+    MultiLineString,
+    MultiPolygon,
+    polygonize,
+)
 
-from typing import Optional
+from typing import List, Optional
 
 
 class RasGeomHdf(RasHdf):
@@ -30,11 +36,11 @@ class RasGeomHdf(RasHdf):
         proj_wkt = self.attrs.get("Projection")
         if proj_wkt is None:
             return None
-        if type(proj_wkt) == bytes or type(proj_wkt) == np.bytes_:
+        if isinstance(proj_wkt, bytes) or isinstance(proj_wkt, np.bytes_):
             proj_wkt = proj_wkt.decode("utf-8")
         return CRS.from_wkt(proj_wkt)
 
-    def mesh_area_names(self) -> list:
+    def mesh_area_names(self) -> List[str]:
         """Return a list of the 2D mesh area names of
         the RAS geometry.
 
@@ -60,7 +66,9 @@ class RasGeomHdf(RasHdf):
             return GeoDataFrame()
         mesh_area_polygons = [Polygon(self[f"/Geometry/2D Flow Areas/{n}/Perimeter"][()]) for n in mesh_area_names]
         return GeoDataFrame(
-            {"mesh_name": mesh_area_names, "geometry": mesh_area_polygons}, geometry="geometry", crs=self.projection()
+            {"mesh_name": mesh_area_names, "geometry": mesh_area_polygons},
+            geometry="geometry",
+            crs=self.projection(),
         )
 
     def mesh_cell_polygons(self) -> GeoDataFrame:
@@ -197,13 +205,115 @@ class RasGeomHdf(RasHdf):
         return d2_flow_area_attrs
 
     def bc_lines(self) -> GeoDataFrame:
-        raise NotImplementedError
+        """Return the 2D mesh area boundary condition lines.
+
+        Returns
+        -------
+        GeoDataFrame
+            A GeoDataFrame containing the 2D mesh area boundary condition lines if they exist.
+        """
+        if "/Geometry/Boundary Condition Lines" not in self:
+            return GeoDataFrame()
+        bc_line_data = self["/Geometry/Boundary Condition Lines"]
+        bc_line_ids = range(bc_line_data["Attributes"][()].shape[0])
+        v_conv_str = np.vectorize(convert_ras_hdf_string)
+        names = v_conv_str(bc_line_data["Attributes"][()]["Name"])
+        mesh_names = v_conv_str(bc_line_data["Attributes"][()]["SA-2D"])
+        types = v_conv_str(bc_line_data["Attributes"][()]["Type"])
+        geoms = list()
+        for pnt_start, pnt_cnt, part_start, part_cnt in bc_line_data["Polyline Info"][()]:
+            points = bc_line_data["Polyline Points"][()][pnt_start : pnt_start + pnt_cnt]
+            if part_cnt == 1:
+                geoms.append(LineString(points))
+            else:
+                parts = bc_line_data["Polyline Parts"][()][part_start : part_start + part_cnt]
+                geoms.append(
+                    MultiLineString(
+                        list(
+                            points[part_pnt_start : part_pnt_start + part_pnt_cnt]
+                            for part_pnt_start, part_pnt_cnt in parts
+                        )
+                    )
+                )
+        return GeoDataFrame(
+            {
+                "bc_line_id": bc_line_ids,
+                "name": names,
+                "mesh_name": mesh_names,
+                "type": types,
+                "geometry": geoms,
+            },
+            geometry="geometry",
+            crs=self.projection(),
+        )
 
     def breaklines(self) -> GeoDataFrame:
-        raise NotImplementedError
+        """Return the 2D mesh area breaklines.
+
+        Returns
+        -------
+        GeoDataFrame
+            A GeoDataFrame containing the 2D mesh area breaklines if they exist.
+        """
+        if "/Geometry/2D Flow Area Break Lines" not in self:
+            return GeoDataFrame()
+        bl_line_data = self["/Geometry/2D Flow Area Break Lines"]
+        bl_line_ids = range(bl_line_data["Attributes"][()].shape[0])
+        names = np.vectorize(convert_ras_hdf_string)(bl_line_data["Attributes"][()]["Name"])
+        geoms = list()
+        for pnt_start, pnt_cnt, part_start, part_cnt in bl_line_data["Polyline Info"][()]:
+            points = bl_line_data["Polyline Points"][()][pnt_start : pnt_start + pnt_cnt]
+            if part_cnt == 1:
+                geoms.append(LineString(points))
+            else:
+                parts = bl_line_data["Polyline Parts"][()][part_start : part_start + part_cnt]
+                geoms.append(
+                    MultiLineString(
+                        list(
+                            points[part_pnt_start : part_pnt_start + part_pnt_cnt]
+                            for part_pnt_start, part_pnt_cnt in parts
+                        )
+                    )
+                )
+        return GeoDataFrame(
+            {"bl_id": bl_line_ids, "name": names, "geometry": geoms},
+            geometry="geometry",
+            crs=self.projection(),
+        )
 
     def refinement_regions(self) -> GeoDataFrame:
-        raise NotImplementedError
+        """Return the 2D mesh area refinement regions.
+
+        Returns
+        -------
+        GeoDataFrame
+            A GeoDataFrame containing the 2D mesh area refinement regions if they exist.
+        """
+        if "/Geometry/2D Flow Area Refinement Regions" not in self:
+            return GeoDataFrame()
+        rr_data = self["/Geometry/2D Flow Area Refinement Regions"]
+        rr_ids = range(rr_data["Attributes"][()].shape[0])
+        names = np.vectorize(convert_ras_hdf_string)(rr_data["Attributes"][()]["Name"])
+        geoms = list()
+        for pnt_start, pnt_cnt, part_start, part_cnt in rr_data["Polygon Info"][()]:
+            points = rr_data["Polygon Points"][()][pnt_start : pnt_start + pnt_cnt]
+            if part_cnt == 1:
+                geoms.append(Polygon(points))
+            else:
+                parts = rr_data["Polygon Parts"][()][part_start : part_start + part_cnt]
+                geoms.append(
+                    MultiPolygon(
+                        list(
+                            points[part_pnt_start : part_pnt_start + part_pnt_cnt]
+                            for part_pnt_start, part_pnt_cnt in parts
+                        )
+                    )
+                )
+        return GeoDataFrame(
+            {"rr_id": rr_ids, "name": names, "geometry": geoms},
+            geometry="geometry",
+            crs=self.projection(),
+        )
 
     def connections(self) -> GeoDataFrame:
         raise NotImplementedError
