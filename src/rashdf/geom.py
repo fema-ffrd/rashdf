@@ -51,7 +51,12 @@ class RasGeomHdf(RasHdf):
         """
         if "/Geometry/2D Flow Areas" not in self:
             return list()
-        return list([convert_ras_hdf_string(n) for n in self["/Geometry/2D Flow Areas/Attributes"][()]["Name"]])
+        return list(
+            [
+                convert_ras_hdf_string(n)
+                for n in self["/Geometry/2D Flow Areas/Attributes"][()]["Name"]
+            ]
+        )
 
     def mesh_areas(self) -> GeoDataFrame:
         """Return 2D flow area perimeter polygons.
@@ -64,7 +69,10 @@ class RasGeomHdf(RasHdf):
         mesh_area_names = self.mesh_area_names()
         if not mesh_area_names:
             return GeoDataFrame()
-        mesh_area_polygons = [Polygon(self[f"/Geometry/2D Flow Areas/{n}/Perimeter"][()]) for n in mesh_area_names]
+        mesh_area_polygons = [
+            Polygon(self[f"/Geometry/2D Flow Areas/{n}/Perimeter"][()])
+            for n in mesh_area_names
+        ]
         return GeoDataFrame(
             {"mesh_name": mesh_area_names, "geometry": mesh_area_polygons},
             geometry="geometry",
@@ -89,26 +97,37 @@ class RasGeomHdf(RasHdf):
         for i, mesh_name in enumerate(mesh_area_names):
             cell_cnt = self["/Geometry/2D Flow Areas/Cell Info"][()][i][1]
             cell_ids = list(range(cell_cnt))
-            cell_face_info = self[f"/Geometry/2D Flow Areas/{mesh_name}/Cells Face and Orientation Info"][()]
-            cell_face_values = self[f"/Geometry/2D Flow Areas/{mesh_name}/Cells Face and Orientation Values"][()][:, 0]
+            cell_face_info = self[
+                f"/Geometry/2D Flow Areas/{mesh_name}/Cells Face and Orientation Info"
+            ][()]
+            cell_face_values = self[
+                f"/Geometry/2D Flow Areas/{mesh_name}/Cells Face and Orientation Values"
+            ][()][:, 0]
             face_id_lists = list(
                 np.vectorize(
                     lambda cell_id: str(
                         cell_face_values[
-                            cell_face_info[cell_id][0] : cell_face_info[cell_id][0] + cell_face_info[cell_id][1]
+                            cell_face_info[cell_id][0] : cell_face_info[cell_id][0]
+                            + cell_face_info[cell_id][1]
                         ]
                     )
                 )(cell_ids)
             )
             mesh_faces = (
-                face_gdf[face_gdf.mesh_name == mesh_name][["face_id", "geometry"]].set_index("face_id").to_numpy()
+                face_gdf[face_gdf.mesh_name == mesh_name][["face_id", "geometry"]]
+                .set_index("face_id")
+                .to_numpy()
             )
             cell_dict["mesh_name"] += [mesh_name] * cell_cnt
             cell_dict["cell_id"] += cell_ids
             cell_dict["geometry"] += list(
                 np.vectorize(
                     lambda face_id_list: polygonize(
-                        np.ravel(mesh_faces[np.array(face_id_list.strip("[]").split()).astype(int)])
+                        np.ravel(
+                            mesh_faces[
+                                np.array(face_id_list.strip("[]").split()).astype(int)
+                            ]
+                        )
                     ).geoms[0]
                 )(face_id_lists)
             )
@@ -128,11 +147,15 @@ class RasGeomHdf(RasHdf):
         pnt_dict = {"mesh_name": [], "cell_id": [], "geometry": []}
         for i, mesh_name in enumerate(mesh_area_names):
             starting_row, count = self["/Geometry/2D Flow Areas/Cell Info"][()][i]
-            cell_pnt_coords = self["/Geometry/2D Flow Areas/Cell Points"][()][starting_row : starting_row + count]
+            cell_pnt_coords = self["/Geometry/2D Flow Areas/Cell Points"][()][
+                starting_row : starting_row + count
+            ]
             pnt_dict["mesh_name"] += [mesh_name] * cell_pnt_coords.shape[0]
             pnt_dict["cell_id"] += range(count)
             pnt_dict["geometry"] += list(
-                np.vectorize(lambda coords: Point(coords), signature="(n)->()")(cell_pnt_coords)
+                np.vectorize(lambda coords: Point(coords), signature="(n)->()")(
+                    cell_pnt_coords
+                )
             )
         return GeoDataFrame(pnt_dict, geometry="geometry", crs=self.projection())
 
@@ -149,10 +172,18 @@ class RasGeomHdf(RasHdf):
             return GeoDataFrame()
         face_dict = {"mesh_name": [], "face_id": [], "geometry": []}
         for mesh_name in mesh_area_names:
-            facepoints_index = self[f"/Geometry/2D Flow Areas/{mesh_name}/Faces FacePoint Indexes"][()]
-            facepoints_coordinates = self[f"/Geometry/2D Flow Areas/{mesh_name}/FacePoints Coordinate"][()]
-            faces_perimeter_info = self[f"/Geometry/2D Flow Areas/{mesh_name}/Faces Perimeter Info"][()]
-            faces_perimeter_values = self[f"/Geometry/2D Flow Areas/{mesh_name}/Faces Perimeter Values"][()]
+            facepoints_index = self[
+                f"/Geometry/2D Flow Areas/{mesh_name}/Faces FacePoint Indexes"
+            ][()]
+            facepoints_coordinates = self[
+                f"/Geometry/2D Flow Areas/{mesh_name}/FacePoints Coordinate"
+            ][()]
+            faces_perimeter_info = self[
+                f"/Geometry/2D Flow Areas/{mesh_name}/Faces Perimeter Info"
+            ][()]
+            faces_perimeter_values = self[
+                f"/Geometry/2D Flow Areas/{mesh_name}/Faces Perimeter Values"
+            ][()]
             face_id = -1
             for pnt_a_index, pnt_b_index in facepoints_index:
                 face_id += 1
@@ -162,7 +193,9 @@ class RasGeomHdf(RasHdf):
                 coordinates.append(facepoints_coordinates[pnt_a_index])
                 starting_row, count = faces_perimeter_info[face_id]
                 if count > 0:
-                    coordinates += list(faces_perimeter_values[starting_row : starting_row + count])
+                    coordinates += list(
+                        faces_perimeter_values[starting_row : starting_row + count]
+                    )
                 coordinates.append(facepoints_coordinates[pnt_b_index])
                 face_dict["geometry"].append(LineString(coordinates))
         return GeoDataFrame(face_dict, geometry="geometry", crs=self.projection())
@@ -198,7 +231,9 @@ class RasGeomHdf(RasHdf):
         try:
             d2_flow_area = get_first_hdf_group(self.get(self.FLOW_AREA_2D_PATH))
         except AttributeError:
-            raise AttributeError(f"Unable to get 2D Flow Area; {self.FLOW_AREA_2D_PATH} group not found in HDF5 file.")
+            raise AttributeError(
+                f"Unable to get 2D Flow Area; {self.FLOW_AREA_2D_PATH} group not found in HDF5 file."
+            )
 
         d2_flow_area_attrs = hdf5_attrs_to_dict(d2_flow_area.attrs)
 
@@ -221,12 +256,18 @@ class RasGeomHdf(RasHdf):
         mesh_names = v_conv_str(bc_line_data["Attributes"][()]["SA-2D"])
         types = v_conv_str(bc_line_data["Attributes"][()]["Type"])
         geoms = list()
-        for pnt_start, pnt_cnt, part_start, part_cnt in bc_line_data["Polyline Info"][()]:
-            points = bc_line_data["Polyline Points"][()][pnt_start : pnt_start + pnt_cnt]
+        for pnt_start, pnt_cnt, part_start, part_cnt in bc_line_data["Polyline Info"][
+            ()
+        ]:
+            points = bc_line_data["Polyline Points"][()][
+                pnt_start : pnt_start + pnt_cnt
+            ]
             if part_cnt == 1:
                 geoms.append(LineString(points))
             else:
-                parts = bc_line_data["Polyline Parts"][()][part_start : part_start + part_cnt]
+                parts = bc_line_data["Polyline Parts"][()][
+                    part_start : part_start + part_cnt
+                ]
                 geoms.append(
                     MultiLineString(
                         list(
@@ -259,14 +300,22 @@ class RasGeomHdf(RasHdf):
             return GeoDataFrame()
         bl_line_data = self["/Geometry/2D Flow Area Break Lines"]
         bl_line_ids = range(bl_line_data["Attributes"][()].shape[0])
-        names = np.vectorize(convert_ras_hdf_string)(bl_line_data["Attributes"][()]["Name"])
+        names = np.vectorize(convert_ras_hdf_string)(
+            bl_line_data["Attributes"][()]["Name"]
+        )
         geoms = list()
-        for pnt_start, pnt_cnt, part_start, part_cnt in bl_line_data["Polyline Info"][()]:
-            points = bl_line_data["Polyline Points"][()][pnt_start : pnt_start + pnt_cnt]
+        for pnt_start, pnt_cnt, part_start, part_cnt in bl_line_data["Polyline Info"][
+            ()
+        ]:
+            points = bl_line_data["Polyline Points"][()][
+                pnt_start : pnt_start + pnt_cnt
+            ]
             if part_cnt == 1:
                 geoms.append(LineString(points))
             else:
-                parts = bl_line_data["Polyline Parts"][()][part_start : part_start + part_cnt]
+                parts = bl_line_data["Polyline Parts"][()][
+                    part_start : part_start + part_cnt
+                ]
                 geoms.append(
                     MultiLineString(
                         list(

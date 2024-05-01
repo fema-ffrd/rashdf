@@ -19,7 +19,9 @@ class RasHdf(h5py.File):
         super().__init__(name, mode="r", **kwargs)
 
     @classmethod
-    def open_uri(cls, uri: str, fsspec_kwargs: dict = {}, h5py_kwargs: dict = {}) -> "RasHdf":
+    def open_uri(
+        cls, uri: str, fsspec_kwargs: dict = {}, h5py_kwargs: dict = {}
+    ) -> "RasHdf":
         """Open a HEC-RAS HDF file from a URI.
 
         Parameters
