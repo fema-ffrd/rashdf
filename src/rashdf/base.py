@@ -1,4 +1,6 @@
 import h5py
+from .utils import hdf5_attrs_to_dict
+from typing import Dict
 
 
 class RasHdf(h5py.File):
@@ -42,7 +44,35 @@ class RasHdf(h5py.File):
         --------
         >>> results_hdf = RasHdf.open_uri("s3://my-bucket/results.hdf")
         """
-        import fsspec  # type: ignore
+        import fsspec
 
         remote_file = fsspec.open(uri, mode="rb", **fsspec_kwargs)
         return cls(remote_file.open(), **h5py_kwargs)
+
+    def get_attrs(self, attr_path: str) -> Dict:
+        """Convert attributes from a HEC-RAS HDF file into a Python dictionary for a given attribute path.
+
+        Parameters
+        ----------
+            attr_path (str): The path within the HEC-RAS HDF file where the desired attributes are located (Ex. "Plan Data/Plan Parameters").
+
+        Returns
+        -------
+            plan_attrs (dict): Dictionary filled with attributes at given path, if attributes exist at that path.
+        """
+        attr_object = self.get(attr_path)
+
+        if attr_object:
+            return hdf5_attrs_to_dict(attr_object.attrs)
+
+        return {}
+
+    def get_root_attrs(self):
+        """Returns attributes at root level of HEC-RAS HDF file.
+
+        Returns
+        -------
+        dict
+            Dictionary filled with HEC-RAS HDF root attributes.
+        """
+        return self.get_attrs("/")

@@ -71,3 +71,42 @@ def test_refinement_regions():
     rr_json = TEST_JSON / "refinement_regions.json"
     with RasGeomHdf(MUNCIE_G05) as ghdf:
         assert _gdf_matches_json(ghdf.refinement_regions(), rr_json)
+
+
+def test_get_geom_attrs(tmp_path):
+    attrs_to_set = {"test_attribute1": "test_str1", "test_attribute2": 500}
+
+    with h5py.File(tmp_path / "test.hdf", "w") as f:
+        geom_group = f.create_group(RasGeomHdf.GEOM_PATH)
+        for key, value in attrs_to_set.items():
+            geom_group.attrs[key] = value
+
+    ras_hdf = RasGeomHdf(tmp_path / "test.hdf")
+
+    assert ras_hdf.get_geom_attrs() == attrs_to_set
+
+
+def test_get_geom_structures_attrs(tmp_path):
+    attrs_to_set = {"test_attribute1": "test_str1", "test_attribute2": 500}
+
+    with h5py.File(tmp_path / "test.hdf", "w") as f:
+        structures_group = f.create_group(RasGeomHdf.GEOM_STRUCTURES_PATH)
+        for key, value in attrs_to_set.items():
+            structures_group.attrs[key] = value
+
+    ras_hdf = RasGeomHdf(tmp_path / "test.hdf")
+
+    assert ras_hdf.get_geom_structures_attrs() == attrs_to_set
+
+
+def test_get_geom_2d_flow_area_attrs(tmp_path):
+    attrs_to_set = {"test_attribute1": "test_str1", "test_attribute2": 500}
+
+    with h5py.File(tmp_path / "test.hdf", "w") as f:
+        flow_area_group = f.create_group(f"{RasGeomHdf.FLOW_AREA_2D_PATH}/group")
+        for key, value in attrs_to_set.items():
+            flow_area_group.attrs[key] = value
+
+    ras_hdf = RasGeomHdf(tmp_path / "test.hdf")
+
+    assert ras_hdf.get_geom_2d_flow_area_attrs() == attrs_to_set

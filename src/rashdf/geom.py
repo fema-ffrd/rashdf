@@ -1,5 +1,5 @@
 from .base import RasHdf
-from .utils import convert_ras_hdf_string
+from .utils import convert_ras_hdf_string, get_first_hdf_group, hdf5_attrs_to_dict
 
 import numpy as np
 from geopandas import GeoDataFrame
@@ -17,6 +17,13 @@ from typing import List, Optional
 
 
 class RasGeomHdf(RasHdf):
+    GEOM_PATH = "Geometry"
+    GEOM_STRUCTURES_PATH = f"{GEOM_PATH}/Structures"
+    FLOW_AREA_2D_PATH = f"{GEOM_PATH}/2D Flow Areas"
+
+    def __init__(self, name: str, **kwargs):
+        super().__init__(name, **kwargs)
+
     def projection(self) -> Optional[CRS]:
         """Return the projection of the RAS geometry as a
         pyproj.CRS object.
@@ -192,6 +199,45 @@ class RasGeomHdf(RasHdf):
                 coordinates.append(facepoints_coordinates[pnt_b_index])
                 face_dict["geometry"].append(LineString(coordinates))
         return GeoDataFrame(face_dict, geometry="geometry", crs=self.projection())
+
+    def get_geom_attrs(self):
+        """Returns base geometry attributes from a HEC-RAS HDF file.
+
+        Returns
+        -------
+        dict
+            Dictionary filled with base geometry attributes.
+        """
+        return self.get_attrs(self.GEOM_PATH)
+
+    def get_geom_structures_attrs(self):
+        """Returns geometry structures attributes from a HEC-RAS HDF file.
+
+        Returns
+        -------
+        dict
+            Dictionary filled with geometry structures attributes.
+        """
+        return self.get_attrs(self.GEOM_STRUCTURES_PATH)
+
+    def get_geom_2d_flow_area_attrs(self):
+        """Returns geometry 2d flow area attributes from a HEC-RAS HDF file.
+
+        Returns
+        -------
+        dict
+            Dictionary filled with geometry 2d flow area attributes.
+        """
+        try:
+            d2_flow_area = get_first_hdf_group(self.get(self.FLOW_AREA_2D_PATH))
+        except AttributeError:
+            raise AttributeError(
+                f"Unable to get 2D Flow Area; {self.FLOW_AREA_2D_PATH} group not found in HDF5 file."
+            )
+
+        d2_flow_area_attrs = hdf5_attrs_to_dict(d2_flow_area.attrs)
+
+        return d2_flow_area_attrs
 
     def bc_lines(self) -> GeoDataFrame:
         """Return the 2D mesh area boundary condition lines.

@@ -1,6 +1,6 @@
 import numpy as np
-
-from typing import Any, List, Tuple, Union
+import h5py
+from typing import Any, List, Tuple, Union, Optional
 
 from datetime import datetime, timedelta
 import re
@@ -168,3 +168,48 @@ def convert_ras_hdf_value(
     # Convert all other types to string
     else:
         return str(value)
+
+
+def hdf5_attrs_to_dict(attrs: dict, prefix: str = None) -> dict:
+    """
+    Convert a dictionary of attributes from an HDF5 file into a Python dictionary.
+
+    Parameters:
+    ----------
+        attrs (dict): The attributes to be converted.
+        prefix (str, optional): An optional prefix to prepend to the keys.
+
+    Returns:
+    ----------
+        dict: A dictionary with the converted attributes.
+    """
+    results = {}
+    for k, v in attrs.items():
+        value = convert_ras_hdf_value(v)
+        if prefix:
+            key = f"{prefix}:{k}"
+        else:
+            key = k
+        results[key] = value
+    return results
+
+
+def get_first_hdf_group(parent_group: h5py.Group) -> Optional[h5py.Group]:
+    """
+    Get the first HDF5 group from a parent group.
+
+    This function iterates over the items in the parent group and returns the first item that is an instance of
+     h5py.Group. If no such item is found, it returns None.
+
+    Parameters:
+    ----------
+        parent_group (h5py.Group): The parent group to search in.
+
+    Returns:
+    ----------
+        Optional[h5py.Group]: The first HDF5 group in the parent group, or None if no group is found.
+    """
+    for _, item in parent_group.items():
+        if isinstance(item, h5py.Group):
+            return item
+    return None
