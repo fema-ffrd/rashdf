@@ -53,16 +53,16 @@ def test_get_results_unsteady_attrs(tmp_path):
     assert ras_plan_hdf.get_results_unsteady_attrs() == attrs_to_set
 
 
-def test_get_results_summary_attrs(tmp_path):
+def test_get_results_unsteady_summary_attrs(tmp_path):
 
     with h5py.File(tmp_path / "test.hdf", "w") as f:
-        group = f.create_group(RasPlanHdf.RESULTS_SUMMARY_PATH)
+        group = f.create_group(RasPlanHdf.RESULTS_UNSTEADY_SUMMARY_PATH)
         for key, value in attrs_to_set.items():
             group.attrs[key] = value
 
     ras_plan_hdf = RasPlanHdf(tmp_path / "test.hdf")
 
-    assert ras_plan_hdf.get_results_summary_attrs() == attrs_to_set
+    assert ras_plan_hdf.get_results_unsteady_summary_attrs() == attrs_to_set
 
 
 def test_get_results_volume_accounting_attrs(tmp_path):

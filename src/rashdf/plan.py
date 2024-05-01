@@ -1,15 +1,14 @@
 from .geom import RasGeomHdf
-from .base import RasHdf
 from typing import Dict
 from geopandas import GeoDataFrame
 
 
-class RasPlanHdf(RasHdf):
+class RasPlanHdf(RasGeomHdf):
     PLAN_INFO_PATH = "Plan Data/Plan Information"
     PLAN_PARAMS_PATH = "Plan Data/Plan Parameters"
     PRECIP_PATH = "Event Conditions/Meteorology/Precipitation"
     RESULTS_UNSTEADY_PATH = "Results/Unsteady"
-    RESULTS_SUMMARY_PATH = f"{RESULTS_UNSTEADY_PATH}/Summary"
+    RESULTS_UNSTEADY_SUMMARY_PATH = f"{RESULTS_UNSTEADY_PATH}/Summary"
     VOLUME_ACCOUNTING_PATH = f"{RESULTS_UNSTEADY_PATH}/Volume Accounting"
 
     def __init__(self, name: str, **kwargs):
@@ -55,15 +54,15 @@ class RasPlanHdf(RasHdf):
         """
         return self.get_attrs(self.RESULTS_UNSTEADY_PATH)
 
-    def get_results_summary_attrs(self) -> Dict:
-        """Returns results summary attributes from a HEC-RAS HDF plan file.
+    def get_results_unsteady_summary_attrs(self) -> Dict:
+        """Returns results unsteady summary attributes from a HEC-RAS HDF plan file.
 
         Returns
         -------
         dict
             Dictionary filled with results summary attributes.
         """
-        return self.get_attrs(self.RESULTS_SUMMARY_PATH)
+        return self.get_attrs(self.RESULTS_UNSTEADY_SUMMARY_PATH)
 
     def get_results_volume_accounting_attrs(self) -> Dict:
         """Returns volume accounting attributes from a HEC-RAS HDF plan file.

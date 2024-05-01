@@ -160,7 +160,7 @@ class RasGeomHdf(RasHdf):
         return GeoDataFrame(face_dict, geometry="geometry", crs=self.projection())
 
     def get_geom_attrs(self):
-        """Returns base geometry attributes from a HEC-RAS HDF geom file.
+        """Returns base geometry attributes from a HEC-RAS HDF file.
 
         Returns
         -------
@@ -170,7 +170,7 @@ class RasGeomHdf(RasHdf):
         return self.get_attrs(self.GEOM_PATH)
 
     def get_geom_structures_attrs(self):
-        """Returns geometry structures attributes from a HEC-RAS HDF geom file.
+        """Returns geometry structures attributes from a HEC-RAS HDF file.
 
         Returns
         -------
@@ -180,7 +180,7 @@ class RasGeomHdf(RasHdf):
         return self.get_attrs(self.GEOM_STRUCTURES_PATH)
 
     def get_geom_2d_flow_area_attrs(self):
-        """Returns geometry 2d flow area attributes from a HEC-RAS HDF geom file.
+        """Returns geometry 2d flow area attributes from a HEC-RAS HDF file.
 
         Returns
         -------
