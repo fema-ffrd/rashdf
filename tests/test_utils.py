@@ -3,7 +3,7 @@ from src.rashdf import utils
 import numpy as np
 import pytest
 
-from datetime import datetime
+from datetime import datetime, timedelta
 
 
 def test_convert_ras_hdf_value():
@@ -18,3 +18,6 @@ def test_convert_ras_hdf_value():
         datetime(2024, 3, 15, 16, 39, 1),
         datetime(2024, 3, 16, 16, 39, 1),
     ]
+    assert utils.convert_ras_hdf_value(b"01:23:45") == timedelta(
+        hours=1, minutes=23, seconds=45
+    )

@@ -42,9 +42,17 @@ Also, methods to extract certain HDF group attributes as dictionaries:
 ```python
 >>> from rashdf import RasPlanHdf
 >>> with RasPlanHdf("path/to/rasmodel/Muncie.p04.hdf") as plan_hdf:
->>>     results_unsteady_summary = plan_hdf.get_results_unsteady_summary()
+>>> results_unsteady_summary = plan_hdf.get_results_unsteady_summary()
 >>> results_unsteady_summary
-{'Computation Time DSS': '00:00:00', 'Computation Time Total': '00:00:23', 'Maximum WSEL Error': 0.0099277812987566, 'Maximum number of cores': 6, 'Run Time Window': [datetime.datetime(2024, 3, 27, 9, 31, 52), datetime.datetime(2024, 3, 27, 9, 32, 15)], 'Solution': 'Unsteady Finished Successfully', 'Time Solution Went Unstable': None, 'Time Stamp Solution Went Unstable': 'Not Applicable'}
+{'Computation Time DSS': datetime.timedelta(0),
+'Computation Time Total': datetime.timedelta(seconds=23),
+'Maximum WSEL Error': 0.0099277812987566,
+'Maximum number of cores': 6,
+'Run Time Window': [datetime.datetime(2024, 3, 27, 9, 31, 52),
+datetime.datetime(2024, 3, 27, 9, 32, 15)],
+'Solution': 'Unsteady Finished Successfully',
+'Time Solution Went Unstable': None,
+'Time Stamp Solution Went Unstable': 'Not Applicable'}
 ```
 
 ## Documentation
