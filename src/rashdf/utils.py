@@ -93,8 +93,8 @@ def convert_ras_hdf_string(
     Returns
     -------
         The converted value, which could be a boolean, a datetime string,
-        a list of datetime strings, or the original string if no other conditions
-        are met.
+        a list of datetime strings, a timedelta objects, or the original string
+        if no other conditions are met.
     """
     ras_datetime_format1_re = r"\d{2}\w{3}\d{4} \d{2}:\d{2}:\d{2}"
     ras_datetime_format2_re = r"\d{2}\w{3}\d{4} \d{2}\d{2}"
