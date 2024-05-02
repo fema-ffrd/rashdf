@@ -5,9 +5,13 @@ from geopandas import GeoDataFrame
 from pyproj import CRS
 from pathlib import Path
 
+from . import _create_hdf_with_group_attrs
+
 TEST_DATA = Path("./tests/data")
 MUNCIE_G05 = TEST_DATA / "ras/Muncie.g05.hdf"
 TEST_JSON = TEST_DATA / "json"
+
+TEST_ATTRS = {"test_attribute1": "test_str1", "test_attribute2": 500}
 
 
 def test_projection(tmp_path):
@@ -74,39 +78,23 @@ def test_refinement_regions():
 
 
 def test_get_geom_attrs(tmp_path):
-    attrs_to_set = {"test_attribute1": "test_str1", "test_attribute2": 500}
-
-    with h5py.File(tmp_path / "test.hdf", "w") as f:
-        geom_group = f.create_group(RasGeomHdf.GEOM_PATH)
-        for key, value in attrs_to_set.items():
-            geom_group.attrs[key] = value
-
-    ras_hdf = RasGeomHdf(tmp_path / "test.hdf")
-
-    assert ras_hdf.get_geom_attrs() == attrs_to_set
+    test_hdf = tmp_path / "test.hdf"
+    _create_hdf_with_group_attrs(test_hdf, RasGeomHdf.GEOM_PATH, TEST_ATTRS)
+    ras_hdf = RasGeomHdf(test_hdf)
+    assert ras_hdf.get_geom_attrs() == TEST_ATTRS
 
 
 def test_get_geom_structures_attrs(tmp_path):
-    attrs_to_set = {"test_attribute1": "test_str1", "test_attribute2": 500}
-
-    with h5py.File(tmp_path / "test.hdf", "w") as f:
-        structures_group = f.create_group(RasGeomHdf.GEOM_STRUCTURES_PATH)
-        for key, value in attrs_to_set.items():
-            structures_group.attrs[key] = value
-
-    ras_hdf = RasGeomHdf(tmp_path / "test.hdf")
-
-    assert ras_hdf.get_geom_structures_attrs() == attrs_to_set
+    test_hdf = tmp_path / "test.hdf"
+    _create_hdf_with_group_attrs(test_hdf, RasGeomHdf.GEOM_STRUCTURES_PATH, TEST_ATTRS)
+    ras_hdf = RasGeomHdf(test_hdf)
+    assert ras_hdf.get_geom_structures_attrs() == TEST_ATTRS
 
 
 def test_get_geom_2d_flow_area_attrs(tmp_path):
-    attrs_to_set = {"test_attribute1": "test_str1", "test_attribute2": 500}
-
-    with h5py.File(tmp_path / "test.hdf", "w") as f:
-        flow_area_group = f.create_group(f"{RasGeomHdf.FLOW_AREA_2D_PATH}/group")
-        for key, value in attrs_to_set.items():
-            flow_area_group.attrs[key] = value
-
-    ras_hdf = RasGeomHdf(tmp_path / "test.hdf")
-
-    assert ras_hdf.get_geom_2d_flow_area_attrs() == attrs_to_set
+    test_hdf = tmp_path / "test.hdf"
+    _create_hdf_with_group_attrs(
+        test_hdf, f"{RasGeomHdf.FLOW_AREA_2D_PATH}/group", TEST_ATTRS
+    )
+    ras_hdf = RasGeomHdf(test_hdf)
+    assert ras_hdf.get_geom_2d_flow_area_attrs() == TEST_ATTRS
