@@ -1,9 +1,9 @@
 from .base import RasHdf
 from .utils import (
-    convert_ras_hdf_string, 
-    get_first_hdf_group, 
+    convert_ras_hdf_string,
+    get_first_hdf_group,
     hdf5_attrs_to_dict,
-    convert_ras_hdf_value
+    convert_ras_hdf_value,
 )
 
 import numpy as np
@@ -382,23 +382,23 @@ class RasGeomHdf(RasHdf):
         struct_data = self["/Geometry/Structures"]
         v_conv_val = np.vectorize(convert_ras_hdf_value)
         struct_dict = {
-            "struct_id" : range(struct_data["Attributes"][()].shape[0]),
-            "Type" : v_conv_val(struct_data["Attributes"][()]["Type"]),
-            "Mode" : v_conv_val(struct_data["Attributes"][()]["Mode"]),
-            "River" : v_conv_val(struct_data["Attributes"][()]["River"]),
-            "Reach" : v_conv_val(struct_data["Attributes"][()]["Reach"]),
-            "RS" : v_conv_val(struct_data["Attributes"][()]["RS"]),
-            "Connection" : v_conv_val(struct_data["Attributes"][()]["Connection"]),
-            "US Type" : v_conv_val(struct_data["Attributes"][()]["US Type"]),
-            "US River" : v_conv_val(struct_data["Attributes"][()]["US River"]),
-            "US Reach" : v_conv_val(struct_data["Attributes"][()]["US Reach"]),
-            "US RS" : v_conv_val(struct_data["Attributes"][()]["US RS"]),
-            "US SA/2D" : v_conv_val(struct_data["Attributes"][()]["US SA/2D"]),
-            "DS Type" : v_conv_val(struct_data["Attributes"][()]["DS Type"]),
-            "DS River" : v_conv_val(struct_data["Attributes"][()]["DS River"]),
-            "DS Reach" : v_conv_val(struct_data["Attributes"][()]["DS Reach"]),
-            "DS RS" : v_conv_val(struct_data["Attributes"][()]["DS RS"]),
-            "DS SA/2D" : v_conv_val(struct_data["Attributes"][()]["DS SA/2D"])
+            "struct_id": range(struct_data["Attributes"][()].shape[0]),
+            "Type": v_conv_val(struct_data["Attributes"][()]["Type"]),
+            "Mode": v_conv_val(struct_data["Attributes"][()]["Mode"]),
+            "River": v_conv_val(struct_data["Attributes"][()]["River"]),
+            "Reach": v_conv_val(struct_data["Attributes"][()]["Reach"]),
+            "RS": v_conv_val(struct_data["Attributes"][()]["RS"]),
+            "Connection": v_conv_val(struct_data["Attributes"][()]["Connection"]),
+            "US Type": v_conv_val(struct_data["Attributes"][()]["US Type"]),
+            "US River": v_conv_val(struct_data["Attributes"][()]["US River"]),
+            "US Reach": v_conv_val(struct_data["Attributes"][()]["US Reach"]),
+            "US RS": v_conv_val(struct_data["Attributes"][()]["US RS"]),
+            "US SA/2D": v_conv_val(struct_data["Attributes"][()]["US SA/2D"]),
+            "DS Type": v_conv_val(struct_data["Attributes"][()]["DS Type"]),
+            "DS River": v_conv_val(struct_data["Attributes"][()]["DS River"]),
+            "DS Reach": v_conv_val(struct_data["Attributes"][()]["DS Reach"]),
+            "DS RS": v_conv_val(struct_data["Attributes"][()]["DS RS"]),
+            "DS SA/2D": v_conv_val(struct_data["Attributes"][()]["DS SA/2D"]),
         }
         geoms = list()
         for pnt_start, pnt_cnt, part_start, part_cnt in struct_data["Centerline Info"][
