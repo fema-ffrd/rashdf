@@ -12,7 +12,7 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
 ]
-version = "0.1.0"
+version = "0.1.1"
 dependencies = ["h5py", "geopandas"]
 
 [project.optional-dependencies]
@@ -24,3 +24,11 @@ repository = "https://github.com/fema-ffrd/rashdf"
 [tool.pytest.ini_options]
 pythonpath = "src"
 testpaths = "tests"
+
+# TODO: linting for docstrings.
+# https://github.com/fema-ffrd/rashdf/issues/15
+# [tool.ruff.lint]
+# select = ["D"]
+
+# [tool.ruff.lint.pydocstyle]
+# convention = "numpy"

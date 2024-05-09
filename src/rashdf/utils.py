@@ -73,14 +73,18 @@ def parse_duration(duration_str: str) -> timedelta:
     return duration
 
 
-def convert_ras_hdf_string(value: str) -> Union[bool, str, List[str]]:
+def convert_ras_hdf_string(
+    value: str,
+) -> Union[bool, datetime, List[datetime], timedelta, str]:
     """Convert a string value from an HEC-RAS HDF file into a Python object.
 
     This function handles several specific string formats:
-    - "True" and "False" are converted to boolean values.
-    - Strings matching the format "ddMMMyyyy HH:mm:ss" or "ddMMMyyyy HHmm" are parsed into datetime objects.
-    - Strings matching the format "ddMMMyyyy HH:mm:ss to ddMMMyyyy HH:mm:ss" or "ddMMMyyyy HHmm to ddMMMyyyy HHmm"
-    are parsed into a list of two datetime objects.
+    - The strings "True" and "False" are converted to boolean values.
+    - Strings matching the format "ddMMMyyyy HH:mm:ss" or "ddMMMyyyy HHmm"
+      are parsed into datetime objects.
+    - Strings matching the format "ddMMMyyyy HH:mm:ss to ddMMMyyyy HH:mm:ss" or
+      "ddMMMyyyy HHmm to ddMMMyyyy HHmm" are parsed into a list of two datetime objects.
+    - Strings matching the format "HH:mm:ss" are parsed into timedelta objects.
 
     Parameters
     ----------
@@ -88,11 +92,13 @@ def convert_ras_hdf_string(value: str) -> Union[bool, str, List[str]]:
 
     Returns
     -------
-        The converted value, which could be a boolean, a datetime string, a list of datetime strings, or the original
-        string if no other conditions are met.
+        The converted value, which could be a boolean, a datetime string,
+        a list of datetime strings, a timedelta objects, or the original string
+        if no other conditions are met.
     """
     ras_datetime_format1_re = r"\d{2}\w{3}\d{4} \d{2}:\d{2}:\d{2}"
     ras_datetime_format2_re = r"\d{2}\w{3}\d{4} \d{2}\d{2}"
+    ras_duration_format_re = r"\d{2}:\d{2}:\d{2}"
     s = value.decode("utf-8")
     if s == "True":
         return True
@@ -114,6 +120,8 @@ def convert_ras_hdf_string(value: str) -> Union[bool, str, List[str]]:
                 parse_ras_simulation_window_datetime(split[1]),
             ]
         return parse_ras_simulation_window_datetime(s)
+    elif re.match(rf"^{ras_duration_format_re}$", s):
+        return parse_duration(s)
     return s
 
 
