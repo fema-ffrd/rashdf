@@ -1,5 +1,10 @@
 from .base import RasHdf
-from .utils import convert_ras_hdf_string, get_first_hdf_group, hdf5_attrs_to_dict
+from .utils import (
+    convert_ras_hdf_string, 
+    get_first_hdf_group, 
+    hdf5_attrs_to_dict,
+    convert_ras_hdf_value
+)
 
 import numpy as np
 from geopandas import GeoDataFrame
@@ -364,6 +369,64 @@ class RasGeomHdf(RasHdf):
             crs=self.projection(),
         )
 
+    def structures(self) -> GeoDataFrame:
+        """Return the model structures.
+
+        Returns
+        -------
+        GeoDataFrame
+            A GeoDataFrame containing the model structures if they exist.
+        """
+        if "/Geometry/Structures" not in self:
+            return GeoDataFrame()
+        struct_data = self["/Geometry/Structures"]
+        v_conv_val = np.vectorize(convert_ras_hdf_value)
+        struct_dict = {
+            "struct_id" : range(struct_data["Attributes"][()].shape[0]),
+            "Type" : v_conv_val(struct_data["Attributes"][()]["Type"]),
+            "Mode" : v_conv_val(struct_data["Attributes"][()]["Mode"]),
+            "River" : v_conv_val(struct_data["Attributes"][()]["River"]),
+            "Reach" : v_conv_val(struct_data["Attributes"][()]["Reach"]),
+            "RS" : v_conv_val(struct_data["Attributes"][()]["RS"]),
+            "Connection" : v_conv_val(struct_data["Attributes"][()]["Connection"]),
+            "US Type" : v_conv_val(struct_data["Attributes"][()]["US Type"]),
+            "US River" : v_conv_val(struct_data["Attributes"][()]["US River"]),
+            "US Reach" : v_conv_val(struct_data["Attributes"][()]["US Reach"]),
+            "US RS" : v_conv_val(struct_data["Attributes"][()]["US RS"]),
+            "US SA/2D" : v_conv_val(struct_data["Attributes"][()]["US SA/2D"]),
+            "DS Type" : v_conv_val(struct_data["Attributes"][()]["DS Type"]),
+            "DS River" : v_conv_val(struct_data["Attributes"][()]["DS River"]),
+            "DS Reach" : v_conv_val(struct_data["Attributes"][()]["DS Reach"]),
+            "DS RS" : v_conv_val(struct_data["Attributes"][()]["DS RS"]),
+            "DS SA/2D" : v_conv_val(struct_data["Attributes"][()]["DS SA/2D"])
+        }
+        geoms = list()
+        for pnt_start, pnt_cnt, part_start, part_cnt in struct_data["Centerline Info"][
+            ()
+        ]:
+            points = struct_data["Centerline Points"][()][
+                pnt_start : pnt_start + pnt_cnt
+            ]
+            if part_cnt == 1:
+                geoms.append(LineString(points))
+            else:
+                parts = struct_data["Centerline Parts"][()][
+                    part_start : part_start + part_cnt
+                ]
+                geoms.append(
+                    MultiLineString(
+                        list(
+                            points[part_pnt_start : part_pnt_start + part_pnt_cnt]
+                            for part_pnt_start, part_pnt_cnt in parts
+                        )
+                    )
+                )
+        return GeoDataFrame(
+            struct_dict,
+            geometry=geoms,
+            crs=self.projection(),
+        )
+
     def connections(self) -> GeoDataFrame:
         raise NotImplementedError
 
@@ -374,9 +437,6 @@ class RasGeomHdf(RasHdf):
         raise NotImplementedError
 
     def reference_points(self) -> GeoDataFrame:
-        raise NotImplementedError
-
-    def structures(self) -> GeoDataFrame:
         raise NotImplementedError
 
     def pump_stations(self) -> GeoDataFrame:
