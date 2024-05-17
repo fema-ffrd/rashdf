@@ -69,7 +69,9 @@ def parse_args(args: str) -> argparse.Namespace:
         subparser.set_defaults(func=command)
         subparser.add_argument("hdf_file", type=str, help="Path to HEC-RAS HDF file.")
         subparser.add_argument("output_file", type=str, help="Path to output file.")
-        subparser.add_argument("--to-crs", type=str, help="Output CRS.")
+        subparser.add_argument(
+            "--to-crs", type=str, help='Output CRS. (e.g., "EPSG:4326")'
+        )
         output_group = subparser.add_mutually_exclusive_group()
         output_group.add_argument(
             "--parquet", action="store_true", help="Output as Parquet."
