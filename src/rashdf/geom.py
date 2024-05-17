@@ -4,6 +4,7 @@ from .utils import (
     get_first_hdf_group,
     hdf5_attrs_to_dict,
     convert_ras_hdf_value,
+    convert_ras_datetime,
 )
 
 import numpy as np
@@ -17,6 +18,7 @@ from shapely import (
     MultiPolygon,
     polygonize,
 )
+from datetime import datetime
 
 from typing import List, Optional
 
@@ -381,25 +383,17 @@ class RasGeomHdf(RasHdf):
             return GeoDataFrame()
         struct_data = self["/Geometry/Structures"]
         v_conv_val = np.vectorize(convert_ras_hdf_value)
-        struct_dict = {
-            "struct_id": range(struct_data["Attributes"][()].shape[0]),
-            "Type": v_conv_val(struct_data["Attributes"][()]["Type"]),
-            "Mode": v_conv_val(struct_data["Attributes"][()]["Mode"]),
-            "River": v_conv_val(struct_data["Attributes"][()]["River"]),
-            "Reach": v_conv_val(struct_data["Attributes"][()]["Reach"]),
-            "RS": v_conv_val(struct_data["Attributes"][()]["RS"]),
-            "Connection": v_conv_val(struct_data["Attributes"][()]["Connection"]),
-            "US Type": v_conv_val(struct_data["Attributes"][()]["US Type"]),
-            "US River": v_conv_val(struct_data["Attributes"][()]["US River"]),
-            "US Reach": v_conv_val(struct_data["Attributes"][()]["US Reach"]),
-            "US RS": v_conv_val(struct_data["Attributes"][()]["US RS"]),
-            "US SA/2D": v_conv_val(struct_data["Attributes"][()]["US SA/2D"]),
-            "DS Type": v_conv_val(struct_data["Attributes"][()]["DS Type"]),
-            "DS River": v_conv_val(struct_data["Attributes"][()]["DS River"]),
-            "DS Reach": v_conv_val(struct_data["Attributes"][()]["DS Reach"]),
-            "DS RS": v_conv_val(struct_data["Attributes"][()]["DS RS"]),
-            "DS SA/2D": v_conv_val(struct_data["Attributes"][()]["DS SA/2D"]),
-        }
+        sd_attrs = struct_data["Attributes"][()]
+        struct_dict = {"struct_id": range(sd_attrs.shape[0])}
+        struct_dict.update(
+            {name: v_conv_val(sd_attrs[name]) for name in sd_attrs.dtype.names}
+        )
+        v_conv_dt = np.vectorize(convert_ras_datetime)
+        for k, v in struct_dict.items():
+            if type(v[0]) == np.datetime64:
+                struct_dict[k] = np.datetime_as_string(v)
+            elif type(v[0]) == datetime:
+                struct_dict[k] = v_conv_dt(v)
         geoms = list()
         for pnt_start, pnt_cnt, part_start, part_cnt in struct_data["Centerline Info"][
             ()
