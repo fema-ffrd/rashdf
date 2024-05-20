@@ -221,19 +221,3 @@ def get_first_hdf_group(parent_group: h5py.Group) -> Optional[h5py.Group]:
         if isinstance(item, h5py.Group):
             return item
     return None
-
-
-def convert_ras_datetime(dt: datetime) -> str:
-    """Convert a datetime object from a RAS file into a str object.
-
-    Parameters
-    ----------
-        dt (datetime): The datetime object to be converted. The output
-        string will be in the format "ddMmmyyyy HH:mm:ss".
-
-    Returns
-    -------
-        str: A str object representing the datetime.
-    """
-    format = "%d%b%Y %H:%M:%S"
-    return datetime.strftime(dt, format)

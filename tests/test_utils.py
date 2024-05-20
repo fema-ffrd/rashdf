@@ -21,10 +21,3 @@ def test_convert_ras_hdf_value():
     assert utils.convert_ras_hdf_value(b"01:23:45") == timedelta(
         hours=1, minutes=23, seconds=45
     )
-
-
-def test_convert_ras_datetime():
-    assert (
-        utils.convert_ras_datetime(datetime(2024, 4, 15, 7, 15, 32))
-        == "15Apr2024 07:15:32"
-    )

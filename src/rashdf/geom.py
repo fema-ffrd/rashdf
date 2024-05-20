@@ -4,10 +4,10 @@ from .utils import (
     get_first_hdf_group,
     hdf5_attrs_to_dict,
     convert_ras_hdf_value,
-    convert_ras_datetime,
 )
 
 import numpy as np
+import pandas as pd
 from geopandas import GeoDataFrame
 from pyproj import CRS
 from shapely import (
@@ -371,7 +371,7 @@ class RasGeomHdf(RasHdf):
             crs=self.projection(),
         )
 
-    def structures(self) -> GeoDataFrame:
+    def structures(self, datetime_to_str: bool = False) -> GeoDataFrame:
         """Return the model structures.
 
         Returns
@@ -388,12 +388,6 @@ class RasGeomHdf(RasHdf):
         struct_dict.update(
             {name: v_conv_val(sd_attrs[name]) for name in sd_attrs.dtype.names}
         )
-        v_conv_dt = np.vectorize(convert_ras_datetime)
-        for k, v in struct_dict.items():
-            if type(v[0]) == np.datetime64:
-                struct_dict[k] = np.datetime_as_string(v)
-            elif type(v[0]) == datetime:
-                struct_dict[k] = v_conv_dt(v)
         geoms = list()
         for pnt_start, pnt_cnt, part_start, part_cnt in struct_data["Centerline Info"][
             ()
@@ -415,11 +409,16 @@ class RasGeomHdf(RasHdf):
                         )
                     )
                 )
-        return GeoDataFrame(
+        struct_gdf = GeoDataFrame(
             struct_dict,
             geometry=geoms,
             crs=self.projection(),
         )
+        if datetime_to_str:
+            struct_gdf["Last Edited"] = struct_gdf["Last Edited"].apply(
+                lambda x: pd.Timestamp.isoformat(x)
+            )
+        return struct_gdf
 
     def connections(self) -> GeoDataFrame:
         raise NotImplementedError
