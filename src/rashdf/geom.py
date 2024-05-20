@@ -18,7 +18,6 @@ from shapely import (
     MultiPolygon,
     polygonize,
 )
-from datetime import datetime
 
 from typing import List, Optional
 
