@@ -6,7 +6,7 @@ from geopandas import GeoDataFrame
 import argparse
 from ast import literal_eval
 import sys
-from typing import List
+from typing import List, Optional
 
 
 COMMANDS = [
@@ -21,21 +21,24 @@ COMMANDS = [
 ]
 
 
-def docstring_to_help(docstring: str) -> str:
+def docstring_to_help(docstring: Optional[str]) -> str:
     """Extract the first line of a docstring to use as help text for the rashdf CLI.
 
     Note that this function replaces 'Return' with 'Export' in the help text.
 
     Parameters
     ----------
-    docstring : str
+    docstring : Optional[str]
         The docstring to extract the first line from.
 
     Returns
     -------
     str
         The first line of the docstring with 'Return' replaced by 'Export'.
+        If the docstring is None, an empty string is returned.
     """
+    if docstring is None:
+        return ""
     help_text = docstring.split("\n")[0]
     help_text = help_text.replace("Return", "Export")
     return help_text

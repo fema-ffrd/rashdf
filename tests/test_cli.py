@@ -19,6 +19,9 @@ def test_docstring_to_help():
     Blah blah blah."""
     assert docstring_to_help(docstring) == "Export the something or other."
 
+    docstring = None
+    assert docstring_to_help(docstring) == ""
+
 
 def test_fiona_supported_drivers():
     drivers = fiona_supported_drivers()
