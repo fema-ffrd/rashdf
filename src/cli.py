@@ -2,11 +2,13 @@ from rashdf import RasGeomHdf
 
 import fiona
 from geopandas import GeoDataFrame
+import pandas as pd
 
 import argparse
 from ast import literal_eval
 import sys
 from typing import List, Optional
+import warnings
 
 
 COMMANDS = [
@@ -71,7 +73,9 @@ def parse_args(args: str) -> argparse.Namespace:
         )
         subparser.set_defaults(func=command)
         subparser.add_argument("hdf_file", type=str, help="Path to HEC-RAS HDF file.")
-        subparser.add_argument("output_file", type=str, help="Path to output file.")
+        subparser.add_argument(
+            "output_file", type=str, help="Path to output file.", nargs="?"
+        )
         subparser.add_argument(
             "--to-crs", type=str, help='Output CRS. (e.g., "EPSG:4326")'
         )
@@ -81,9 +85,6 @@ def parse_args(args: str) -> argparse.Namespace:
         )
         output_group.add_argument(
             "--feather", action="store_true", help="Output as Feather."
-        )
-        output_group.add_argument(
-            "--json", action="store_true", help="Output as GeoJSON."
         )
         subparser.add_argument(
             "--kwargs",
@@ -97,7 +98,7 @@ def parse_args(args: str) -> argparse.Namespace:
     return args
 
 
-def export(args: argparse.Namespace):
+def export(args: argparse.Namespace) -> Optional[str]:
     if args.fiona_drivers:
         for driver in fiona_supported_drivers():
             print(driver)
@@ -111,9 +112,26 @@ def export(args: argparse.Namespace):
     kwargs = literal_eval(args.kwargs) if args.kwargs else {}
     if args.to_crs:
         gdf = gdf.to_crs(args.to_crs)
-    if args.json:
-        gdf.to_json(args.output_file, **kwargs)
-        return
+    if not args.output_file:
+        # convert any datetime64 columns to ISO strings
+        for col in gdf.select_dtypes(include=["datetime64"]).columns:
+            gdf[col] = gdf[col].apply(
+                lambda x: pd.Timestamp(x).isoformat() if pd.notnull(x) else None
+            )
+        with warnings.catch_warnings():
+            # Squash warnings about converting the CRS to OGC URN format.
+            # Likely to come up since USACE's Albers projection is a custom CRS.
+            # A warning written to stdout might cause issues with downstream processing.
+            warnings.filterwarnings(
+                "ignore",
+                (
+                    "GeoDataFrame's CRS is not representable in URN OGC format."
+                    " Resulting JSON will contain no CRS information."
+                ),
+            )
+            result = gdf.to_json(**kwargs)
+        print(result)
+        return result
     elif args.parquet:
         gdf.to_parquet(args.output_file, **kwargs)
         return

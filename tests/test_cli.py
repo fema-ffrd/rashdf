@@ -3,6 +3,7 @@ from src.cli import parse_args, export, docstring_to_help, fiona_supported_drive
 import geopandas as gpd
 from pyproj import CRS
 
+import json
 from pathlib import Path
 
 TEST_DATA = Path("./tests/data")
@@ -31,6 +32,15 @@ def test_fiona_supported_drivers():
 
 
 def test_parse_args():
+    args = parse_args(["structures", "test.hdf"])
+    assert args.func == "structures"
+    assert args.hdf_file == "test.hdf"
+    assert args.output_file is None
+    assert args.to_crs is None
+    assert not args.parquet
+    assert not args.feather
+    assert args.kwargs is None
+
     args = parse_args(["mesh_areas", "test.hdf", "test.json"])
     assert args.func == "mesh_areas"
     assert args.hdf_file == "test.hdf"
@@ -38,7 +48,6 @@ def test_parse_args():
     assert args.to_crs is None
     assert not args.parquet
     assert not args.feather
-    assert not args.json
     assert args.kwargs is None
 
     args = parse_args(
@@ -59,7 +68,6 @@ def test_parse_args():
     assert args.to_crs == "EPSG:4326"
     assert args.parquet
     assert not args.feather
-    assert not args.json
     assert args.kwargs == '{"compression": "gzip"}'
 
     args = parse_args(["--fiona-drivers"])
@@ -67,6 +75,11 @@ def test_parse_args():
 
 
 def test_export(tmp_path: Path):
+    args = parse_args(["structures", str(MUNCIE_G05)])
+    exported = json.loads(export(args))
+    gdf = gpd.GeoDataFrame.from_features(exported)
+    assert len(gdf) == 3
+
     test_json_path = tmp_path / "test.json"
     args = parse_args(["mesh_areas", str(MUNCIE_G05), str(test_json_path)])
     export(args)
