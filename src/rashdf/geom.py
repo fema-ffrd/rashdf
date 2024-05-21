@@ -1,7 +1,13 @@
 from .base import RasHdf
-from .utils import convert_ras_hdf_string, get_first_hdf_group, hdf5_attrs_to_dict
+from .utils import (
+    convert_ras_hdf_string,
+    get_first_hdf_group,
+    hdf5_attrs_to_dict,
+    convert_ras_hdf_value,
+)
 
 import numpy as np
+import pandas as pd
 from geopandas import GeoDataFrame
 from pyproj import CRS
 from shapely import (
@@ -364,6 +370,55 @@ class RasGeomHdf(RasHdf):
             crs=self.projection(),
         )
 
+    def structures(self, datetime_to_str: bool = False) -> GeoDataFrame:
+        """Return the model structures.
+
+        Returns
+        -------
+        GeoDataFrame
+            A GeoDataFrame containing the model structures if they exist.
+        """
+        if "/Geometry/Structures" not in self:
+            return GeoDataFrame()
+        struct_data = self["/Geometry/Structures"]
+        v_conv_val = np.vectorize(convert_ras_hdf_value)
+        sd_attrs = struct_data["Attributes"][()]
+        struct_dict = {"struct_id": range(sd_attrs.shape[0])}
+        struct_dict.update(
+            {name: v_conv_val(sd_attrs[name]) for name in sd_attrs.dtype.names}
+        )
+        geoms = list()
+        for pnt_start, pnt_cnt, part_start, part_cnt in struct_data["Centerline Info"][
+            ()
+        ]:
+            points = struct_data["Centerline Points"][()][
+                pnt_start : pnt_start + pnt_cnt
+            ]
+            if part_cnt == 1:
+                geoms.append(LineString(points))
+            else:
+                parts = struct_data["Centerline Parts"][()][
+                    part_start : part_start + part_cnt
+                ]
+                geoms.append(
+                    MultiLineString(
+                        list(
+                            points[part_pnt_start : part_pnt_start + part_pnt_cnt]
+                            for part_pnt_start, part_pnt_cnt in parts
+                        )
+                    )
+                )
+        struct_gdf = GeoDataFrame(
+            struct_dict,
+            geometry=geoms,
+            crs=self.projection(),
+        )
+        if datetime_to_str:
+            struct_gdf["Last Edited"] = struct_gdf["Last Edited"].apply(
+                lambda x: pd.Timestamp.isoformat(x)
+            )
+        return struct_gdf
+
     def connections(self) -> GeoDataFrame:
         raise NotImplementedError
 
@@ -374,9 +429,6 @@ class RasGeomHdf(RasHdf):
         raise NotImplementedError
 
     def reference_points(self) -> GeoDataFrame:
-        raise NotImplementedError
-
-    def structures(self) -> GeoDataFrame:
         raise NotImplementedError
 
     def pump_stations(self) -> GeoDataFrame:

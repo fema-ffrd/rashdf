@@ -98,3 +98,9 @@ def test_get_geom_2d_flow_area_attrs(tmp_path):
     )
     ras_hdf = RasGeomHdf(test_hdf)
     assert ras_hdf.get_geom_2d_flow_area_attrs() == TEST_ATTRS
+
+
+def test_structs():
+    structs_json = TEST_JSON / "structures.json"
+    with RasGeomHdf(MUNCIE_G05) as ghdf:
+        assert _gdf_matches_json(ghdf.structures(datetime_to_str=True), structs_json)
