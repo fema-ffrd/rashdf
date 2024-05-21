@@ -87,6 +87,11 @@ Example: export mesh cell points to GeoParquet
 $ rashdf mesh_cell_points LittleCreek.g01.hdf --parquet little-creek-mesh-cell-points.parquet
 ```
 
+Example: export breaklines to OGC GeoPackage and reproject to a different CRS
+```
+$ rashdf breaklines Whitemarsh.p01.hdf whitemarsh-breaklines.gpkg --to-crs EPSG:4326
+```
+
 Example: write structures GeoJSON to `stdout`:
 ```
 $ rashdf structures Potomac.p01.hdf
