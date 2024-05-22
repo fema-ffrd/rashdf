@@ -79,6 +79,11 @@ def test_export(tmp_path: Path):
     exported = json.loads(export(args))
     gdf = gpd.GeoDataFrame.from_features(exported)
     assert len(gdf) == 3
+    assert gdf["Last Edited"].to_list() == [
+        "2024-04-15T15:21:34",
+        "2024-04-15T15:21:48",
+        "2024-04-15T15:26:15",
+    ]
 
     test_json_path = tmp_path / "test.json"
     args = parse_args(["mesh_areas", str(MUNCIE_G05), str(test_json_path)])

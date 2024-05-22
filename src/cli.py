@@ -1,11 +1,12 @@
 from rashdf import RasGeomHdf
+from rashdf.utils import df_datetimes_to_str
 
 import fiona
 from geopandas import GeoDataFrame
-import pandas as pd
 
 import argparse
 from ast import literal_eval
+from pathlib import Path
 import sys
 from typing import List, Optional
 import warnings
@@ -113,11 +114,8 @@ def export(args: argparse.Namespace) -> Optional[str]:
     if args.to_crs:
         gdf = gdf.to_crs(args.to_crs)
     if not args.output_file:
-        # convert any datetime64 columns to ISO strings
-        for col in gdf.select_dtypes(include=["datetime64"]).columns:
-            gdf[col] = gdf[col].apply(
-                lambda x: pd.Timestamp(x).isoformat() if pd.notnull(x) else None
-            )
+        # convert any datetime columns to strings
+        gdf = df_datetimes_to_str(gdf)
         with warnings.catch_warnings():
             # Squash warnings about converting the CRS to OGC URN format.
             # Likely to come up since USACE's Albers projection is a custom CRS.
@@ -138,6 +136,13 @@ def export(args: argparse.Namespace) -> Optional[str]:
     elif args.feather:
         gdf.to_feather(args.output_file, **kwargs)
         return
+    output_file_path = Path(args.output_file)
+    output_file_ext = output_file_path.suffix
+    if output_file_ext not in [".gpkg"]:
+        # unless the user specifies a format that supports datetime,
+        # convert any datetime columns to string
+        # TODO: besides Geopackage, which of the standard Fiona formats allow datetime?
+        gdf = df_datetimes_to_str(gdf)
     gdf.to_file(args.output_file, **kwargs)
 
 
