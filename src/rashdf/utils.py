@@ -8,23 +8,34 @@ from typing import Any, List, Tuple, Union, Optional
 
 
 def parse_ras_datetime(datetime_str: str) -> datetime:
-    """Parse a datetime string from a RAS file into a datetime object.
+    """
+    Parse a datetime string from a RAS file into a datetime object. If the datetime has
+    a time of 2400, then it is converted to midnight of the next day.
 
     Parameters
     ----------
-        datetime_str (str): The datetime string to be parsed. The string should be in the format "ddMMMyyyy HHmm".
+        datetime_str (str): The datetime string to be parsed. The string should be in the format "ddMMMyyyy HH:mm:ss".
 
     Returns
     -------
         datetime: A datetime object representing the parsed datetime.
     """
     format = "%d%b%Y %H:%M:%S"
-    return datetime.strptime(datetime_str, format)
+
+    if datetime_str.endswith("24:00:00"):
+        datetime_str = datetime_str.replace("24:00:00", "00:00:00")
+        parsed_dt = datetime.strptime(datetime_str, format)
+        parsed_dt += timedelta(days=1)
+    else:
+        parsed_dt = datetime.strptime(datetime_str, format)
+
+    return parsed_dt
 
 
 def parse_ras_simulation_window_datetime(datetime_str) -> datetime:
     """
-    Parse a datetime string from a RAS simulation window into a datetime object.
+    Parse a datetime string from a RAS simulation window into a datetime object.If the datetime has a
+    time of 2400, then it is converted to midnight of the next day.
 
     Parameters
     ----------
@@ -35,7 +46,15 @@ def parse_ras_simulation_window_datetime(datetime_str) -> datetime:
         datetime: A datetime object representing the parsed datetime.
     """
     format = "%d%b%Y %H%M"
-    return datetime.strptime(datetime_str, format)
+
+    if datetime_str.endswith("2400"):
+        datetime_str = datetime_str.replace("2400", "0000")
+        parsed_dt = datetime.strptime(datetime_str, format)
+        parsed_dt += timedelta(days=1)
+    else:
+        parsed_dt = datetime.strptime(datetime_str, format)
+
+    return parsed_dt
 
 
 def parse_run_time_window(window: str) -> Tuple[datetime, datetime]:
