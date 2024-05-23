@@ -55,6 +55,48 @@ datetime.datetime(2024, 3, 27, 9, 32, 15)],
 'Time Stamp Solution Went Unstable': 'Not Applicable'}
 ```
 
+## CLI
+The `rashdf` command-line interface allows export directly to a variety of formats, enabled
+by GeoPandas.
+```
+$ rashdf <sub-command> <hdf-file> [<output-path>] [<options>]
+```
+
+CLI help:
+```
+$ rashdf --help
+```
+
+Print the output formats supported by Fiona:
+```
+$ rashdf --fiona-drivers
+```
+
+Help for a specific subcommand:
+```
+$ rashdf mesh_cell_polygons --help
+```
+
+Example: export mesh cell faces to an ESRI Shapefile
+```
+$ rashdf mesh_cell_faces BigRiver.g01.hdf big-river-mesh-cell-faces.shp
+```
+
+Example: export mesh cell points to GeoParquet
+```
+$ rashdf mesh_cell_points LittleCreek.g01.hdf --parquet little-creek-mesh-cell-points.parquet
+```
+
+Example: export breaklines to OGC GeoPackage and reproject to a different CRS
+```
+$ rashdf breaklines Whitemarsh.p01.hdf whitemarsh-breaklines.gpkg --to-crs EPSG:4326
+```
+
+Example: write structures GeoJSON to `stdout`:
+```
+$ rashdf structures Potomac.p01.hdf
+```
+
 ## Documentation
 Coming soon.
 

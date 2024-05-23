@@ -1,9 +1,10 @@
-import numpy as np
 import h5py
-from typing import Any, List, Tuple, Union, Optional
+import numpy as np
+import pandas as pd
 
 from datetime import datetime, timedelta
 import re
+from typing import Any, List, Tuple, Union, Optional
 
 
 def parse_ras_datetime(datetime_str: str) -> datetime:
@@ -240,3 +241,24 @@ def get_first_hdf_group(parent_group: h5py.Group) -> Optional[h5py.Group]:
         if isinstance(item, h5py.Group):
             return item
     return None
+
+
+def df_datetimes_to_str(df: pd.DataFrame) -> pd.DataFrame:
+    """Convert any datetime64 columns in a DataFrame to strings.
+
+    Parameters
+    ----------
+    df : DataFrame
+        The DataFrame to convert.
+
+    Returns
+    -------
+    DataFrame
+        The DataFrame with any datetime64 columns converted to strings.
+    """
+    df_result = df.copy()
+    for col in df.select_dtypes(include=["datetime64"]).columns:
+        df_result[col] = df[col].apply(
+            lambda x: pd.Timestamp(x).isoformat() if pd.notnull(x) else None
+        )
+    return df_result

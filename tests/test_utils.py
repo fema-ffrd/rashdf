@@ -1,6 +1,7 @@
 from src.rashdf import utils
 
 import numpy as np
+import pandas as pd
 import pytest
 
 from datetime import datetime, timedelta
@@ -43,3 +44,23 @@ def test_convert_ras_hdf_value():
         datetime(2024, 3, 19, 0, 0, 0),
         datetime(2024, 3, 20, 0, 0, 0),
     ]
+
+
+def test_df_datetimes_to_str():
+    df = pd.DataFrame(
+        {
+            "datetime": [
+                datetime(2024, 3, 15, 16, 39, 1),
+                datetime(2024, 3, 16, 16, 39, 1),
+            ],
+            "asdf": [
+                0.123,
+                0.456,
+            ],
+        }
+    )
+    assert df["datetime"].dtype.name == "datetime64[ns]"
+    df = utils.df_datetimes_to_str(df)
+    assert df["datetime"].dtype.name == "object"
+    assert df["datetime"].tolist() == ["2024-03-15T16:39:01", "2024-03-16T16:39:01"]
+    assert df["asdf"].tolist() == [0.123, 0.456]
