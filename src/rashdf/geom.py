@@ -86,7 +86,7 @@ class RasGeomHdf(RasHdf):
         )
 
     def mesh_cell_polygons(self) -> GeoDataFrame:
-        """Return the 2D flow mesh cell polygons.
+        """Return 2D flow mesh cell polygons.
 
         Returns
         -------
@@ -140,7 +140,7 @@ class RasGeomHdf(RasHdf):
         return GeoDataFrame(cell_dict, geometry="geometry", crs=self.projection())
 
     def mesh_cell_points(self) -> GeoDataFrame:
-        """Return the 2D flow mesh cell points.
+        """Return 2D flow mesh cell points.
 
         Returns
         -------
@@ -166,7 +166,7 @@ class RasGeomHdf(RasHdf):
         return GeoDataFrame(pnt_dict, geometry="geometry", crs=self.projection())
 
     def mesh_cell_faces(self) -> GeoDataFrame:
-        """Return the 2D flow mesh cell faces.
+        """Return 2D flow mesh cell faces.
 
         Returns
         -------
@@ -246,7 +246,7 @@ class RasGeomHdf(RasHdf):
         return d2_flow_area_attrs
 
     def bc_lines(self) -> GeoDataFrame:
-        """Return the 2D mesh area boundary condition lines.
+        """Return 2D mesh area boundary condition lines.
 
         Returns
         -------
@@ -295,7 +295,7 @@ class RasGeomHdf(RasHdf):
         )
 
     def breaklines(self) -> GeoDataFrame:
-        """Return the 2D mesh area breaklines.
+        """Return 2D mesh area breaklines.
 
         Returns
         -------
@@ -337,7 +337,7 @@ class RasGeomHdf(RasHdf):
         )
 
     def refinement_regions(self) -> GeoDataFrame:
-        """Return the 2D mesh area refinement regions.
+        """Return 2D mesh area refinement regions.
 
         Returns
         -------
