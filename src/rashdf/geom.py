@@ -1,3 +1,5 @@
+"""HEC-RAS Geometry HDF class."""
+
 from .base import RasHdf
 from .utils import (
     convert_ras_hdf_string,
@@ -42,8 +44,7 @@ class RasGeomHdf(RasHdf):
         super().__init__(name, **kwargs)
 
     def projection(self) -> Optional[CRS]:
-        """Return the projection of the RAS geometry as a
-        pyproj.CRS object.
+        """Return the projection of the RAS geometry as a pyproj.CRS object.
 
         Returns
         -------
@@ -58,8 +59,7 @@ class RasGeomHdf(RasHdf):
         return CRS.from_wkt(proj_wkt)
 
     def mesh_area_names(self) -> List[str]:
-        """Return a list of the 2D mesh area names of
-        the RAS geometry.
+        """Return a list of the 2D mesh area names of the RAS geometry.
 
         Returns
         -------
@@ -218,7 +218,7 @@ class RasGeomHdf(RasHdf):
         return GeoDataFrame(face_dict, geometry="geometry", crs=self.projection())
 
     def get_geom_attrs(self) -> Dict:
-        """Returns base geometry attributes from a HEC-RAS HDF file.
+        """Return base geometry attributes from a HEC-RAS HDF file.
 
         Returns
         -------
@@ -228,7 +228,7 @@ class RasGeomHdf(RasHdf):
         return self.get_attrs(self.GEOM_PATH)
 
     def get_geom_structures_attrs(self) -> Dict:
-        """Returns geometry structures attributes from a HEC-RAS HDF file.
+        """Return geometry structures attributes from a HEC-RAS HDF file.
 
         Returns
         -------
@@ -238,7 +238,7 @@ class RasGeomHdf(RasHdf):
         return self.get_attrs(self.GEOM_STRUCTURES_PATH)
 
     def get_geom_2d_flow_area_attrs(self) -> Dict:
-        """Returns geometry 2d flow area attributes from a HEC-RAS HDF file.
+        """Return geometry 2d flow area attributes from a HEC-RAS HDF file.
 
         Returns
         -------
@@ -435,50 +435,50 @@ class RasGeomHdf(RasHdf):
             )
         return struct_gdf
 
-    def connections(self) -> GeoDataFrame:
+    def connections(self) -> GeoDataFrame:  # noqa D102
         raise NotImplementedError
 
-    def ic_points(self) -> GeoDataFrame:
+    def ic_points(self) -> GeoDataFrame:  # noqa D102
         raise NotImplementedError
 
-    def reference_lines(self) -> GeoDataFrame:
+    def reference_lines(self) -> GeoDataFrame:  # noqa D102
         raise NotImplementedError
 
-    def reference_points(self) -> GeoDataFrame:
+    def reference_points(self) -> GeoDataFrame:  # noqa D102
         raise NotImplementedError
 
-    def pump_stations(self) -> GeoDataFrame:
+    def pump_stations(self) -> GeoDataFrame:  # noqa D102
         raise NotImplementedError
 
-    def mannings_calibration_regions(self) -> GeoDataFrame:
+    def mannings_calibration_regions(self) -> GeoDataFrame:  # noqa D102
         raise NotImplementedError
 
-    def classification_polygons(self) -> GeoDataFrame:
+    def classification_polygons(self) -> GeoDataFrame:  # noqa D102
         raise NotImplementedError
 
-    def terrain_modifications(self) -> GeoDataFrame:
+    def terrain_modifications(self) -> GeoDataFrame:  # noqa D102
         raise NotImplementedError
 
-    def cross_sections(self) -> GeoDataFrame:
+    def cross_sections(self) -> GeoDataFrame:  # noqa D102
         raise NotImplementedError
 
-    def river_reaches(self) -> GeoDataFrame:
+    def river_reaches(self) -> GeoDataFrame:  # noqa D102
         raise NotImplementedError
 
-    def flowpaths(self) -> GeoDataFrame:
+    def flowpaths(self) -> GeoDataFrame:  # noqa D102
         raise NotImplementedError
 
-    def bank_points(self) -> GeoDataFrame:
+    def bank_points(self) -> GeoDataFrame:  # noqa D102
         raise NotImplementedError
 
-    def bank_lines(self) -> GeoDataFrame:
+    def bank_lines(self) -> GeoDataFrame:  # noqa D102
         raise NotImplementedError
 
-    def ineffective_areas(self) -> GeoDataFrame:
+    def ineffective_areas(self) -> GeoDataFrame:  # noqa D102
         raise NotImplementedError
 
-    def ineffective_points(self) -> GeoDataFrame:
+    def ineffective_points(self) -> GeoDataFrame:  # noqa D102
         raise NotImplementedError
 
-    def blocked_obstructions(self) -> GeoDataFrame:
+    def blocked_obstructions(self) -> GeoDataFrame:  # noqa D102
         raise NotImplementedError

@@ -1,3 +1,5 @@
+"""Base class for reading HEC-RAS HDF files."""
+
 import h5py
 from .utils import hdf5_attrs_to_dict
 from typing import Dict
@@ -68,7 +70,7 @@ class RasHdf(h5py.File):
         return {}
 
     def get_root_attrs(self):
-        """Returns attributes at root level of HEC-RAS HDF file.
+        """Return attributes at root level of HEC-RAS HDF file.
 
         Returns
         -------
