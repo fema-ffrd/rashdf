@@ -16,7 +16,7 @@ version = "0.2.1"
 dependencies = ["h5py", "geopandas", "pyarrow"]
 
 [project.optional-dependencies]
-dev = ["pre-commit", "ruff", "pytest", "sphinx", "numpydoc"]
+dev = ["pre-commit", "ruff", "pytest", "sphinx", "numpydoc", "sphinx_rtd_theme"]
 
 [project.urls]
 repository = "https://github.com/fema-ffrd/rashdf"

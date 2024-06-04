@@ -47,7 +47,7 @@ class RasGeomHdf(RasHdf):
 
         Returns
         -------
-        CRS
+        pyproj.CRS or None
             The projection of the RAS geometry.
         """
         proj_wkt = self.attrs.get("Projection")
@@ -63,7 +63,7 @@ class RasGeomHdf(RasHdf):
 
         Returns
         -------
-        list
+        List[str]
             A list of the 2D mesh area names (str) within the RAS geometry if 2D areas exist.
         """
         if "/Geometry/2D Flow Areas" not in self:
