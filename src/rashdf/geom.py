@@ -19,15 +19,26 @@ from shapely import (
     polygonize,
 )
 
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 
 class RasGeomHdf(RasHdf):
+    """HEC-RAS Geometry HDF class."""
+
     GEOM_PATH = "Geometry"
     GEOM_STRUCTURES_PATH = f"{GEOM_PATH}/Structures"
     FLOW_AREA_2D_PATH = f"{GEOM_PATH}/2D Flow Areas"
 
     def __init__(self, name: str, **kwargs):
+        """Open a HEC-RAS Geometry HDF file.
+
+        Parameters
+        ----------
+        name : str
+            The path to the RAS Geometry HDF file.
+        kwargs : dict
+            Additional keyword arguments to pass to h5py.File
+        """
         super().__init__(name, **kwargs)
 
     def projection(self) -> Optional[CRS]:
@@ -206,7 +217,7 @@ class RasGeomHdf(RasHdf):
                 face_dict["geometry"].append(LineString(coordinates))
         return GeoDataFrame(face_dict, geometry="geometry", crs=self.projection())
 
-    def get_geom_attrs(self):
+    def get_geom_attrs(self) -> Dict:
         """Returns base geometry attributes from a HEC-RAS HDF file.
 
         Returns
@@ -216,7 +227,7 @@ class RasGeomHdf(RasHdf):
         """
         return self.get_attrs(self.GEOM_PATH)
 
-    def get_geom_structures_attrs(self):
+    def get_geom_structures_attrs(self) -> Dict:
         """Returns geometry structures attributes from a HEC-RAS HDF file.
 
         Returns
@@ -226,7 +237,7 @@ class RasGeomHdf(RasHdf):
         """
         return self.get_attrs(self.GEOM_STRUCTURES_PATH)
 
-    def get_geom_2d_flow_area_attrs(self):
+    def get_geom_2d_flow_area_attrs(self) -> Dict:
         """Returns geometry 2d flow area attributes from a HEC-RAS HDF file.
 
         Returns
@@ -372,6 +383,11 @@ class RasGeomHdf(RasHdf):
 
     def structures(self, datetime_to_str: bool = False) -> GeoDataFrame:
         """Return the model structures.
+
+        Parameters
+        ----------
+        datetime_to_str : bool, optional
+            If True, convert datetime values to string format (default: False).
 
         Returns
         -------

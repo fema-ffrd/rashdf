@@ -4,6 +4,8 @@ from geopandas import GeoDataFrame
 
 
 class RasPlanHdf(RasGeomHdf):
+    """HEC-RAS Plan HDF class."""
+
     PLAN_INFO_PATH = "Plan Data/Plan Information"
     PLAN_PARAMS_PATH = "Plan Data/Plan Parameters"
     PRECIP_PATH = "Event Conditions/Meteorology/Precipitation"
@@ -12,6 +14,15 @@ class RasPlanHdf(RasGeomHdf):
     VOLUME_ACCOUNTING_PATH = f"{RESULTS_UNSTEADY_PATH}/Volume Accounting"
 
     def __init__(self, name: str, **kwargs):
+        """Open a HEC-RAS Plan HDF file.
+
+        Parameters
+        ----------
+        name : str
+            The path to the RAS Plan HDF file.
+        kwargs : dict
+            Additional keyword arguments to pass to h5py.File
+        """
         super().__init__(name, **kwargs)
 
     def get_plan_info_attrs(self) -> Dict:
