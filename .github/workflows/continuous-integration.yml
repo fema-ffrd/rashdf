@@ -26,6 +26,7 @@ jobs:
         os: ["ubuntu-latest"]
 
     runs-on: ${{ matrix.os }}
+    environment: ci-env
 
     steps:
     - uses: actions/checkout@v4
@@ -45,6 +46,15 @@ jobs:
         ruff check
         ruff format --check
 
-    - name: Test with pytest
+    - name: Run tests with coverage
       run: |
-        pytest
+        pytest --cov=src --cov-report term-missing
+
+    - name: Run coverage
+      run: |
+        coverage xml
+
+    - name: Upload coverage reports to Codecov
+      uses: codecov/codecov-action@v4.0.1
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
