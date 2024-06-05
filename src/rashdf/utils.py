@@ -7,6 +7,7 @@ import pandas as pd
 from datetime import datetime, timedelta
 import re
 from typing import Any, List, Tuple, Union, Optional
+from shapely import LineString, Polygon, polygonize_full
 
 
 def parse_ras_datetime(datetime_str: str) -> datetime:
@@ -265,3 +266,20 @@ def df_datetimes_to_str(df: pd.DataFrame) -> pd.DataFrame:
             lambda x: pd.Timestamp(x).isoformat() if pd.notnull(x) else None
         )
     return df_result
+
+
+def mesh_faces_to_polygon(mesh_faces: np.ndarray[LineString]) -> Polygon:
+    """Convert an array of 2D mesh faces (LineString objects) to a Polygon object.
+
+    Parameters
+    ----------
+    mesh_faces : np.ndarray[shapely.LineString]
+        Array of the mesh faces to convert.
+
+    Returns
+    -------
+    shapely.Polygon
+        Shapely Polygon object representing the created mesh cell.
+    """
+    polygonized = polygonize_full(mesh_faces)
+    return Polygon((polygonized[0] or polygonized[3]).geoms[0])

@@ -6,6 +6,7 @@ from .utils import (
     get_first_hdf_group,
     hdf5_attrs_to_dict,
     convert_ras_hdf_value,
+    mesh_faces_to_polygon,
 )
 
 import numpy as np
@@ -18,7 +19,6 @@ from shapely import (
     LineString,
     MultiLineString,
     MultiPolygon,
-    polygonize,
 )
 
 from typing import Dict, List, Optional
@@ -139,13 +139,13 @@ class RasGeomHdf(RasHdf):
             cell_dict["cell_id"] += cell_ids
             cell_dict["geometry"] += list(
                 np.vectorize(
-                    lambda face_id_list: polygonize(
+                    lambda face_id_list: mesh_faces_to_polygon(
                         np.ravel(
                             mesh_faces[
                                 np.array(face_id_list.strip("[]").split()).astype(int)
                             ]
                         )
-                    ).geoms[0]
+                    )
                 )(face_id_lists)
             )
         return GeoDataFrame(cell_dict, geometry="geometry", crs=self.projection())
