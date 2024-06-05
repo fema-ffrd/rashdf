@@ -17,7 +17,7 @@ dependencies = ["h5py", "geopandas", "pyarrow"]
 
 [project.optional-dependencies]
 dev = ["pre-commit", "ruff", "pytest", "pytest-cov"]
-doc = ["sphinx", "numpydoc", "sphinx_rtd_theme"]
+docs = ["sphinx", "numpydoc", "sphinx_rtd_theme"]
 
 [project.urls]
 repository = "https://github.com/fema-ffrd/rashdf"
