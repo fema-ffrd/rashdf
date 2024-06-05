@@ -503,7 +503,7 @@ class RasGeomHdf(RasHdf):
         river_data = self["/Geometry/River Centerlines"]
         v_conv_val = np.vectorize(convert_ras_hdf_value)
         river_attrs = river_data["Attributes"][()]
-        river_dict = {"xs_id": range(river_attrs.shape[0])}
+        river_dict = {"river_id": range(river_attrs.shape[0])}
         river_dict.update(
             {name: v_conv_val(river_attrs[name]) for name in river_attrs.dtype.names}
         )
