@@ -1,5 +1,5 @@
-from .base import RasHdf
-from .utils import (
+from base import RasHdf
+from utils import (
     convert_ras_hdf_string,
     get_first_hdf_group,
     hdf5_attrs_to_dict,
@@ -443,8 +443,51 @@ class RasGeomHdf(RasHdf):
     def terrain_modifications(self) -> GeoDataFrame:
         raise NotImplementedError
 
-    def cross_sections(self) -> GeoDataFrame:
-        raise NotImplementedError
+    def cross_sections(self, datetime_to_str: bool = False) -> GeoDataFrame:
+        """Returns the model 1D cross sections
+
+        Returns
+        -------
+        GeoDataFrame
+            A GeoDataFrame containing the model 1D cross sections if they exist.
+        """
+        if "/Geometry/Cross Sections" not in self:
+            return GeoDataFrame()
+
+        xs_data = self["/Geometry/Cross Sections"]
+        v_conv_val = np.vectorize(convert_ras_hdf_value)
+        xs_attrs = xs_data["Attributes"][()]
+        xs_dict = {"xs_id": range(xs_attrs.shape[0])}
+        xs_dict.update(
+            {name: v_conv_val(xs_attrs[name]) for name in xs_attrs.dtype.names}
+        )
+        geoms = list()
+        for pnt_start, pnt_cnt, part_start, part_cnt in xs_data["Polyline Info"][()]:
+            points = xs_data["Polyline Points"][()][pnt_start : pnt_start + pnt_cnt]
+            if part_cnt == 1:
+                geoms.append(LineString(points))
+            else:
+                parts = xs_data["Polyline Parts"][()][
+                    part_start : part_start + part_cnt
+                ]
+                geoms.append(
+                    MultiLineString(
+                        list(
+                            points[part_pnt_start : part_pnt_start + part_pnt_cnt]
+                            for part_pnt_start, part_pnt_cnt in parts
+                        )
+                    )
+                )
+        xs_gdf = GeoDataFrame(
+            xs_dict,
+            geometry=geoms,
+            crs=self.projection(),
+        )
+        if datetime_to_str:
+            xs_gdf["Last Edited"] = xs_gdf["Last Edited"].apply(
+                lambda x: pd.Timestamp.isoformat(x)
+            )
+        return xs_gdf
 
     def river_reaches(self) -> GeoDataFrame:
         raise NotImplementedError

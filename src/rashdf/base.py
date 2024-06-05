@@ -1,5 +1,5 @@
 import h5py
-from .utils import hdf5_attrs_to_dict
+from utils import hdf5_attrs_to_dict
 from typing import Dict
 
 
