@@ -489,8 +489,51 @@ class RasGeomHdf(RasHdf):
             )
         return xs_gdf
 
-    def river_reaches(self) -> GeoDataFrame:
-        raise NotImplementedError
+    def river_reaches(self, datetime_to_str: bool = False) -> GeoDataFrame:
+        """Returns the model 1D river reach lines
+
+        Returns
+        -------
+        GeoDataFrame
+            A GeoDataFrame containing the model 1D river reach lines if they exist.
+        """
+        if "/Geometry/River Centerlines" not in self:
+            return GeoDataFrame()
+
+        river_data = self["/Geometry/River Centerlines"]
+        v_conv_val = np.vectorize(convert_ras_hdf_value)
+        river_attrs = river_data["Attributes"][()]
+        river_dict = {"xs_id": range(river_attrs.shape[0])}
+        river_dict.update(
+            {name: v_conv_val(river_attrs[name]) for name in river_attrs.dtype.names}
+        )
+        geoms = list()
+        for pnt_start, pnt_cnt, part_start, part_cnt in river_data["Polyline Info"][()]:
+            points = river_data["Polyline Points"][()][pnt_start : pnt_start + pnt_cnt]
+            if part_cnt == 1:
+                geoms.append(LineString(points))
+            else:
+                parts = river_data["Polyline Parts"][()][
+                    part_start : part_start + part_cnt
+                ]
+                geoms.append(
+                    MultiLineString(
+                        list(
+                            points[part_pnt_start : part_pnt_start + part_pnt_cnt]
+                            for part_pnt_start, part_pnt_cnt in parts
+                        )
+                    )
+                )
+        river_gdf = GeoDataFrame(
+            river_dict,
+            geometry=geoms,
+            crs=self.projection(),
+        )
+        if datetime_to_str:
+            river_gdf["Last Edited"] = river_gdf["Last Edited"].apply(
+                lambda x: pd.Timestamp.isoformat(x)
+            )
+        return river_gdf
 
     def flowpaths(self) -> GeoDataFrame:
         raise NotImplementedError
