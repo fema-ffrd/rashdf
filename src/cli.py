@@ -1,3 +1,5 @@
+"""rashdf CLI."""
+
 from rashdf import RasGeomHdf
 from rashdf.utils import df_datetimes_to_str
 
@@ -60,6 +62,7 @@ def fiona_supported_drivers() -> List[str]:
 
 
 def parse_args(args: str) -> argparse.Namespace:
+    """Parse command-line arguments."""
     parser = argparse.ArgumentParser(description="Extract data from HEC-RAS HDF files.")
     parser.add_argument(
         "--fiona-drivers",
@@ -100,6 +103,7 @@ def parse_args(args: str) -> argparse.Namespace:
 
 
 def export(args: argparse.Namespace) -> Optional[str]:
+    """Act on parsed arguments to extract data from HEC-RAS HDF files."""
     if args.fiona_drivers:
         for driver in fiona_supported_drivers():
             print(driver)
@@ -147,6 +151,7 @@ def export(args: argparse.Namespace) -> Optional[str]:
 
 
 def main():
+    """Entry point for the rashdf CLI."""
     args = parse_args(sys.argv[1:])
     export(args)
 
