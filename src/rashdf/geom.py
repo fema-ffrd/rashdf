@@ -554,7 +554,7 @@ class RasGeomHdf(RasHdf):
         raise NotImplementedError
 
     def steady_flow_names(self) -> list:
-        """Returns the profile information for each flow event
+        """Returns the profile information for each steady flow event
 
         Returns
         -------
@@ -599,3 +599,30 @@ class RasGeomHdf(RasHdf):
         wsel_df_t.set_index(xs_cols, inplace=True)
 
         return wsel_df_t
+
+    def cross_sections_elevations(self) -> pd.DataFrame:
+        """Returns the model cross section elevation information
+
+        Returns
+        -------
+        DataFrame
+            A DataFrame containing the model cross section elevation information if they exist.
+        """
+        path = "/Geometry/Cross Sections"
+        if path not in self:
+            return pd.DataFrame()
+
+        xselev_data = self[path]
+        v_conv_val = np.vectorize(convert_ras_hdf_value)
+        xs_df = self.cross_sections()
+        elevations = list()
+        for part_start, part_cnt in xselev_data["Station Elevation Info"][()]:
+            xzdata = xselev_data["Station Elevation Values"][()][
+                part_start : part_start + part_cnt
+            ]
+            elevations.append(xzdata)
+
+        xs_elev_df = xs_df[["xs_id", "River", "Reach", "RS"]].copy()
+        xs_elev_df["elevation info"] = elevations
+
+        return xs_elev_df
