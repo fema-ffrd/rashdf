@@ -18,7 +18,7 @@ from shapely import (
     LineString,
     MultiLineString,
     MultiPolygon,
-    polygonize,
+    polygonize_full,
 )
 
 from typing import Dict, List, Optional
@@ -139,13 +139,19 @@ class RasGeomHdf(RasHdf):
             cell_dict["cell_id"] += cell_ids
             cell_dict["geometry"] += list(
                 np.vectorize(
-                    lambda face_id_list: polygonize(
-                        np.ravel(
-                            mesh_faces[
-                                np.array(face_id_list.strip("[]").split()).astype(int)
-                            ]
+                    lambda face_id_list: (
+                        lambda geom_col: Polygon((geom_col[0] or geom_col[3]).geoms[0])
+                    )(
+                        polygonize_full(
+                            np.ravel(
+                                mesh_faces[
+                                    np.array(face_id_list.strip("[]").split()).astype(
+                                        int
+                                    )
+                                ]
+                            )
                         )
-                    ).geoms[0]
+                    )
                 )(face_id_lists)
             )
         return GeoDataFrame(cell_dict, geometry="geometry", crs=self.projection())

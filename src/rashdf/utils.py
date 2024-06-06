@@ -7,6 +7,7 @@ import pandas as pd
 from datetime import datetime, timedelta
 import re
 from typing import Any, List, Tuple, Union, Optional
+from shapely import LineString, Polygon, polygonize_full
 
 
 def parse_ras_datetime(datetime_str: str) -> datetime:
