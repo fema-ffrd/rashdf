@@ -568,5 +568,34 @@ class RasGeomHdf(RasHdf):
         profile_data = self[path]
         v_conv_val = np.vectorize(convert_ras_hdf_value)
         profile_attrs = profile_data["Profile Names"][()]
+        profilenames = [x.decode("utf-8") for x in profile_attrs]
 
-        return profile_attrs
+        return profilenames
+
+    def cross_sections_wsel(self) -> pd.DataFrame:
+        """Returns the WSEL information for each 1D Cross Section
+
+        Returns
+        -------
+        DataFrame
+            A Dataframe containing the water surface elevations for each cross section and event
+        """
+        path = "Results/Steady/Output/Output Blocks/Base Output/Steady Profiles/Cross Sections"
+        if path not in self:
+            return pd.DataFrame()
+
+        wsel_data = self[path]
+        v_conv_val = np.vectorize(convert_ras_hdf_value)
+        wsel_attrs = wsel_data["Water Surface"][()]
+
+        xs_df = self.cross_sections()
+        xs_cols = ["River", "Reach", "RS"]
+        steadyprofiles = self.steady_flow_names()
+
+        wsel_df = pd.DataFrame(wsel_attrs, index=steadyprofiles)
+        wsel_df_t = wsel_df.transpose().copy()
+        for col in xs_cols:
+            wsel_df_t[col] = xs_df[col]
+        wsel_df_t.set_index(xs_cols, inplace=True)
+
+        return wsel_df_t
