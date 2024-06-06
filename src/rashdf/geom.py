@@ -622,7 +622,11 @@ class RasGeomHdf(RasHdf):
             ]
             elevations.append(xzdata)
 
-        xs_elev_df = xs_df[["xs_id", "River", "Reach", "RS"]].copy()
+        xs_elev_df = xs_df[
+            ["xs_id", "River", "Reach", "RS", "Left Bank", "Right Bank"]
+        ].copy()
+        xs_elev_df["Left Bank"] = xs_elev_df["Left Bank"].round(2).astype(str)
+        xs_elev_df["Right Bank"] = xs_elev_df["Right Bank"].round(2).astype(str)
         xs_elev_df["elevation info"] = elevations
 
         return xs_elev_df
