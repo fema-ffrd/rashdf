@@ -552,3 +552,21 @@ class RasGeomHdf(RasHdf):
 
     def blocked_obstructions(self) -> GeoDataFrame:
         raise NotImplementedError
+
+    def steady_flow_names(self) -> list:
+        """Returns the profile information for each flow event
+
+        Returns
+        -------
+        DataFrame
+            A Dataframe containing the profile names for each event
+        """
+        path = "Results/Steady/Output/Output Blocks/Base Output/Steady Profiles"
+        if path not in self:
+            return pd.DataFrame()
+
+        profile_data = self[path]
+        v_conv_val = np.vectorize(convert_ras_hdf_value)
+        profile_attrs = profile_data["Profile Names"][()]
+
+        return profile_attrs
