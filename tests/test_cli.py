@@ -8,6 +8,7 @@ from pathlib import Path
 
 TEST_DATA = Path("./tests/data")
 MUNCIE_G05 = TEST_DATA / "ras/Muncie.g05.hdf"
+BALD_EAGLE_P18 = TEST_DATA / "ras/BaldEagleDamBrk.p18.hdf"
 
 
 def test_docstring_to_help():
@@ -106,3 +107,10 @@ def test_export(tmp_path: Path):
     gdf = gpd.read_parquet(test_parquet_path)
     assert len(gdf) == 5790
     assert gdf.crs == CRS.from_epsg(4326)
+
+
+def test_export_plan_hdf():
+    args = parse_args(["mesh_cell_points", str(BALD_EAGLE_P18)])
+    exported = json.loads(export(args))
+    gdf = gpd.GeoDataFrame.from_features(exported)
+    assert len(gdf) == 4425
