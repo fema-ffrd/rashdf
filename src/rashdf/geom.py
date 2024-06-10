@@ -596,7 +596,7 @@ class RasGeomHdf(RasHdf):
         wsel_df_t = wsel_df.transpose().copy()
         for col in xs_cols:
             wsel_df_t[col] = xs_df[col]
-        wsel_df_t.set_index(xs_cols, inplace=True)
+        # wsel_df_t.set_index(xs_cols, inplace=True)
 
         return wsel_df_t
 
