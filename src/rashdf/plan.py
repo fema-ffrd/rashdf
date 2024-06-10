@@ -264,7 +264,7 @@ class RasPlanHdf(RasGeomHdf):
                 }
             )
             dfs.append(df)
-        df = pd.concat(dfs)
+        df = pd.concat(dfs, ignore_index=True)
         return df
 
     def _mesh_summary_output_basic(
@@ -298,7 +298,7 @@ class RasPlanHdf(RasGeomHdf):
                 }
             )
             dfs.append(df)
-        df = pd.concat(dfs)
+        df = pd.concat(dfs, ignore_index=True)
         return df
 
     def mesh_max_iter(self) -> DataFrame:
