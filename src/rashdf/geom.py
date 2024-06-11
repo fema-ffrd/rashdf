@@ -661,9 +661,7 @@ class RasGeomHdf(RasHdf):
         df_enc_t[f"{side} model encroachment"] = df_enc_t[floodway].apply(
             lambda x: round(x, 2)
         )
-        df[f"{side} model encroachment"] = df_enc_t[
-            [f"{side} model encroachment"]
-        ].copy()
+        df = df_enc_t[[f"{side} model encroachment"]].copy()
 
         return df
 
