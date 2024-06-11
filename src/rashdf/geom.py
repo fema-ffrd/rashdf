@@ -644,8 +644,8 @@ class RasGeomHdf(RasHdf):
         sides_options = ["Left", "Right"]
         if side not in sides_options:
             return ValueError("'sides' must be either 'left' or 'right'")
-        path = "/Results/Steady/Output/Output Blocks/Base Output/Steady Profiles/Cross Sections"
-        path += f"/Additional Variables/Encroachment Station {side}"
+        path = "/Results/Steady/Output/Output Blocks/Base Output/Steady Profiles"
+        path += f"/Cross Sections/Additional Variables/Encroachment Station {side}"
         if path not in self:
             return pd.DataFrame()
 
@@ -675,5 +675,20 @@ class RasGeomHdf(RasHdf):
         DataFrame
             A DataFrame containing the wet area inside the xs
         """
+        path = "/Results/Steady/Output/Output Blocks/Base Output/Steady Profiles"
+        path += f"/Cross Sections/Additional Variables/Area including Ineffective Total"
+        if path not in self:
+            return pd.DataFrame()
 
-        return None
+        area_data = self[path]
+        v_conv_val = np.vectorize(convert_ras_hdf_value)
+
+        xs_data = self.cross_sections()
+        profiles = self.steady_flow_names()
+
+        df_xsarea = pd.DataFrame(area_data, index=profiles)
+        df_xsarea_t = df_xsarea.T.copy()
+        for col in df_xsarea_t.columns:
+            df_xsarea_t[col] = df_xsarea_t[col].apply(lambda x: round(x, 2))
+
+        return df_xsarea_t
