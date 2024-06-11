@@ -649,7 +649,6 @@ class RasGeomHdf(RasHdf):
         if path not in self:
             return pd.DataFrame()
 
-        xs_data = self.cross_sections()
         profiles = self.steady_flow_names()
         if floodway not in profiles:
             p = ", ".join(profiles)
@@ -662,13 +661,14 @@ class RasGeomHdf(RasHdf):
         df_enc_t[f"{side} model encroachment"] = df_enc_t[floodway].apply(
             lambda x: round(x, 2)
         )
-        df = xs_data[["River", "Reach", "RS"]].copy()
-        df[f"{side} model encroachment"] = df_enc_t[f"{side} model encroachment"]
+        df[f"{side} model encroachment"] = df_enc_t[
+            [f"{side} model encroachment"]
+        ].copy()
 
         return df
 
     def cross_sections_area(self) -> pd.DataFrame:
-        """Returns the cross section area for
+        """Returns the cross section area for each profile
 
         Returns
         -------
@@ -683,7 +683,6 @@ class RasGeomHdf(RasHdf):
         area_data = self[path]
         v_conv_val = np.vectorize(convert_ras_hdf_value)
 
-        xs_data = self.cross_sections()
         profiles = self.steady_flow_names()
 
         df_xsarea = pd.DataFrame(area_data, index=profiles)
@@ -692,3 +691,29 @@ class RasGeomHdf(RasHdf):
             df_xsarea_t[col] = df_xsarea_t[col].apply(lambda x: round(x, 2))
 
         return df_xsarea_t
+
+    def cross_sections_velocity(self) -> pd.DataFrame:
+        """Returns the cross section velocity for each profile
+
+        Returns
+        -------
+        DataFrame
+            A DataFrame containing the velocity inside the xs
+        """
+        path = "/Results/Steady/Output/Output Blocks/Base Output/Steady Profiles"
+        path += f"/Cross Sections/Additional Variables/Velocity Total"
+        if path not in self:
+            return pd.DataFrame()
+
+        vel_data = self[path]
+        v_conv_val = np.vectorize(convert_ras_hdf_value)
+
+        xs_data = self.cross_sections()
+        profiles = self.steady_flow_names()
+
+        df_xsvel = pd.DataFrame(vel_data, index=profiles)
+        df_xsvel_t = df_xsvel.T.copy()
+        for col in df_xsvel_t.columns:
+            df_xsvel_t[col] = df_xsvel_t[col].apply(lambda x: round(x, 2))
+
+        return df_xsvel_t
