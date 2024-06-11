@@ -1,4 +1,9 @@
-from src.rashdf.plan import RasPlanHdf, SummaryOutputVar, RasPlanHdfError
+from src.rashdf.plan import (
+    RasPlanHdf,
+    SummaryOutputVar,
+    RasPlanHdfError,
+    TimeSeriesOutputVar,
+)
 
 from pathlib import Path
 
@@ -10,6 +15,7 @@ TEST_DATA = Path("./tests/data")
 TEST_JSON = TEST_DATA / "json"
 TEST_ATTRS = {"test_attribute1": "test_str1", "test_attribute2": 500}
 BALD_EAGLE_P18 = TEST_DATA / "ras/BaldEagleDamBrk.p18.hdf"
+BALD_EAGLE_P18_TIMESERIES = TEST_DATA / "ras/BaldEagleDamBrk.p18.timeseries.hdf"
 MUNCIE_G05 = TEST_DATA / "ras/Muncie.g05.hdf"
 
 
@@ -162,3 +168,55 @@ def test_mesh_cell_faces_with_output(tmp_path):
     valid = get_sha1_hash(TEST_JSON / "bald-eagle-mesh-cell-faces.geojson")
     test = get_sha1_hash(temp_faces)
     assert valid == test
+
+
+def test_mesh_timeseries_output():
+    with RasPlanHdf(BALD_EAGLE_P18_TIMESERIES) as plan_hdf:
+        with pytest.raises(ValueError):
+            plan_hdf.mesh_timeseries_output(
+                "Fake Mesh", TimeSeriesOutputVar.WATER_SURFACE
+            )
+        with pytest.raises(ValueError):
+            plan_hdf.mesh_timeseries_output("BaldEagleCr", "Fake Variable")
+
+
+def test_mesh_timeseries_output_cells():
+    with RasPlanHdf(BALD_EAGLE_P18_TIMESERIES) as plan_hdf:
+        ds = plan_hdf.mesh_timeseries_output_cells("BaldEagleCr")
+        assert "time" in ds.coords
+        assert "cell_id" in ds.coords
+        assert "Water Surface" in ds.variables
+        water_surface = ds["Water Surface"]
+        assert water_surface.shape == (37, 3359)
+        assert water_surface.attrs["units"] == "ft"
+        assert water_surface.attrs["mesh_name"] == "BaldEagleCr"
+
+        ds = plan_hdf.mesh_timeseries_output_cells("Upper 2D Area")
+        assert "time" in ds.coords
+        assert "cell_id" in ds.coords
+        assert "Water Surface" in ds.variables
+        water_surface = ds["Water Surface"]
+        assert water_surface.shape == (37, 1066)
+        assert water_surface.attrs["units"] == "ft"
+        assert water_surface.attrs["mesh_name"] == "Upper 2D Area"
+
+
+def test_mesh_timeseries_output_faces():
+    with RasPlanHdf(BALD_EAGLE_P18_TIMESERIES) as plan_hdf:
+        ds = plan_hdf.mesh_timeseries_output_faces("BaldEagleCr")
+        assert "time" in ds.coords
+        assert "face_id" in ds.coords
+        assert "Face Velocity" in ds.variables
+        ws = ds["Face Velocity"]
+        assert ws.shape == (37, 7295)
+        assert ws.attrs["units"] == "ft/s"
+        assert ws.attrs["mesh_name"] == "BaldEagleCr"
+
+        ds = plan_hdf.mesh_timeseries_output_faces("Upper 2D Area")
+        assert "time" in ds.coords
+        assert "face_id" in ds.coords
+        assert "Face Velocity" in ds.variables
+        v = ds["Face Velocity"]
+        assert v.shape == (37, 2286)
+        assert v.attrs["units"] == "ft/s"
+        assert v.attrs["mesh_name"] == "Upper 2D Area"
