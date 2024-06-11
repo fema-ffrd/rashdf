@@ -631,65 +631,49 @@ class RasGeomHdf(RasHdf):
 
         return xs_elev_df
 
-    def encroachments_1d(self) -> pd.DataFrame:
+    def cross_sections_encroachments(
+        self, side: str, floodway: str = "floodway"
+    ) -> pd.DataFrame:
         """Returns the encroachment information for a floodway plan hdf.
-        Sometimes xs doesn't start with a zero station in it's elevation profile.
-        This will provide both the model station and xs station of the encroachments
 
         Returns
         -------
         DataFrame
-            A DataFrame containing the encroachment stations along the xs.
+            A DataFrame containing the encroachment stations
         """
-        pathleft = "/Results/Steady/Output/Output Blocks/Base Output"
-        pathleft += "/Steady Profiles/Cross Sections"
-        pathleft += "/Additional Variables/Encroachment Station Left"
-        if pathleft not in self:
-            print("failed left")
-            return pd.DataFrame()
-        pathright = pathleft.replace("Left", "Right")
-        if pathright not in self:
-            print("failed right")
+        sides_options = ["Left", "Right"]
+        if side not in sides_options:
+            return ValueError("'sides' must be either 'left' or 'right'")
+        path = "/Results/Steady/Output/Output Blocks/Base Output/Steady Profiles/Cross Sections"
+        path += f"/Additional Variables/Encroachment Station {side}"
+        if path not in self:
             return pd.DataFrame()
 
-        eleft_data = self[pathleft]
-        eright_data = self[pathright]
-        v_conv_val = np.vectorize(convert_ras_hdf_value)
-
-        profiles = self.steady_flow_names()
-        xs_elev = self.cross_sections_elevations()
         xs_data = self.cross_sections()
+        profiles = self.steady_flow_names()
+        if floodway not in profiles:
+            p = ", ".join(profiles)
+            return ValueError(f"'{floodway}' not in '{p}'")
 
-        df_eleft = pd.DataFrame(eleft_data, index=profiles)
-        df_eleft_t = df_eleft.T.copy()
-        df_eleft_t["left model encroachment"] = df_eleft_t["floodway"].apply(
+        enc_data = self[path]
+        v_conv_val = np.vectorize(convert_ras_hdf_value)
+        df_enc = pd.DataFrame(enc_data, index=profiles)
+        df_enc_t = df_enc.T.copy()
+        df_enc_t[f"{side} model encroachment"] = df_enc_t[floodway].apply(
             lambda x: round(x, 2)
         )
-        df_eright = pd.DataFrame(eright_data, index=profiles)
-        df_eright_t = df_eright.T.copy()
-        df_eright_t["right model encroachment"] = df_eright_t["floodway"].apply(
-            lambda x: round(x, 2)
-        )
-        xs_elev["model start station"] = xs_elev["elevation info"].apply(
-            lambda x: round(x[0][0], 2)
-        )
-
         df = xs_data[["River", "Reach", "RS"]].copy()
-        df["left model encroachment"] = df_eleft_t["left model encroachment"]
-        df["right model encroachment"] = df_eright_t["right model encroachment"]
-        df["model start station"] = xs_elev["model start station"]
-        df["left xs encroachment"] = df["left model encroachment"] - df[
-            "model start station"
-        ].astype(float)
-        df["right xs encroachment"] = df["right model encroachment"] - df[
-            "model start station"
-        ].astype(float)
-        df["floodway width"] = (
-            df["right model encroachment"] - df["left model encroachment"]
-        )
+        df[f"{side} model encroachment"] = df_enc_t[f"{side} model encroachment"]
 
         return df
 
     def cross_sections_area(self) -> pd.DataFrame:
+        """Returns the cross section area for
+
+        Returns
+        -------
+        DataFrame
+            A DataFrame containing the wet area inside the xs
+        """
 
         return None
