@@ -12,6 +12,8 @@ RasGeomHdf
              bc_lines,
              breaklines,
              refinement_regions,
+             reference_lines,
+             reference_points,
              structures,
              get_geom_attrs,
              get_geom_structures_attrs,

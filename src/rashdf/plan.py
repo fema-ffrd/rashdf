@@ -143,6 +143,8 @@ class RasPlanHdf(RasGeomHdf):
         f"{BASE_OUTPUT_PATH}/Summary Output/2D Flow Areas"
     )
     UNSTEADY_TIME_SERIES_PATH = f"{BASE_OUTPUT_PATH}/Unsteady Time Series"
+    REFERENCE_LINES_OUTPUT_PATH = f"{UNSTEADY_TIME_SERIES_PATH}/Reference Lines"
+    REFERENCE_POINTS_OUTPUT_PATH = f"{UNSTEADY_TIME_SERIES_PATH}/Reference Points"
 
     def __init__(self, name: str, **kwargs):
         """Open a HEC-RAS Plan HDF file.
@@ -894,6 +896,188 @@ class RasPlanHdf(RasGeomHdf):
         """
         ds = self._mesh_timeseries_outputs(mesh_name, TIME_SERIES_OUTPUT_VARS_FACES)
         return ds
+
+    def reference_timeseries_output(self, reftype: str = "lines") -> xr.Dataset:
+        """Return timeseries output data for reference lines or points from a HEC-RAS HDF plan file.
+
+        Parameters
+        ----------
+        reftype : str, optional
+            The type of reference data to retrieve. Must be either "lines" or "points".
+            (default: "lines")
+
+        Returns
+        -------
+        DataFrame
+            A DataFrame with reference line flow data.
+        """
+        if reftype == "lines":
+            output_path = self.REFERENCE_LINES_OUTPUT_PATH
+            abbrev = "refln"
+        elif reftype == "points":
+            output_path = self.REFERENCE_POINTS_OUTPUT_PATH
+            abbrev = "refpt"
+        else:
+            raise ValueError('reftype must be either "lines" or "points".')
+        reference_group = self.get(output_path)
+        if reference_group is None:
+            raise RasPlanHdfError(
+                f"Could not find HDF group at path '{output_path}'."
+                f" Does the Plan HDF file contain reference {reftype[:-1]} output data?"
+            )
+        reference_names = reference_group["Name"][:]
+        names = []
+        mesh_areas = []
+        for s in reference_names:
+            name, mesh_area = s.decode("utf-8").split("|")
+            names.append(name)
+            mesh_areas.append(mesh_area)
+
+        times = self.unsteady_datetimes()
+
+        das = {}
+        for var in ["Flow", "Velocity", "Water Surface"]:
+            group = reference_group.get(var)
+            if group is None:
+                continue
+            values = group[:]
+            units = group.attrs["Units"].decode("utf-8")
+            da = xr.DataArray(
+                values,
+                name=var,
+                dims=["time", f"{abbrev}_id"],
+                coords={
+                    "time": times,
+                    f"{abbrev}_id": range(values.shape[1]),
+                    f"{abbrev}_name": (f"{abbrev}_id", names),
+                    "mesh_name": (f"{abbrev}_id", mesh_areas),
+                },
+                attrs={"Units": units},
+            )
+            das[var] = da
+        return xr.Dataset(das)
+
+    def reference_summary_output(self, reftype: str = "lines") -> DataFrame:
+        """Return summary output data for reference lines or points from a HEC-RAS HDF plan file.
+
+        Returns
+        -------
+        DataFrame
+            A DataFrame with reference line summary output data.
+        """
+        if reftype == "lines":
+            abbrev = "refln"
+        elif reftype == "points":
+            abbrev = "refpt"
+        else:
+            raise ValueError('reftype must be either "lines" or "points".')
+        ds = self.reference_timeseries_output(reftype=reftype)
+        result = {
+            f"{abbrev}_id": ds[f"{abbrev}_id"],
+            f"{abbrev}_name": ds[f"{abbrev}_name"],
+            "mesh_name": ds.mesh_name,
+        }
+        vars = {
+            "Flow": "q",
+            "Water Surface": "ws",
+            "Velocity": "v",
+        }
+        for var, abbrev in vars.items():
+            if var not in ds:
+                continue
+            max_var = ds[var].max(dim="time")
+            max_time = ds[var].time[ds[var].argmax(dim="time")]
+            min_var = ds[var].min(dim="time")
+            min_time = ds[var].time[ds[var].argmin(dim="time")]
+            result[f"max_{abbrev}"] = max_var
+            result[f"max_{abbrev}_time"] = max_time
+            result[f"min_{abbrev}"] = min_var
+            result[f"min_{abbrev}_time"] = min_time
+        return DataFrame(result)
+
+    def _reference_lines_points(
+        self,
+        reftype: str = "lines",
+        include_output: bool = True,
+        datetime_to_str: bool = False,
+    ) -> GeoDataFrame:
+        if reftype == "lines":
+            abbrev = "refln"
+            gdf = super().reference_lines()
+        elif reftype == "points":
+            abbrev = "refpt"
+            gdf = super().reference_points()
+        else:
+            raise ValueError('reftype must be either "lines" or "points".')
+        if include_output is False:
+            return gdf
+        summary_output = self.reference_summary_output(reftype=reftype)
+        gdf = gdf.merge(
+            summary_output,
+            on=[f"{abbrev}_id", f"{abbrev}_name", "mesh_name"],
+            how="left",
+        )
+        if datetime_to_str:
+            gdf = df_datetimes_to_str(gdf)
+        return gdf
+
+    def reference_lines(
+        self, include_output: bool = True, datetime_to_str: bool = False
+    ) -> GeoDataFrame:
+        """Return the reference lines from a HEC-RAS HDF plan file.
+
+        Includes summary output data for each reference line:
+        - Maximum flow & time (max_q, max_q_time)
+        - Minimum flow & time (min_q, min_q_time)
+        - Maximum water surface elevation & time (max_ws, max_ws_time)
+        - Minimum water surface elevation & time (min_ws, min_ws_time)
+
+        Parameters
+        ----------
+        include_output : bool, optional
+            If True, include summary output data in the GeoDataFrame. (default: True)
+        datetime_to_str : bool, optional
+            If True, convert datetime columns to strings. (default: False)
+
+        Returns
+        -------
+        GeoDataFrame
+            A GeoDataFrame with reference line geometry and summary output data.
+        """
+        return self._reference_lines_points(
+            reftype="lines",
+            include_output=include_output,
+            datetime_to_str=datetime_to_str,
+        )
+
+    def reference_points(
+        self, include_output: bool = True, datetime_to_str: bool = False
+    ) -> GeoDataFrame:
+        """Return the reference points from a HEC-RAS HDF plan file.
+
+        Parameters
+        ----------
+        include_output : bool, optional
+            If True, include summary output data in the GeoDataFrame. (default: True)
+        datetime_to_str : bool, optional
+            If True, convert datetime columns to strings. (default: False)
+
+        Includes summary output data for each reference point:
+        - Maximum flow & time (max_q, max_q_time)
+        - Minimum flow & time (min_q, min_q_time)
+        - Maximum water surface elevation & time (max_ws, max_ws_time)
+        - Minimum water surface elevation & time (min_ws, min_ws_time)
+
+        Returns
+        -------
+        GeoDataFrame
+            A GeoDataFrame with reference point geometry and summary output data.
+        """
+        return self._reference_lines_points(
+            reftype="points",
+            include_output=include_output,
+            datetime_to_str=datetime_to_str,
+        )
 
     def get_plan_info_attrs(self) -> Dict:
         """Return plan information attributes from a HEC-RAS HDF plan file.
