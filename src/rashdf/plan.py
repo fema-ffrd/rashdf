@@ -119,6 +119,7 @@ TIME_SERIES_OUTPUT_VARS_FACES = [
     TimeSeriesOutputVar.FACE_TANGENTIAL_VELOCITY,
     TimeSeriesOutputVar.FACE_VELOCITY,
     TimeSeriesOutputVar.FACE_WATER_SURFACE,
+    # TODO: investigate why "Face Wind Term" data gets written as a 1D array
     # TimeSeriesOutputVar.FACE_WIND_TERM,
 ]
 
@@ -830,6 +831,7 @@ class RasPlanHdf(RasGeomHdf):
             raise ValueError(f"Invalid time series output variable: {var.value}")
         da = xr.DataArray(
             values,
+            name=var.value,
             dims=["time", id_coord],
             coords={
                 "time": times,
@@ -853,7 +855,7 @@ class RasPlanHdf(RasGeomHdf):
                 continue
             da = self.mesh_timeseries_output(mesh_name, var)
             datasets[var.value] = da
-        ds = xr.Dataset(datasets)
+        ds = xr.Dataset(datasets, attrs={"mesh_name": mesh_name})
         return ds
 
     def mesh_timeseries_output_cells(self, mesh_name: str) -> xr.Dataset:

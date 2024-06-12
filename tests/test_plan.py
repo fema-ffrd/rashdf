@@ -7,12 +7,16 @@ from src.rashdf.plan import (
 
 from pathlib import Path
 
+import numpy as np
+import pandas as pd
+from pandas.testing import assert_frame_equal
 import pytest
 
 from . import _create_hdf_with_group_attrs, _gdf_matches_json, get_sha1_hash
 
 TEST_DATA = Path("./tests/data")
 TEST_JSON = TEST_DATA / "json"
+TEST_CSV = TEST_DATA / "csv"
 TEST_ATTRS = {"test_attribute1": "test_str1", "test_attribute2": 500}
 BALD_EAGLE_P18 = TEST_DATA / "ras/BaldEagleDamBrk.p18.hdf"
 BALD_EAGLE_P18_TIMESERIES = TEST_DATA / "ras/BaldEagleDamBrk.p18.timeseries.hdf"
@@ -186,19 +190,35 @@ def test_mesh_timeseries_output_cells():
         assert "time" in ds.coords
         assert "cell_id" in ds.coords
         assert "Water Surface" in ds.variables
-        water_surface = ds["Water Surface"]
-        assert water_surface.shape == (37, 3359)
-        assert water_surface.attrs["units"] == "ft"
-        assert water_surface.attrs["mesh_name"] == "BaldEagleCr"
+        ws = ds["Water Surface"]
+        assert ws.shape == (37, 3359)
+        assert ws.attrs["units"] == "ft"
+        assert ws.attrs["mesh_name"] == "BaldEagleCr"
+        df = ws.sel(cell_id=123).to_dataframe()
+        valid_df = pd.read_csv(
+            TEST_CSV / "BaldEagleDamBrk.BaldEagleCr.ws.123.csv",
+            index_col="time",
+            parse_dates=True,
+            dtype={"Water Surface": np.float32},
+        )
+        assert_frame_equal(df, valid_df)
 
         ds = plan_hdf.mesh_timeseries_output_cells("Upper 2D Area")
         assert "time" in ds.coords
         assert "cell_id" in ds.coords
         assert "Water Surface" in ds.variables
-        water_surface = ds["Water Surface"]
-        assert water_surface.shape == (37, 1066)
-        assert water_surface.attrs["units"] == "ft"
-        assert water_surface.attrs["mesh_name"] == "Upper 2D Area"
+        ws = ds["Water Surface"]
+        assert ws.shape == (37, 1066)
+        assert ws.attrs["units"] == "ft"
+        assert ws.attrs["mesh_name"] == "Upper 2D Area"
+        df = ws.sel(cell_id=456).to_dataframe()
+        valid_df = pd.read_csv(
+            TEST_CSV / "BaldEagleDamBrk.Upper2DArea.ws.456.csv",
+            index_col="time",
+            parse_dates=True,
+            dtype={"Water Surface": np.float32},
+        )
+        assert_frame_equal(df, valid_df)
 
 
 def test_mesh_timeseries_output_faces():
@@ -207,10 +227,18 @@ def test_mesh_timeseries_output_faces():
         assert "time" in ds.coords
         assert "face_id" in ds.coords
         assert "Face Velocity" in ds.variables
-        ws = ds["Face Velocity"]
-        assert ws.shape == (37, 7295)
-        assert ws.attrs["units"] == "ft/s"
-        assert ws.attrs["mesh_name"] == "BaldEagleCr"
+        v = ds["Face Velocity"]
+        assert v.shape == (37, 7295)
+        assert v.attrs["units"] == "ft/s"
+        assert v.attrs["mesh_name"] == "BaldEagleCr"
+        df = v.sel(face_id=678).to_dataframe()
+        valid_df = pd.read_csv(
+            TEST_CSV / "BaldEagleDamBrk.BaldEagleCr.v.678.csv",
+            index_col="time",
+            parse_dates=True,
+            dtype={"Face Velocity": np.float32},
+        )
+        assert_frame_equal(df, valid_df)
 
         ds = plan_hdf.mesh_timeseries_output_faces("Upper 2D Area")
         assert "time" in ds.coords
@@ -220,3 +248,11 @@ def test_mesh_timeseries_output_faces():
         assert v.shape == (37, 2286)
         assert v.attrs["units"] == "ft/s"
         assert v.attrs["mesh_name"] == "Upper 2D Area"
+        df = v.sel(face_id=567).to_dataframe()
+        valid_df = pd.read_csv(
+            TEST_CSV / "BaldEagleDamBrk.Upper2DArea.v.567.csv",
+            index_col="time",
+            parse_dates=True,
+            dtype={"Face Velocity": np.float32},
+        )
+        assert_frame_equal(df, valid_df)
