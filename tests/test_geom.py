@@ -3,12 +3,14 @@ from src.rashdf import RasGeomHdf
 import h5py
 from geopandas import GeoDataFrame
 from pyproj import CRS
+import json
 from pathlib import Path
 
 from . import _create_hdf_with_group_attrs
 
 TEST_DATA = Path("./tests/data")
 MUNCIE_G05 = TEST_DATA / "ras/Muncie.g05.hdf"
+BAXTER_P01 = TEST_DATA / "ras_1d/Baxter.p01.hdf"
 TEST_JSON = TEST_DATA / "json"
 
 TEST_ATTRS = {"test_attribute1": "test_str1", "test_attribute2": 500}
@@ -28,6 +30,11 @@ def test_projection(tmp_path):
 def _gdf_matches_json(gdf: GeoDataFrame, json_file: Path) -> bool:
     with open(json_file) as j:
         return gdf.to_json() == j.read()
+
+
+def _gdf_matches_json_alt(gdf: GeoDataFrame, json_file: Path) -> bool:
+    with open(json_file) as j:
+        return json.loads(gdf.to_json()) == json.load(j)
 
 
 def test_mesh_area_names():
@@ -104,3 +111,46 @@ def test_structs():
     structs_json = TEST_JSON / "structures.json"
     with RasGeomHdf(MUNCIE_G05) as ghdf:
         assert _gdf_matches_json(ghdf.structures(datetime_to_str=True), structs_json)
+
+
+def test_cross_sections():
+    cross_section_json = TEST_JSON / "cross_sections.json"
+    with RasGeomHdf(BAXTER_P01) as ghdf:
+        assert _gdf_matches_json_alt(
+            ghdf.cross_sections(datetime_to_str=True), cross_section_json
+        )
+
+
+def test_river_reaches():
+    river_reaches_json = TEST_JSON / "river_reaches.json"
+    with RasGeomHdf(BAXTER_P01) as ghdf:
+        assert _gdf_matches_json_alt(ghdf.river_reaches(), river_reaches_json)
+
+
+def test_steady_flow_names():
+    with RasGeomHdf(BAXTER_P01) as ghdf:
+        assert ghdf.steady_flow_names() == ["Big"]
+
+
+def test_cross_sections_wsel():
+    xs_wsel_json = TEST_JSON / "xc_wsel.json"
+    with RasGeomHdf(BAXTER_P01) as ghdf:
+        assert _gdf_matches_json_alt(ghdf.cross_sections_wsel(), xs_wsel_json)
+
+
+def test_cross_sections_elevations():
+    xs_elevs_json = TEST_JSON / "xs_elevations.json"
+    with RasGeomHdf(BAXTER_P01) as ghdf:
+        assert _gdf_matches_json_alt(ghdf.cross_sections_elevations(), xs_elevs_json)
+
+
+def test_cross_sections_area():
+    xs_area_json = TEST_JSON / "xs_area.json"
+    with RasGeomHdf(BAXTER_P01) as ghdf:
+        assert _gdf_matches_json_alt(ghdf.cross_sections_area(), xs_area_json)
+
+
+def test_cross_sections_velocity():
+    xs_velocity_json = TEST_JSON / "xs_velocity.json"
+    with RasGeomHdf(BAXTER_P01) as ghdf:
+        assert _gdf_matches_json_alt(ghdf.cross_sections_velocity(), xs_velocity_json)
