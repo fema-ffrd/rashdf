@@ -1,5 +1,5 @@
-from base import RasHdf
-from utils import (
+from .base import RasHdf
+from .utils import (
     convert_ras_hdf_string,
     get_first_hdf_group,
     hdf5_attrs_to_dict,
@@ -566,7 +566,6 @@ class RasGeomHdf(RasHdf):
             return pd.DataFrame()
 
         profile_data = self[path]
-        v_conv_val = np.vectorize(convert_ras_hdf_value)
         profile_attrs = profile_data["Profile Names"][()]
         profilenames = [x.decode("utf-8") for x in profile_attrs]
 
@@ -585,7 +584,6 @@ class RasGeomHdf(RasHdf):
             return pd.DataFrame()
 
         wsel_data = self[path]
-        v_conv_val = np.vectorize(convert_ras_hdf_value)
         wsel_attrs = wsel_data["Water Surface"][()]
 
         xs_df = self.cross_sections()
@@ -613,7 +611,6 @@ class RasGeomHdf(RasHdf):
             return pd.DataFrame()
 
         xselev_data = self[path]
-        v_conv_val = np.vectorize(convert_ras_hdf_value)
         xs_df = self.cross_sections()
         elevations = list()
         for part_start, part_cnt in xselev_data["Station Elevation Info"][()]:
@@ -655,7 +652,6 @@ class RasGeomHdf(RasHdf):
             return ValueError(f"'{floodway}' not in '{p}'")
 
         enc_data = self[path]
-        v_conv_val = np.vectorize(convert_ras_hdf_value)
         df_enc = pd.DataFrame(enc_data, index=profiles)
         df_enc_t = df_enc.T.copy()
         df_enc_t[f"{side} model encroachment"] = df_enc_t[floodway].apply(
@@ -674,12 +670,11 @@ class RasGeomHdf(RasHdf):
             A DataFrame containing the wet area inside the xs
         """
         path = "/Results/Steady/Output/Output Blocks/Base Output/Steady Profiles"
-        path += f"/Cross Sections/Additional Variables/Area including Ineffective Total"
+        path += "/Cross Sections/Additional Variables/Area including Ineffective Total"
         if path not in self:
             return pd.DataFrame()
 
         area_data = self[path]
-        v_conv_val = np.vectorize(convert_ras_hdf_value)
 
         profiles = self.steady_flow_names()
 
@@ -699,14 +694,11 @@ class RasGeomHdf(RasHdf):
             A DataFrame containing the velocity inside the xs
         """
         path = "/Results/Steady/Output/Output Blocks/Base Output/Steady Profiles"
-        path += f"/Cross Sections/Additional Variables/Velocity Total"
+        path += "/Cross Sections/Additional Variables/Velocity Total"
         if path not in self:
             return pd.DataFrame()
 
         vel_data = self[path]
-        v_conv_val = np.vectorize(convert_ras_hdf_value)
-
-        xs_data = self.cross_sections()
         profiles = self.steady_flow_names()
 
         df_xsvel = pd.DataFrame(vel_data, index=profiles)
