@@ -2,10 +2,15 @@
 [![CI](https://github.com/fema-ffrd/rashdf/actions/workflows/continuous-integration.yml/badge.svg?branch=main)](https://github.com/fema-ffrd/rashdf/actions/workflows/continuous-integration.yml)
 [![Release](https://github.com/fema-ffrd/rashdf/actions/workflows/release.yml/badge.svg)](https://github.com/fema-ffrd/rashdf/actions/workflows/release.yml)
 [![PyPI version](https://badge.fury.io/py/rashdf.svg)](https://badge.fury.io/py/rashdf)
+[![codecov](https://codecov.io/gh/fema-ffrd/rashdf/graph/badge.svg?token=CTIIONEHV1)](https://codecov.io/gh/fema-ffrd/rashdf)
+[![Documentation Status](https://readthedocs.org/projects/rashdf/badge/?version=latest)](https://rashdf.readthedocs.io/en/latest/?badge=latest)
 
 Read data from [HEC-RAS](https://www.hec.usace.army.mil/software/hec-ras/) [HDF](https://github.com/HDFGroup/hdf5) files.
 
 *Pronunciation: `raz·aitch·dee·eff`*
+
+## Documentation
+[rashdf on ReadTheDocs](http://rashdf.readthedocs.io/)
 
 ## Install
 ```bash
@@ -96,9 +101,6 @@ Example: write structures GeoJSON to `stdout`:
 ```
 $ rashdf structures Potomac.p01.hdf
 ```
-
-## Documentation
-Coming soon.
 
 ## Developer Setup
 Create a virtual environment in the project directory:

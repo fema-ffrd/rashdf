@@ -1,42 +1,54 @@
-from .base import RasHdf
-from .utils import (
-    convert_ras_hdf_string,
-    get_first_hdf_group,
-    hdf5_attrs_to_dict,
-    convert_ras_hdf_value,
-)
+"""HEC-RAS Geometry HDF class."""
+
+from typing import Dict, List, Optional
 
 import numpy as np
 import pandas as pd
 from geopandas import GeoDataFrame
 from pyproj import CRS
 from shapely import (
-    Polygon,
-    Point,
     LineString,
     MultiLineString,
     MultiPolygon,
-    polygonize,
+    Point,
+    Polygon,
+    polygonize_full,
 )
 
-from typing import List, Optional
+from .base import RasHdf
+from .utils import (
+    convert_ras_hdf_string,
+    convert_ras_hdf_value,
+    get_first_hdf_group,
+    hdf5_attrs_to_dict,
+)
 
 
 class RasGeomHdf(RasHdf):
+    """HEC-RAS Geometry HDF class."""
+
     GEOM_PATH = "Geometry"
     GEOM_STRUCTURES_PATH = f"{GEOM_PATH}/Structures"
     FLOW_AREA_2D_PATH = f"{GEOM_PATH}/2D Flow Areas"
 
     def __init__(self, name: str, **kwargs):
+        """Open a HEC-RAS Geometry HDF file.
+
+        Parameters
+        ----------
+        name : str
+            The path to the RAS Geometry HDF file.
+        kwargs : dict
+            Additional keyword arguments to pass to h5py.File
+        """
         super().__init__(name, **kwargs)
 
     def projection(self) -> Optional[CRS]:
-        """Return the projection of the RAS geometry as a
-        pyproj.CRS object.
+        """Return the projection of the RAS geometry as a pyproj.CRS object.
 
         Returns
         -------
-        CRS
+        pyproj.CRS or None
             The projection of the RAS geometry.
         """
         proj_wkt = self.attrs.get("Projection")
@@ -47,12 +59,11 @@ class RasGeomHdf(RasHdf):
         return CRS.from_wkt(proj_wkt)
 
     def mesh_area_names(self) -> List[str]:
-        """Return a list of the 2D mesh area names of
-        the RAS geometry.
+        """Return a list of the 2D mesh area names of the RAS geometry.
 
         Returns
         -------
-        list
+        List[str]
             A list of the 2D mesh area names (str) within the RAS geometry if 2D areas exist.
         """
         if "/Geometry/2D Flow Areas" not in self:
@@ -128,13 +139,19 @@ class RasGeomHdf(RasHdf):
             cell_dict["cell_id"] += cell_ids
             cell_dict["geometry"] += list(
                 np.vectorize(
-                    lambda face_id_list: polygonize(
-                        np.ravel(
-                            mesh_faces[
-                                np.array(face_id_list.strip("[]").split()).astype(int)
-                            ]
+                    lambda face_id_list: (
+                        lambda geom_col: Polygon((geom_col[0] or geom_col[3]).geoms[0])
+                    )(
+                        polygonize_full(
+                            np.ravel(
+                                mesh_faces[
+                                    np.array(face_id_list.strip("[]").split()).astype(
+                                        int
+                                    )
+                                ]
+                            )
                         )
-                    ).geoms[0]
+                    )
                 )(face_id_lists)
             )
         return GeoDataFrame(cell_dict, geometry="geometry", crs=self.projection())
@@ -206,8 +223,8 @@ class RasGeomHdf(RasHdf):
                 face_dict["geometry"].append(LineString(coordinates))
         return GeoDataFrame(face_dict, geometry="geometry", crs=self.projection())
 
-    def get_geom_attrs(self):
-        """Returns base geometry attributes from a HEC-RAS HDF file.
+    def get_geom_attrs(self) -> Dict:
+        """Return base geometry attributes from a HEC-RAS HDF file.
 
         Returns
         -------
@@ -216,8 +233,8 @@ class RasGeomHdf(RasHdf):
         """
         return self.get_attrs(self.GEOM_PATH)
 
-    def get_geom_structures_attrs(self):
-        """Returns geometry structures attributes from a HEC-RAS HDF file.
+    def get_geom_structures_attrs(self) -> Dict:
+        """Return geometry structures attributes from a HEC-RAS HDF file.
 
         Returns
         -------
@@ -226,8 +243,8 @@ class RasGeomHdf(RasHdf):
         """
         return self.get_attrs(self.GEOM_STRUCTURES_PATH)
 
-    def get_geom_2d_flow_area_attrs(self):
-        """Returns geometry 2d flow area attributes from a HEC-RAS HDF file.
+    def get_geom_2d_flow_area_attrs(self) -> Dict:
+        """Return geometry 2d flow area attributes from a HEC-RAS HDF file.
 
         Returns
         -------
@@ -373,6 +390,11 @@ class RasGeomHdf(RasHdf):
     def structures(self, datetime_to_str: bool = False) -> GeoDataFrame:
         """Return the model structures.
 
+        Parameters
+        ----------
+        datetime_to_str : bool, optional
+            If True, convert datetime values to string format (default: False).
+
         Returns
         -------
         GeoDataFrame
@@ -419,28 +441,28 @@ class RasGeomHdf(RasHdf):
             )
         return struct_gdf
 
-    def connections(self) -> GeoDataFrame:
+    def connections(self) -> GeoDataFrame:  # noqa D102
         raise NotImplementedError
 
-    def ic_points(self) -> GeoDataFrame:
+    def ic_points(self) -> GeoDataFrame:  # noqa D102
         raise NotImplementedError
 
-    def reference_lines(self) -> GeoDataFrame:
+    def reference_lines(self) -> GeoDataFrame:  # noqa D102
         raise NotImplementedError
 
-    def reference_points(self) -> GeoDataFrame:
+    def reference_points(self) -> GeoDataFrame:  # noqa D102
         raise NotImplementedError
 
-    def pump_stations(self) -> GeoDataFrame:
+    def pump_stations(self) -> GeoDataFrame:  # noqa D102
         raise NotImplementedError
 
-    def mannings_calibration_regions(self) -> GeoDataFrame:
+    def mannings_calibration_regions(self) -> GeoDataFrame:  # noqa D102
         raise NotImplementedError
 
-    def classification_polygons(self) -> GeoDataFrame:
+    def classification_polygons(self) -> GeoDataFrame:  # noqa D102
         raise NotImplementedError
 
-    def terrain_modifications(self) -> GeoDataFrame:
+    def terrain_modifications(self) -> GeoDataFrame:  # noqa D102
         raise NotImplementedError
 
     def cross_sections(self, datetime_to_str: bool = False) -> GeoDataFrame:
@@ -535,22 +557,22 @@ class RasGeomHdf(RasHdf):
             )
         return river_gdf
 
-    def flowpaths(self) -> GeoDataFrame:
+    def flowpaths(self) -> GeoDataFrame:  # noqa D102
         raise NotImplementedError
 
-    def bank_points(self) -> GeoDataFrame:
+    def bank_points(self) -> GeoDataFrame:  # noqa D102
         raise NotImplementedError
 
-    def bank_lines(self) -> GeoDataFrame:
+    def bank_lines(self) -> GeoDataFrame:  # noqa D102
         raise NotImplementedError
 
-    def ineffective_areas(self) -> GeoDataFrame:
+    def ineffective_areas(self) -> GeoDataFrame:  # noqa D102
         raise NotImplementedError
 
-    def ineffective_points(self) -> GeoDataFrame:
+    def ineffective_points(self) -> GeoDataFrame:  # noqa D102
         raise NotImplementedError
 
-    def blocked_obstructions(self) -> GeoDataFrame:
+    def blocked_obstructions(self) -> GeoDataFrame:  # noqa D102
         raise NotImplementedError
 
     def steady_flow_names(self) -> list:

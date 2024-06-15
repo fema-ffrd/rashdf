@@ -1,3 +1,5 @@
+"""Utility functions for reading HEC-RAS HDF data."""
+
 import h5py
 import numpy as np
 import pandas as pd
@@ -5,12 +7,13 @@ import pandas as pd
 from datetime import datetime, timedelta
 import re
 from typing import Any, List, Tuple, Union, Optional
+from shapely import LineString, Polygon, polygonize_full
 
 
 def parse_ras_datetime(datetime_str: str) -> datetime:
-    """
-    Parse a datetime string from a RAS file into a datetime object. If the datetime has
-    a time of 2400, then it is converted to midnight of the next day.
+    """Parse a datetime string from a RAS file into a datetime object.
+
+    If the datetime has a time of 2400, then it is converted to midnight of the next day.
 
     Parameters
     ----------
@@ -34,8 +37,9 @@ def parse_ras_datetime(datetime_str: str) -> datetime:
 
 def parse_ras_simulation_window_datetime(datetime_str) -> datetime:
     """
-    Parse a datetime string from a RAS simulation window into a datetime object.If the datetime has a
-    time of 2400, then it is converted to midnight of the next day.
+    Parse a datetime string from a RAS simulation window into a datetime object.
+
+    If the datetime has a time of 2400, then it is converted to midnight of the next day.
 
     Parameters
     ----------
@@ -202,13 +206,13 @@ def hdf5_attrs_to_dict(attrs: dict, prefix: str = None) -> dict:
     """
     Convert a dictionary of attributes from an HDF5 file into a Python dictionary.
 
-    Parameters:
+    Parameters
     ----------
         attrs (dict): The attributes to be converted.
         prefix (str, optional): An optional prefix to prepend to the keys.
 
-    Returns:
-    ----------
+    Returns
+    -------
         dict: A dictionary with the converted attributes.
     """
     results = {}
@@ -229,12 +233,12 @@ def get_first_hdf_group(parent_group: h5py.Group) -> Optional[h5py.Group]:
     This function iterates over the items in the parent group and returns the first item that is an instance of
      h5py.Group. If no such item is found, it returns None.
 
-    Parameters:
+    Parameters
     ----------
         parent_group (h5py.Group): The parent group to search in.
 
-    Returns:
-    ----------
+    Returns
+    -------
         Optional[h5py.Group]: The first HDF5 group in the parent group, or None if no group is found.
     """
     for _, item in parent_group.items():

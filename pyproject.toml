@@ -12,11 +12,12 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
 ]
-version = "0.2.1"
+version = "0.2.2"
 dependencies = ["h5py", "geopandas", "pyarrow"]
 
 [project.optional-dependencies]
-dev = ["pre-commit", "ruff", "pytest"]
+dev = ["pre-commit", "ruff", "pytest", "pytest-cov"]
+docs = ["sphinx", "numpydoc", "sphinx_rtd_theme"]
 
 [project.urls]
 repository = "https://github.com/fema-ffrd/rashdf"
@@ -28,10 +29,12 @@ rashdf = "cli:main"
 pythonpath = "src"
 testpaths = "tests"
 
-# TODO: linting for docstrings.
-# https://github.com/fema-ffrd/rashdf/issues/15
-# [tool.ruff.lint]
-# select = ["D"]
+[tool.ruff.lint]
+select = ["D"]
 
-# [tool.ruff.lint.pydocstyle]
-# convention = "numpy"
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["D"]
+"docs/**" = ["D"]

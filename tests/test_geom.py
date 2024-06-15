@@ -1,15 +1,17 @@
-from src.rashdf import RasGeomHdf
+import json
+from pathlib import Path
 
 import h5py
 from geopandas import GeoDataFrame
 from pyproj import CRS
-import json
-from pathlib import Path
+
+from src.rashdf import RasGeomHdf
 
 from . import _create_hdf_with_group_attrs
 
 TEST_DATA = Path("./tests/data")
 MUNCIE_G05 = TEST_DATA / "ras/Muncie.g05.hdf"
+COAL_G01 = TEST_DATA / "ras/Coal.g01.hdf"
 BAXTER_P01 = TEST_DATA / "ras_1d/Baxter.p01.hdf"
 TEST_JSON = TEST_DATA / "json"
 
@@ -64,6 +66,24 @@ def test_mesh_cell_polygons():
     mesh_cell_polygons_json = TEST_JSON / "mesh_cell_polygons.json"
     with RasGeomHdf(MUNCIE_G05) as ghdf:
         assert _gdf_matches_json(ghdf.mesh_cell_polygons(), mesh_cell_polygons_json)
+
+
+def test_mesh_cell_polygons_coal():
+    """Test with the mesh from the Coal River model.
+
+    The Jan 2024 Coal River model from the Kanawha FFRD pilot project
+    contains some topologically incorrect polygons in the 2D mesh;
+    some of the mesh cell faces overlap.
+
+    See: https://github.com/fema-ffrd/rashdf/issues/31
+    """
+    coal_bad_polygons_json = TEST_JSON / "coal-bad-mesh-cell-polygons.json"
+    with RasGeomHdf(COAL_G01) as geom_hdf:
+        gdf = geom_hdf.mesh_cell_polygons()
+        gdf_bad_polygons = gdf[gdf["cell_id"].isin([8561, 11791, 17529])].to_crs(
+            "EPSG:4326"
+        )  # reproject because the Kanawha FFRD pilot project uses a custom CRS
+        assert _gdf_matches_json(gdf_bad_polygons, coal_bad_polygons_json)
 
 
 def test_bc_lines():
