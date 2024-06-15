@@ -140,12 +140,22 @@ def test_cross_sections():
             ghdf.cross_sections(datetime_to_str=True), cross_section_json
         )
 
+def test_cross_sections_not_found():
+    with RasGeomHdf(COAL_G01) as ghdf:
+        assert (
+            ghdf.cross_sections(), None
+        )
 
 def test_river_reaches():
     river_reaches_json = TEST_JSON / "river_reaches.json"
     with RasGeomHdf(BAXTER_P01) as ghdf:
         assert _gdf_matches_json_alt(ghdf.river_reaches(), river_reaches_json)
 
+def test_river_reaches_not_found():
+    with RasGeomHdf(COAL_G01) as ghdf:
+        assert (
+            ghdf.river_reaches(), None
+        )
 
 def test_steady_flow_names():
     with RasGeomHdf(BAXTER_P01) as ghdf:
@@ -157,6 +167,11 @@ def test_cross_sections_wsel():
     with RasGeomHdf(BAXTER_P01) as ghdf:
         assert _gdf_matches_json_alt(ghdf.cross_sections_wsel(), xs_wsel_json)
 
+def test_cross_sections_wsel_not_found():
+    with RasGeomHdf(COAL_G01) as ghdf:
+        assert (
+            ghdf.cross_sections_wsel(), None
+        )
 
 def test_cross_sections_elevations():
     xs_elevs_json = TEST_JSON / "xs_elevations.json"
