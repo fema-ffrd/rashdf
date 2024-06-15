@@ -133,6 +133,11 @@ def test_structs():
         assert _gdf_matches_json(ghdf.structures(datetime_to_str=True), structs_json)
 
 
+def test_structs_not_found():
+    with RasGeomHdf(COAL_G01) as ghdf:
+        assert (ghdf.structures(), None)
+
+
 def test_cross_sections():
     cross_section_json = TEST_JSON / "cross_sections.json"
     with RasGeomHdf(BAXTER_P01) as ghdf:
@@ -162,6 +167,11 @@ def test_steady_flow_names():
         assert ghdf.steady_flow_names() == ["Big"]
 
 
+def test_steady_flow_names_not_found():
+    with RasGeomHdf(COAL_G01) as ghdf:
+        assert (ghdf.steady_flow_names(), None)
+
+
 def test_cross_sections_wsel():
     xs_wsel_json = TEST_JSON / "xc_wsel.json"
     with RasGeomHdf(BAXTER_P01) as ghdf:
@@ -179,13 +189,28 @@ def test_cross_sections_elevations():
         assert _gdf_matches_json_alt(ghdf.cross_sections_elevations(), xs_elevs_json)
 
 
+def test_cross_sections_elevations_not_found():
+    with RasGeomHdf(COAL_G01) as ghdf:
+        assert (ghdf.cross_sections_elevations(), None)
+
+
 def test_cross_sections_area():
     xs_area_json = TEST_JSON / "xs_area.json"
     with RasGeomHdf(BAXTER_P01) as ghdf:
         assert _gdf_matches_json_alt(ghdf.cross_sections_area(), xs_area_json)
 
 
+def test_cross_sections_area_not_found():
+    with RasGeomHdf(COAL_G01) as ghdf:
+        assert (ghdf.cross_sections_area(), None)
+
+
 def test_cross_sections_velocity():
     xs_velocity_json = TEST_JSON / "xs_velocity.json"
     with RasGeomHdf(BAXTER_P01) as ghdf:
         assert _gdf_matches_json_alt(ghdf.cross_sections_velocity(), xs_velocity_json)
+
+
+def ttest_cross_sections_velocity_not_found():
+    with RasGeomHdf(COAL_G01) as ghdf:
+        assert (ghdf.cross_sections_velocity(), None)
