@@ -466,7 +466,7 @@ class RasGeomHdf(RasHdf):
         raise NotImplementedError
 
     def cross_sections(self, datetime_to_str: bool = False) -> GeoDataFrame:
-        """Returns the model 1D cross sections
+        """Return the model 1D cross sections.
 
         Returns
         -------
@@ -512,7 +512,7 @@ class RasGeomHdf(RasHdf):
         return xs_gdf
 
     def river_reaches(self, datetime_to_str: bool = False) -> GeoDataFrame:
-        """Returns the model 1D river reach lines
+        """Return the model 1D river reach lines.
 
         Returns
         -------
@@ -576,7 +576,7 @@ class RasGeomHdf(RasHdf):
         raise NotImplementedError
 
     def steady_flow_names(self) -> list:
-        """Returns the profile information for each steady flow event
+        """Return the profile information for each steady flow event.
 
         Returns
         -------
@@ -594,7 +594,7 @@ class RasGeomHdf(RasHdf):
         return profilenames
 
     def cross_sections_wsel(self) -> pd.DataFrame:
-        """Returns the WSEL information for each 1D Cross Section
+        """Return the WSEL information for each 1D Cross Section.
 
         Returns
         -------
@@ -621,7 +621,7 @@ class RasGeomHdf(RasHdf):
         return wsel_df_t
 
     def cross_sections_elevations(self) -> pd.DataFrame:
-        """Returns the model cross section elevation information
+        """Return the model cross section elevation information.
 
         Returns
         -------
@@ -653,7 +653,7 @@ class RasGeomHdf(RasHdf):
     def cross_sections_encroachments(
         self, side: str, floodway: str = "floodway"
     ) -> pd.DataFrame:
-        """Returns the encroachment information for a floodway plan hdf.
+        """Return the encroachment information for a floodway plan hdf.
 
         Returns
         -------
@@ -684,7 +684,7 @@ class RasGeomHdf(RasHdf):
         return df
 
     def cross_sections_area(self) -> pd.DataFrame:
-        """Returns the cross section area for each profile
+        """Return the cross section area for each profile.
 
         Returns
         -------
@@ -708,7 +708,7 @@ class RasGeomHdf(RasHdf):
         return df_xsarea_t
 
     def cross_sections_velocity(self) -> pd.DataFrame:
-        """Returns the cross section velocity for each profile
+        """Return the cross section velocity for each profile.
 
         Returns
         -------
