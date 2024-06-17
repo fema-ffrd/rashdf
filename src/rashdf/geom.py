@@ -650,38 +650,51 @@ class RasGeomHdf(RasHdf):
 
         return xs_elev_df
 
-    def cross_sections_encroachments(
-        self, side: str, floodway: str = "floodway"
-    ) -> pd.DataFrame:
-        """Return the encroachment information for a floodway plan hdf.
+    def cross_sections_encroachment_station_left(self) -> pd.DataFrame:
+        """Return the left side encroachment information for a floodway plan hdf.
 
         Returns
         -------
         DataFrame
-            A DataFrame containing the encroachment stations
+            A DataFrame containing the left side encroachment stations
         """
-        sides_options = ["Left", "Right"]
-        if side not in sides_options:
-            return ValueError("'sides' must be either 'left' or 'right'")
         path = "/Results/Steady/Output/Output Blocks/Base Output/Steady Profiles"
-        path += f"/Cross Sections/Additional Variables/Encroachment Station {side}"
+        path += "/Cross Sections/Additional Variables/Encroachment Station Left"
         if path not in self:
             return pd.DataFrame()
 
         profiles = self.steady_flow_names()
-        if floodway not in profiles:
-            p = ", ".join(profiles)
-            return ValueError(f"'{floodway}' not in '{p}'")
 
         enc_data = self[path]
         df_enc = pd.DataFrame(enc_data, index=profiles)
         df_enc_t = df_enc.T.copy()
-        df_enc_t[f"{side} model encroachment"] = df_enc_t[floodway].apply(
-            lambda x: round(x, 2)
-        )
-        df = df_enc_t[[f"{side} model encroachment"]].copy()
+        for p in profiles:
+            df_enc_t[p] = df_enc_t[p].apply(lambda x: round(x, 2))
 
-        return df
+        return df_enc_t
+
+    def cross_sections_encroachment_station_right(self) -> pd.DataFrame:
+        """Return the right side encroachment information for a floodway plan hdf.
+
+        Returns
+        -------
+        DataFrame
+            A DataFrame containing the right side encroachment stations
+        """
+        path = "/Results/Steady/Output/Output Blocks/Base Output/Steady Profiles"
+        path += "/Cross Sections/Additional Variables/Encroachment Station Right"
+        if path not in self:
+            return pd.DataFrame()
+
+        profiles = self.steady_flow_names()
+
+        enc_data = self[path]
+        df_enc = pd.DataFrame(enc_data, index=profiles)
+        df_enc_t = df_enc.T.copy()
+        for p in profiles:
+            df_enc_t[p] = df_enc_t[p].apply(lambda x: round(x, 2))
+
+        return df_enc_t
 
     def cross_sections_area(self) -> pd.DataFrame:
         """Return the cross section area for each profile.
