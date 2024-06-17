@@ -10,6 +10,25 @@ from typing import Any, List, Tuple, Union, Optional
 from shapely import LineString, Polygon, polygonize_full
 
 
+def parse_ras_datetime_ms(datetime_str: str) -> datetime:
+    """Parse a datetime string with milliseconds from a RAS file into a datetime object.
+
+    If the datetime has a time of 2400, then it is converted to midnight of the next day.
+
+    Parameters
+    ----------
+        datetime_str (str): The datetime string to be parsed. The string should be in the format "ddMMMyyyy HH:mm:ss:fff".
+
+    Returns
+    -------
+        datetime: A datetime object representing the parsed datetime.
+    """
+    milliseconds = int(datetime_str[-3:])
+    microseconds = milliseconds * 1000
+    parsed_dt = parse_ras_datetime(datetime_str[:-4]).replace(microsecond=microseconds)
+    return parsed_dt
+
+
 def parse_ras_datetime(datetime_str: str) -> datetime:
     """Parse a datetime string from a RAS file into a datetime object.
 

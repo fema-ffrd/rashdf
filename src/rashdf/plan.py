@@ -1,13 +1,18 @@
 """HEC-RAS Plan HDF class."""
 
 from .geom import RasGeomHdf
-from .utils import df_datetimes_to_str, ras_timesteps_to_datetimes
+from .utils import (
+    df_datetimes_to_str,
+    ras_timesteps_to_datetimes,
+    parse_ras_datetime_ms,
+)
 
 from geopandas import GeoDataFrame
 import h5py
 import numpy as np
 from pandas import DataFrame
 import pandas as pd
+import xarray as xr
 
 from datetime import datetime
 from enum import Enum
@@ -46,6 +51,84 @@ SUMMARY_OUTPUT_VARS_FACES = [
 ]
 
 
+class TimeSeriesOutputVar(Enum):
+    """Time series output variables."""
+
+    # Default Outputs
+    WATER_SURFACE = "Water Surface"
+    FACE_VELOCITY = "Face Velocity"
+
+    # Optional Outputs
+    CELL_COURANT = "Cell Courant"
+    CELL_CUMULATIVE_PRECIPITATION_DEPTH = "Cell Cumulative Precipitation Depth"
+    CELL_DIVERGENCE_TERM = "Cell Divergence Term"
+    CELL_EDDY_VISCOSITY_X = "Cell Eddy Viscosity - Eddy Viscosity X"
+    CELL_EDDY_VISCOSITY_Y = "Cell Eddy Viscosity - Eddy Viscosity Y"
+    CELL_FLOW_BALANCE = "Cell Flow Balance"
+    CELL_HYDRAULIC_DEPTH = "Cell Hydraulic Depth"
+    CELL_INVERT_DEPTH = "Cell Invert Depth"
+    CELL_STORAGE_TERM = "Cell Storage Term"
+    CELL_VELOCITY_X = "Cell Velocity - Velocity X"
+    CELL_VELOCITY_Y = "Cell Velocity - Velocity Y"
+    CELL_VOLUME = "Cell Volume"
+    CELL_VOLUME_ERROR = "Cell Volume Error"
+    CELL_WATER_SOURCE_TERM = "Cell Water Source Term"
+    CELL_WATER_SURFACE_ERROR = "Cell Water Surface Error"
+
+    FACE_COURANT = "Face Courant"
+    FACE_CUMULATIVE_VOLUME = "Face Cumulative Volume"
+    FACE_EDDY_VISCOSITY = "Face Eddy Viscosity"
+    FACE_FLOW = "Face Flow"
+    FACE_FLOW_PERIOD_AVERAGE = "Face Flow Period Average"
+    FACE_FRICTION_TERM = "Face Friction Term"
+    FACE_PRESSURE_GRADIENT_TERM = "Face Pressure Gradient Term"
+    FACE_SHEAR_STRESS = "Face Shear Stress"
+    FACE_TANGENTIAL_VELOCITY = "Face Tangential Velocity"
+    FACE_WATER_SURFACE = "Face Water Surface"
+    FACE_WIND_TERM = "Face Wind Term"
+
+
+TIME_SERIES_OUTPUT_VARS_CELLS = [
+    TimeSeriesOutputVar.WATER_SURFACE,
+    TimeSeriesOutputVar.CELL_COURANT,
+    TimeSeriesOutputVar.CELL_CUMULATIVE_PRECIPITATION_DEPTH,
+    TimeSeriesOutputVar.CELL_DIVERGENCE_TERM,
+    TimeSeriesOutputVar.CELL_EDDY_VISCOSITY_X,
+    TimeSeriesOutputVar.CELL_EDDY_VISCOSITY_Y,
+    TimeSeriesOutputVar.CELL_FLOW_BALANCE,
+    TimeSeriesOutputVar.CELL_HYDRAULIC_DEPTH,
+    TimeSeriesOutputVar.CELL_INVERT_DEPTH,
+    TimeSeriesOutputVar.CELL_STORAGE_TERM,
+    TimeSeriesOutputVar.CELL_VELOCITY_X,
+    TimeSeriesOutputVar.CELL_VELOCITY_Y,
+    TimeSeriesOutputVar.CELL_VOLUME,
+    TimeSeriesOutputVar.CELL_VOLUME_ERROR,
+    TimeSeriesOutputVar.CELL_WATER_SOURCE_TERM,
+    TimeSeriesOutputVar.CELL_WATER_SURFACE_ERROR,
+]
+
+TIME_SERIES_OUTPUT_VARS_FACES = [
+    TimeSeriesOutputVar.FACE_COURANT,
+    TimeSeriesOutputVar.FACE_CUMULATIVE_VOLUME,
+    TimeSeriesOutputVar.FACE_EDDY_VISCOSITY,
+    TimeSeriesOutputVar.FACE_FLOW,
+    TimeSeriesOutputVar.FACE_FLOW_PERIOD_AVERAGE,
+    TimeSeriesOutputVar.FACE_FRICTION_TERM,
+    TimeSeriesOutputVar.FACE_PRESSURE_GRADIENT_TERM,
+    TimeSeriesOutputVar.FACE_SHEAR_STRESS,
+    TimeSeriesOutputVar.FACE_TANGENTIAL_VELOCITY,
+    TimeSeriesOutputVar.FACE_VELOCITY,
+    TimeSeriesOutputVar.FACE_WATER_SURFACE,
+    # TODO: investigate why "Face Wind Term" data gets written as a 1D array
+    # TimeSeriesOutputVar.FACE_WIND_TERM,
+]
+
+TIME_SERIES_OUTPUT_VARS_DEFAULT = [
+    TimeSeriesOutputVar.WATER_SURFACE,
+    TimeSeriesOutputVar.FACE_VELOCITY,
+]
+
+
 class RasPlanHdf(RasGeomHdf):
     """HEC-RAS Plan HDF class."""
 
@@ -55,7 +138,11 @@ class RasPlanHdf(RasGeomHdf):
     RESULTS_UNSTEADY_PATH = "Results/Unsteady"
     RESULTS_UNSTEADY_SUMMARY_PATH = f"{RESULTS_UNSTEADY_PATH}/Summary"
     VOLUME_ACCOUNTING_PATH = f"{RESULTS_UNSTEADY_PATH}/Volume Accounting"
-    SUMMARY_OUTPUT_2D_FLOW_AREAS_PATH = f"{RESULTS_UNSTEADY_PATH}/Output/Output Blocks/Base Output/Summary Output/2D Flow Areas"
+    BASE_OUTPUT_PATH = f"{RESULTS_UNSTEADY_PATH}/Output/Output Blocks/Base Output"
+    SUMMARY_OUTPUT_2D_FLOW_AREAS_PATH = (
+        f"{BASE_OUTPUT_PATH}/Summary Output/2D Flow Areas"
+    )
+    UNSTEADY_TIME_SERIES_PATH = f"{BASE_OUTPUT_PATH}/Unsteady Time Series"
 
     def __init__(self, name: str, **kwargs):
         """Open a HEC-RAS Plan HDF file.
@@ -678,6 +765,135 @@ class RasPlanHdf(RasGeomHdf):
             round_to=round_to,
             datetime_to_str=datetime_to_str,
         )
+
+    def unsteady_datetimes(self) -> List[datetime]:
+        """Return the unsteady timeseries datetimes from the plan file.
+
+        Returns
+        -------
+        List[datetime]
+            A list of datetimes for the unsteady timeseries data.
+        """
+        group_path = f"{self.UNSTEADY_TIME_SERIES_PATH}/Time Date Stamp (ms)"
+        raw_datetimes = self[group_path][:]
+        dt = [parse_ras_datetime_ms(x.decode("utf-8")) for x in raw_datetimes]
+        return dt
+
+    def _mesh_timeseries_output_values_units(
+        self,
+        mesh_name: str,
+        var: TimeSeriesOutputVar,
+    ) -> Tuple[np.ndarray, str]:
+        path = f"{self.UNSTEADY_TIME_SERIES_PATH}/2D Flow Areas/{mesh_name}/{var.value}"
+        group = self.get(path)
+        try:
+            import dask.array as da
+
+            # TODO: user-specified chunks?
+            values = da.from_array(group, chunks=group.chunks)
+        except ImportError:
+            values = group[:]
+        units = group.attrs.get("Units")
+        if units is not None:
+            units = units.decode("utf-8")
+        return values, units
+
+    def mesh_timeseries_output(
+        self,
+        mesh_name: str,
+        var: Union[str, TimeSeriesOutputVar],
+    ) -> xr.DataArray:
+        """Return the time series output data for a given variable.
+
+        Parameters
+        ----------
+        mesh_name : str
+            The name of the 2D flow area mesh.
+        var : TimeSeriesOutputVar
+            The time series output variable to retrieve.
+
+        Returns
+        -------
+        xr.DataArray
+            An xarray DataArray with dimensions 'time' and 'cell_id'.
+        """
+        times = self.unsteady_datetimes()
+        mesh_names_counts = {
+            name: count for name, count in self._2d_flow_area_names_and_counts()
+        }
+        if mesh_name not in mesh_names_counts:
+            raise ValueError(f"Mesh '{mesh_name}' not found in the Plan HDF file.")
+        if isinstance(var, str):
+            var = TimeSeriesOutputVar(var)
+        values, units = self._mesh_timeseries_output_values_units(mesh_name, var)
+        if var in TIME_SERIES_OUTPUT_VARS_CELLS:
+            cell_count = mesh_names_counts[mesh_name]
+            values = values[:, :cell_count]
+            id_coord = "cell_id"
+        elif var in TIME_SERIES_OUTPUT_VARS_FACES:
+            id_coord = "face_id"
+        else:
+            raise ValueError(f"Invalid time series output variable: {var.value}")
+        da = xr.DataArray(
+            values,
+            name=var.value,
+            dims=["time", id_coord],
+            coords={
+                "time": times,
+                id_coord: range(values.shape[1]),
+            },
+            attrs={
+                "mesh_name": mesh_name,
+                "variable": var.value,
+                "units": units,
+            },
+        )
+        return da
+
+    def _mesh_timeseries_outputs(
+        self, mesh_name: str, vars: List[TimeSeriesOutputVar]
+    ) -> xr.Dataset:
+        datasets = {}
+        for var in vars:
+            var_path = f"{self.UNSTEADY_TIME_SERIES_PATH}/2D Flow Areas/{mesh_name}/{var.value}"
+            if self.get(var_path) is None:
+                continue
+            da = self.mesh_timeseries_output(mesh_name, var)
+            datasets[var.value] = da
+        ds = xr.Dataset(datasets, attrs={"mesh_name": mesh_name})
+        return ds
+
+    def mesh_timeseries_output_cells(self, mesh_name: str) -> xr.Dataset:
+        """Return the time series output data for cells in a 2D flow area mesh.
+
+        Parameters
+        ----------
+        mesh_name : str
+            The name of the 2D flow area mesh.
+
+        Returns
+        -------
+        xr.Dataset
+            An xarray Dataset with DataArrays for each time series output variable.
+        """
+        ds = self._mesh_timeseries_outputs(mesh_name, TIME_SERIES_OUTPUT_VARS_CELLS)
+        return ds
+
+    def mesh_timeseries_output_faces(self, mesh_name: str) -> xr.Dataset:
+        """Return the time series output data for faces in a 2D flow area mesh.
+
+        Parameters
+        ----------
+        mesh_name : str
+            The name of the 2D flow area mesh.
+
+        Returns
+        -------
+        xr.Dataset
+            An xarray Dataset with DataArrays for each time series output variable.
+        """
+        ds = self._mesh_timeseries_outputs(mesh_name, TIME_SERIES_OUTPUT_VARS_FACES)
+        return ds
 
     def get_plan_info_attrs(self) -> Dict:
         """Return plan information attributes from a HEC-RAS HDF plan file.
