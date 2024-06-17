@@ -1,6 +1,6 @@
 """rashdf CLI."""
 
-from rashdf import RasGeomHdf
+from rashdf import RasGeomHdf, RasPlanHdf
 from rashdf.utils import df_datetimes_to_str
 
 import fiona
@@ -10,6 +10,7 @@ import argparse
 from ast import literal_eval
 from pathlib import Path
 import sys
+import re
 from typing import List, Optional
 import warnings
 
@@ -108,17 +109,22 @@ def export(args: argparse.Namespace) -> Optional[str]:
         for driver in fiona_supported_drivers():
             print(driver)
         return
-    if "://" in args.hdf_file:
-        geom_hdf = RasGeomHdf.open_uri(args.hdf_file)
+    if re.match(r"^.*\.p\d\d\.hdf$", args.hdf_file):
+        ras_hdf_class = RasPlanHdf
     else:
-        geom_hdf = RasGeomHdf(args.hdf_file)
+        ras_hdf_class = RasGeomHdf
+    if re.match(r"^\w+://", args.hdf_file):
+        geom_hdf = ras_hdf_class.open_uri(args.hdf_file)
+    else:
+        geom_hdf = ras_hdf_class(args.hdf_file)
     func = getattr(geom_hdf, args.func)
     gdf: GeoDataFrame = func()
     kwargs = literal_eval(args.kwargs) if args.kwargs else {}
     if args.to_crs:
         gdf = gdf.to_crs(args.to_crs)
     if not args.output_file:
-        # convert any datetime columns to strings
+        # If an output file path isn't provided, write the GeoDataFrame to stdout
+        # as GeoJSON. Convert any datetime columns to strings.
         gdf = df_datetimes_to_str(gdf)
         with warnings.catch_warnings():
             # Squash warnings about converting the CRS to OGC URN format.
@@ -143,9 +149,9 @@ def export(args: argparse.Namespace) -> Optional[str]:
     output_file_path = Path(args.output_file)
     output_file_ext = output_file_path.suffix
     if output_file_ext not in [".gpkg"]:
-        # unless the user specifies a format that supports datetime,
-        # convert any datetime columns to string
-        # TODO: besides Geopackage, which of the standard Fiona formats allow datetime?
+        # Unless the user specifies a format that supports datetime,
+        # convert any datetime columns to string.
+        # TODO: besides Geopackage, which of the standard Fiona drivers allow datetime?
         gdf = df_datetimes_to_str(gdf)
     gdf.to_file(args.output_file, **kwargs)
 
