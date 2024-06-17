@@ -7,7 +7,7 @@ from pyproj import CRS
 
 from src.rashdf import RasGeomHdf
 
-from . import _create_hdf_with_group_attrs
+from . import _create_hdf_with_group_attrs, _gdf_matches_json
 
 TEST_DATA = Path("./tests/data")
 MUNCIE_G05 = TEST_DATA / "ras/Muncie.g05.hdf"
@@ -27,11 +27,6 @@ def test_projection(tmp_path):
     ras_hdf = RasGeomHdf(tmp_path / "test.hdf")
     # Test the projection
     assert ras_hdf.projection() == CRS.from_wkt(wkt)
-
-
-def _gdf_matches_json(gdf: GeoDataFrame, json_file: Path) -> bool:
-    with open(json_file) as j:
-        return gdf.to_json() == j.read()
 
 
 def _gdf_matches_json_alt(gdf: GeoDataFrame, json_file: Path) -> bool:

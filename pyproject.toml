@@ -12,8 +12,8 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
 ]
-version = "0.2.2"
-dependencies = ["h5py", "geopandas", "pyarrow"]
+version = "0.3.0"
+dependencies = ["h5py", "geopandas", "pyarrow", "xarray"]
 
 [project.optional-dependencies]
 dev = ["pre-commit", "ruff", "pytest", "pytest-cov"]

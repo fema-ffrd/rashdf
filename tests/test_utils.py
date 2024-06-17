@@ -64,3 +64,12 @@ def test_df_datetimes_to_str():
     assert df["datetime"].dtype.name == "object"
     assert df["datetime"].tolist() == ["2024-03-15T16:39:01", "2024-03-16T16:39:01"]
     assert df["asdf"].tolist() == [0.123, 0.456]
+
+
+def test_parse_ras_datetime_ms():
+    assert utils.parse_ras_datetime_ms("15Mar2024 16:39:01.123") == datetime(
+        2024, 3, 15, 16, 39, 1, 123000
+    )
+    assert utils.parse_ras_datetime_ms("15Mar2024 24:00:00.000") == datetime(
+        2024, 3, 16, 0, 0, 0, 0
+    )

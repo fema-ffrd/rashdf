@@ -66,12 +66,12 @@ class RasGeomHdf(RasHdf):
         List[str]
             A list of the 2D mesh area names (str) within the RAS geometry if 2D areas exist.
         """
-        if "/Geometry/2D Flow Areas" not in self:
+        if self.FLOW_AREA_2D_PATH not in self:
             return list()
         return list(
             [
                 convert_ras_hdf_string(n)
-                for n in self["/Geometry/2D Flow Areas/Attributes"][()]["Name"]
+                for n in self[f"{self.FLOW_AREA_2D_PATH}/Attributes"][()]["Name"]
             ]
         )
 
@@ -87,7 +87,7 @@ class RasGeomHdf(RasHdf):
         if not mesh_area_names:
             return GeoDataFrame()
         mesh_area_polygons = [
-            Polygon(self[f"/Geometry/2D Flow Areas/{n}/Perimeter"][()])
+            Polygon(self[f"{self.FLOW_AREA_2D_PATH}/{n}/Perimeter"][()])
             for n in mesh_area_names
         ]
         return GeoDataFrame(
@@ -112,13 +112,13 @@ class RasGeomHdf(RasHdf):
 
         cell_dict = {"mesh_name": [], "cell_id": [], "geometry": []}
         for i, mesh_name in enumerate(mesh_area_names):
-            cell_cnt = self["/Geometry/2D Flow Areas/Cell Info"][()][i][1]
+            cell_cnt = self[f"{self.FLOW_AREA_2D_PATH}/Cell Info"][()][i][1]
             cell_ids = list(range(cell_cnt))
             cell_face_info = self[
-                f"/Geometry/2D Flow Areas/{mesh_name}/Cells Face and Orientation Info"
+                f"{self.FLOW_AREA_2D_PATH}/{mesh_name}/Cells Face and Orientation Info"
             ][()]
             cell_face_values = self[
-                f"/Geometry/2D Flow Areas/{mesh_name}/Cells Face and Orientation Values"
+                f"{self.FLOW_AREA_2D_PATH}/{mesh_name}/Cells Face and Orientation Values"
             ][()][:, 0]
             face_id_lists = list(
                 np.vectorize(
@@ -169,8 +169,8 @@ class RasGeomHdf(RasHdf):
             return GeoDataFrame()
         pnt_dict = {"mesh_name": [], "cell_id": [], "geometry": []}
         for i, mesh_name in enumerate(mesh_area_names):
-            starting_row, count = self["/Geometry/2D Flow Areas/Cell Info"][()][i]
-            cell_pnt_coords = self["/Geometry/2D Flow Areas/Cell Points"][()][
+            starting_row, count = self[f"{self.FLOW_AREA_2D_PATH}/Cell Info"][()][i]
+            cell_pnt_coords = self[f"{self.FLOW_AREA_2D_PATH}/Cell Points"][()][
                 starting_row : starting_row + count
             ]
             pnt_dict["mesh_name"] += [mesh_name] * cell_pnt_coords.shape[0]
@@ -196,16 +196,16 @@ class RasGeomHdf(RasHdf):
         face_dict = {"mesh_name": [], "face_id": [], "geometry": []}
         for mesh_name in mesh_area_names:
             facepoints_index = self[
-                f"/Geometry/2D Flow Areas/{mesh_name}/Faces FacePoint Indexes"
+                f"{self.FLOW_AREA_2D_PATH}/{mesh_name}/Faces FacePoint Indexes"
             ][()]
             facepoints_coordinates = self[
-                f"/Geometry/2D Flow Areas/{mesh_name}/FacePoints Coordinate"
+                f"{self.FLOW_AREA_2D_PATH}/{mesh_name}/FacePoints Coordinate"
             ][()]
             faces_perimeter_info = self[
-                f"/Geometry/2D Flow Areas/{mesh_name}/Faces Perimeter Info"
+                f"{self.FLOW_AREA_2D_PATH}/{mesh_name}/Faces Perimeter Info"
             ][()]
             faces_perimeter_values = self[
-                f"/Geometry/2D Flow Areas/{mesh_name}/Faces Perimeter Values"
+                f"{self.FLOW_AREA_2D_PATH}/{mesh_name}/Faces Perimeter Values"
             ][()]
             face_id = -1
             for pnt_a_index, pnt_b_index in facepoints_index:
