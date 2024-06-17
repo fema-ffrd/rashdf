@@ -337,11 +337,16 @@ class RasPlanHdf(RasGeomHdf):
             ]:
                 geom_id_col = "face_id"
             else:
-                # For whatever reason there seem to be more values reported in the
-                # summary output data than actual cells in the geometry.
+                geom_id_col = "cell_id"
+                # The 2D mesh output data contains values for more cells than are actually
+                # in the mesh. The the true number of cells for a mesh is found in the table:
+                # "/Geometry/2D Flow Areas/Attributes". The number of cells in the 2D output
+                # data instead matches the number of cells in the "Cells Center Coordinate"
+                # array, which contains extra points along the perimeter of the mesh. These
+                # extra points are appended to the end of the mesh data and contain bogus
+                # output values (e.g., 0.0, NaN). We need to filter out these bogus values.
                 values = values[:cell_count]
                 times = times[:cell_count]
-                geom_id_col = "cell_id"
             df = DataFrame(
                 {
                     "mesh_name": [mesh_name] * len(values),
