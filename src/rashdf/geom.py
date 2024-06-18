@@ -650,6 +650,23 @@ class RasGeomHdf(RasHdf):
 
         return xs_elev_df
 
+    def _read_cross_sections_data_transpose(self, path: str) -> pd.DataFrame:
+        """Creates Dataframe from HDF based on path
+
+        Returns
+        -------
+            Dataframe with desired hdf data
+        """
+        profiles = self.steady_flow_names()
+
+        xsdata = self[path]
+        df = pd.DataFrame(xsdata, index=profiles)
+        df_t = df.T.copy()
+        for p in profiles:
+            df_t[p] = df_t[p].apply(lambda x: round(x, 2))
+
+        return df_t
+
     def cross_sections_encroachment_station_left(self) -> pd.DataFrame:
         """Return the left side encroachment information for a floodway plan hdf.
 
@@ -663,15 +680,7 @@ class RasGeomHdf(RasHdf):
         if path not in self:
             return pd.DataFrame()
 
-        profiles = self.steady_flow_names()
-
-        enc_data = self[path]
-        df_enc = pd.DataFrame(enc_data, index=profiles)
-        df_enc_t = df_enc.T.copy()
-        for p in profiles:
-            df_enc_t[p] = df_enc_t[p].apply(lambda x: round(x, 2))
-
-        return df_enc_t
+        return self._read_cross_sections_data_transpose(path)
 
     def cross_sections_encroachment_station_right(self) -> pd.DataFrame:
         """Return the right side encroachment information for a floodway plan hdf.
@@ -686,15 +695,7 @@ class RasGeomHdf(RasHdf):
         if path not in self:
             return pd.DataFrame()
 
-        profiles = self.steady_flow_names()
-
-        enc_data = self[path]
-        df_enc = pd.DataFrame(enc_data, index=profiles)
-        df_enc_t = df_enc.T.copy()
-        for p in profiles:
-            df_enc_t[p] = df_enc_t[p].apply(lambda x: round(x, 2))
-
-        return df_enc_t
+        return self._read_cross_sections_data_transpose(path)
 
     def cross_sections_area(self) -> pd.DataFrame:
         """Return the cross section area for each profile.
@@ -709,16 +710,7 @@ class RasGeomHdf(RasHdf):
         if path not in self:
             return pd.DataFrame()
 
-        area_data = self[path]
-
-        profiles = self.steady_flow_names()
-
-        df_xsarea = pd.DataFrame(area_data, index=profiles)
-        df_xsarea_t = df_xsarea.T.copy()
-        for col in df_xsarea_t.columns:
-            df_xsarea_t[col] = df_xsarea_t[col].apply(lambda x: round(x, 2))
-
-        return df_xsarea_t
+        return self._read_cross_sections_data_transpose(path)
 
     def cross_sections_velocity(self) -> pd.DataFrame:
         """Return the cross section velocity for each profile.
@@ -733,12 +725,4 @@ class RasGeomHdf(RasHdf):
         if path not in self:
             return pd.DataFrame()
 
-        vel_data = self[path]
-        profiles = self.steady_flow_names()
-
-        df_xsvel = pd.DataFrame(vel_data, index=profiles)
-        df_xsvel_t = df_xsvel.T.copy()
-        for col in df_xsvel_t.columns:
-            df_xsvel_t[col] = df_xsvel_t[col].apply(lambda x: round(x, 2))
-
-        return df_xsvel_t
+        return self._read_cross_sections_data_transpose(path)
