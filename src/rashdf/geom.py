@@ -651,11 +651,11 @@ class RasGeomHdf(RasHdf):
         return xs_elev_df
 
     def _read_cross_sections_data_transpose(self, path: str) -> pd.DataFrame:
-        """Creates Dataframe from HDF based on path
+        """Create Dataframe from HDF based on path.
 
         Returns
         -------
-            Dataframe with desired hdf data
+            Dataframe with desired hdf data.
         """
         profiles = self.steady_flow_names()
 
