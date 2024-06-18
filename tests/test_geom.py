@@ -204,3 +204,13 @@ def test_cross_sections_velocity():
 def test_cross_sections_velocity_not_found():
     with RasGeomHdf(COAL_G01) as ghdf:
         assert (ghdf.cross_sections_velocity(), None)
+
+
+def test_cross_sections_encroachment_station_left_not_found():
+    with RasGeomHdf(COAL_G01) as ghdf:
+        assert (ghdf.cross_sections_encroachment_station_left(), None)
+
+
+def test_cross_sections_encroachment_station_right_not_found():
+    with RasGeomHdf(COAL_G01) as ghdf:
+        assert (ghdf.cross_sections_encroachment_station_right(), None)
