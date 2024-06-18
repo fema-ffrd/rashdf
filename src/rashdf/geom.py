@@ -25,6 +25,12 @@ from shapely import (
 from typing import Dict, List, Optional, Union
 
 
+class RasGeomHdfError(Exception):
+    """HEC-RAS Plan HDF error class."""
+
+    pass
+
+
 class RasGeomHdf(RasHdf):
     """HEC-RAS Geometry HDF class."""
 
@@ -429,6 +435,48 @@ class RasGeomHdf(RasHdf):
     def ic_points(self) -> GeoDataFrame:  # noqa D102
         raise NotImplementedError
 
+    def _reference_lines_points_names(
+        self, reftype: str = "lines", mesh_name: Optional[str] = None
+    ) -> Union[Dict[str, List[str]], List[str]]:
+        """Return reference line names.
+
+        If a mesh name is provided, return a list of the reference line names for that mesh area.
+        If no mesh name is provided, return a dictionary of mesh names and their reference line names.
+
+        Parameters
+        ----------
+        mesh_name : str, optional
+            The name of the mesh area for which to return reference line names.
+
+        Returns
+        -------
+        Union[Dict[str, List[str]], List[str]]
+            A dictionary of mesh names and their reference line names if mesh_name is None.
+            A list of reference line names for the specified mesh area if mesh_name is not None.
+        """
+        if reftype == "lines":
+            path = self.REFERENCE_LINES_PATH
+            sa_2d_field = "SA-2D"
+        elif reftype == "points":
+            path = self.REFERENCE_POINTS_PATH
+            sa_2d_field = "SA/2D"
+        else:
+            raise RasGeomHdfError(
+                f"Invalid reference type: {reftype} -- must be 'lines' or 'points'."
+            )
+        attributes_path = f"{path}/Attributes"
+        if mesh_name is None and attributes_path not in self:
+            return {m: [] for m in self.mesh_area_names()}
+        if mesh_name is not None and attributes_path not in self:
+            return []
+        attributes = self[attributes_path][()]
+        v_conv_str = np.vectorize(convert_ras_hdf_string)
+        names = np.vectorize(convert_ras_hdf_string)(attributes["Name"])
+        if mesh_name is not None:
+            return names[v_conv_str(attributes[sa_2d_field]) == mesh_name].tolist()
+        mesh_names = np.vectorize(convert_ras_hdf_string)(attributes[sa_2d_field])
+        return {m: names[mesh_names == m].tolist() for m in np.unique(mesh_names)}
+
     def reference_lines_names(
         self, mesh_name: Optional[str] = None
     ) -> Union[Dict[str, List[str]], List[str]]:
@@ -448,18 +496,28 @@ class RasGeomHdf(RasHdf):
             A dictionary of mesh names and their reference line names if mesh_name is None.
             A list of reference line names for the specified mesh area if mesh_name is not None.
         """
-        attributes_path = f"{self.REFERENCE_LINES_PATH}/Attributes"
-        if mesh_name is None and attributes_path not in self:
-            return {m: [] for m in self.mesh_area_names()}
-        if mesh_name is not None and attributes_path not in self:
-            return []
-        attributes = self[attributes_path][()]
-        v_conv_str = np.vectorize(convert_ras_hdf_string)
-        names = np.vectorize(convert_ras_hdf_string)(attributes["Name"])
-        if mesh_name is not None:
-            return names[v_conv_str(attributes["SA-2D"]) == mesh_name].tolist()
-        mesh_names = np.vectorize(convert_ras_hdf_string)(attributes["SA-2D"])
-        return {m: names[mesh_names == m].tolist() for m in np.unique(mesh_names)}
+        return self._reference_lines_points_names("lines", mesh_name)
+
+    def reference_points_names(
+        self, mesh_name: Optional[str] = None
+    ) -> Union[Dict[str, List[str]], List[str]]:
+        """Return reference point names.
+
+        If a mesh name is provided, return a list of the reference point names for that mesh area.
+        If no mesh name is provided, return a dictionary of mesh names and their reference point names.
+
+        Parameters
+        ----------
+        mesh_name : str, optional
+            The name of the mesh area for which to return reference point names.
+
+        Returns
+        -------
+        Union[Dict[str, List[str]], List[str]]
+            A dictionary of mesh names and their reference point names if mesh_name is None.
+            A list of reference point names for the specified mesh area if mesh_name is not None.
+        """
+        return self._reference_lines_points_names("points", mesh_name)
 
     def reference_lines(self) -> GeoDataFrame:
         """Return the reference lines geometry and attributes.

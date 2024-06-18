@@ -11,6 +11,7 @@ TEST_DATA = Path("./tests/data")
 MUNCIE_G05 = TEST_DATA / "ras/Muncie.g05.hdf"
 COAL_G01 = TEST_DATA / "ras/Coal.g01.hdf"
 TEST_JSON = TEST_DATA / "json"
+BALD_EAGLE_P18_REF = TEST_DATA / "ras/BaldEagleDamBrk.reflines-refpts.p18.hdf"
 
 TEST_ATTRS = {"test_attribute1": "test_str1", "test_attribute2": 500}
 
@@ -118,3 +119,32 @@ def test_structs():
     structs_json = TEST_JSON / "structures.json"
     with RasGeomHdf(MUNCIE_G05) as ghdf:
         assert _gdf_matches_json(ghdf.structures(datetime_to_str=True), structs_json)
+
+
+def test_reference_lines_names():
+    with RasGeomHdf(BALD_EAGLE_P18_REF) as geom_hdf:
+        assert geom_hdf.reference_lines_names() == {
+            "BaldEagleCr": [
+                "Reference Line 1",
+                "Reference Line 2",
+                "Reference Line 3",
+                "Reference Line 4",
+            ]
+        }
+        assert geom_hdf.reference_lines_names("Upper 2D Area") == []
+
+
+def test_reference_points_names():
+    with RasGeomHdf(BALD_EAGLE_P18_REF) as geom_hdf:
+        assert geom_hdf.reference_points_names() == {
+            "Upper 2D Area": [
+                "Reference Point 1",
+            ],
+            "BaldEagleCr": [
+                "Reference Point 2",
+                "Reference Point 3",
+            ],
+        }
+        assert geom_hdf.reference_points_names("Upper 2D Area") == [
+            "Reference Point 1",
+        ]
