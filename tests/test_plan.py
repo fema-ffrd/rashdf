@@ -273,7 +273,7 @@ def test_reference_lines(tmp_path: Path):
 
 def test_reference_lines_timeseries(tmp_path: Path):
     plan_hdf = RasPlanHdf(BALD_EAGLE_P18_REF)
-    ds = plan_hdf.reference_timeseries_output(reftype="lines")
+    ds = plan_hdf.reference_lines_timeseries_output()
     assert "time" in ds.coords
     assert "refln_id" in ds.coords
     assert "refln_name" in ds.coords
@@ -312,7 +312,7 @@ def test_reference_points(tmp_path: Path):
 
 def test_reference_points_timeseries():
     plan_hdf = RasPlanHdf(BALD_EAGLE_P18_REF)
-    ds = plan_hdf.reference_timeseries_output(reftype="points")
+    ds = plan_hdf.reference_points_timeseries_output()
     assert "time" in ds.coords
     assert "refpt_id" in ds.coords
     assert "refpt_name" in ds.coords

@@ -908,8 +908,8 @@ class RasPlanHdf(RasGeomHdf):
 
         Returns
         -------
-        DataFrame
-            A DataFrame with reference line flow data.
+        xr.Dataset
+            An xarray Dataset with reference line timeseries data.
         """
         if reftype == "lines":
             output_path = self.REFERENCE_LINES_OUTPUT_PATH
@@ -956,6 +956,26 @@ class RasPlanHdf(RasGeomHdf):
             )
             das[var] = da
         return xr.Dataset(das)
+
+    def reference_lines_timeseries_output(self) -> xr.Dataset:
+        """Return timeseries output data for reference lines from a HEC-RAS HDF plan file.
+
+        Returns
+        -------
+        xr.Dataset
+            An xarray Dataset with timeseries output data for reference lines.
+        """
+        return self.reference_timeseries_output(reftype="lines")
+
+    def reference_points_timeseries_output(self) -> xr.Dataset:
+        """Return timeseries output data for reference points from a HEC-RAS HDF plan file.
+
+        Returns
+        -------
+        xr.Dataset
+            An xarray Dataset with timeseries output data for reference points.
+        """
+        return self.reference_timeseries_output(reftype="points")
 
     def reference_summary_output(self, reftype: str = "lines") -> DataFrame:
         """Return summary output data for reference lines or points from a HEC-RAS HDF plan file.
