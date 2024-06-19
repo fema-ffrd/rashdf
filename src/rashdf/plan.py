@@ -25,6 +25,38 @@ class RasPlanHdfError(Exception):
     pass
 
 
+class XsSteadyOutputVar(Enum):
+    """Summary of steady cross section output variables"""
+
+    ENERGY_GRADE = "Energy Grade"
+    FLOW = "Flow"
+    WATER_SURFACE = f"Water Surface"
+
+
+XS_STEADY_OUTPUT = [
+    XsSteadyOutputVar.WATER_SURFACE,
+    XsSteadyOutputVar.ENERGY_GRADE,
+    XsSteadyOutputVar.FLOW,
+]
+
+
+class XsSteadyAdditionalVar(Enum):
+    """Summary of steady cross section additional output variables"""
+
+    ENCROACHMENT_STATION_LEFT = "Encroachment Station Left"
+    ENCROACHMENT_STATION_RIGHT = "Encroachment Station Right"
+    AREA_INEFFECTIVE_TOTAL = "Area including Ineffective Total"
+    VELOCITY_TOTAL = "Velocity Total"
+
+
+XS_STEADY_ADDITIONAL = [
+    XsSteadyAdditionalVar.ENCROACHMENT_STATION_LEFT,
+    XsSteadyAdditionalVar.ENCROACHMENT_STATION_RIGHT,
+    XsSteadyAdditionalVar.AREA_INEFFECTIVE_TOTAL,
+    XsSteadyAdditionalVar.VELOCITY_TOTAL,
+]
+
+
 class SummaryOutputVar(Enum):
     """Summary output variables."""
 
@@ -143,6 +175,12 @@ class RasPlanHdf(RasGeomHdf):
         f"{BASE_OUTPUT_PATH}/Summary Output/2D Flow Areas"
     )
     UNSTEADY_TIME_SERIES_PATH = f"{BASE_OUTPUT_PATH}/Unsteady Time Series"
+
+    RESULTS_STEADY_PATH = "Results/Steady"
+    BASE_STEADY_PATH = f"{RESULTS_STEADY_PATH}/Output/Output Blocks/Base Output"
+    STEADY_PROFILES_PATH = f"{BASE_STEADY_PATH}/Steady Profiles"
+    STEADY_XS_PATH = f"{STEADY_PROFILES_PATH}/Cross Sections"
+    STEADY_XS_ADDITIONAL_PATH = f"{STEADY_XS_PATH}/Additional Variables"
 
     def __init__(self, name: str, **kwargs):
         """Open a HEC-RAS Plan HDF file.
@@ -957,3 +995,121 @@ class RasPlanHdf(RasGeomHdf):
 
     def enroachment_points(self) -> GeoDataFrame:  # noqa: D102
         raise NotImplementedError
+
+    def steady_flow_names(self) -> list:
+        """Return the profile information for each steady flow event.
+
+        Returns
+        -------
+        DataFrame
+            A Dataframe containing the profile names for each event
+        """
+        if self.STEADY_PROFILES_PATH not in self:
+            return pd.DataFrame()
+
+        profile_data = self[self.STEADY_PROFILES_PATH]
+        profile_attrs = profile_data["Profile Names"][()]
+
+        return [x.decode("utf-8") for x in profile_attrs]
+
+    def steady_profile_xs_output(
+        self, var: XsSteadyOutputVar, round_to: int = 2
+    ) -> DataFrame:
+        """Create a Dataframe from steady cross section results based on path.
+
+        Returns
+        -------
+            Dataframe with desired hdf data.
+        """
+        if var in XS_STEADY_OUTPUT:
+            path = f"{self.STEADY_XS_PATH}/{var.value}"
+        else:
+            path = f"{self.STEADY_XS_ADDITIONAL_PATH}/{var.value}"
+        if path not in self:
+            return DataFrame()
+
+        profiles = self.steady_flow_names()
+
+        steady_data = self[path]
+        df = DataFrame(steady_data, index=profiles)
+        df_t = df.T.copy()
+        for p in profiles:
+            df_t[p] = df_t[p].apply(lambda x: round(x, round_to))
+
+        return df_t
+
+    def cross_sections_wsel(self) -> DataFrame:
+        """Return the water surface elevation information for each 1D Cross Section.
+
+        Returns
+        -------
+        DataFrame
+            A Dataframe containing the water surface elevations for each cross section and event
+        """
+        return self.steady_profile_xs_output(XsSteadyOutputVar.WATER_SURFACE)
+
+    def cross_sections_flow(self) -> DataFrame:
+        """Return the Flow information for each 1D Cross Section.
+
+        Returns
+        -------
+        DataFrame
+            A Dataframe containing the flow for each cross section and event
+        """
+        return self.steady_profile_xs_output(XsSteadyOutputVar.FLOW)
+
+    def cross_sections_energy_grade(self) -> DataFrame:
+        """Return the energy grade information for each 1D Cross Section.
+
+        Returns
+        -------
+        DataFrame
+            A Dataframe containing the water surface elevations for each cross section and event
+        """
+        return self.steady_profile_xs_output(XsSteadyOutputVar.ENERGY_GRADE)
+
+    def cross_sections_additional_enc_station_left(self) -> DataFrame:
+        """Return the left side encroachment information for a floodway plan hdf.
+
+        Returns
+        -------
+        DataFrame
+            A DataFrame containing the cross sections left side encroachment stations
+        """
+        return self.steady_profile_xs_output(
+            XsSteadyAdditionalVar.ENCROACHMENT_STATION_LEFT
+        )
+
+    def cross_sections_additional_enc_station_right(self) -> DataFrame:
+        """Return the right side encroachment information for a floodway plan hdf.
+
+        Returns
+        -------
+        DataFrame
+            A DataFrame containing the cross sections right side encroachment stations
+        """
+        return self.steady_profile_xs_output(
+            XsSteadyAdditionalVar.ENCROACHMENT_STATION_RIGHT
+        )
+
+    def cross_sections_additional_area_total(self) -> DataFrame:
+        """Return the cross section area for each profile.
+
+        Returns
+        -------
+        DataFrame
+            A DataFrame containing the wet area inside the cross sections
+        """
+        return self.steady_profile_xs_output(
+            XsSteadyAdditionalVar.AREA_INEFFECTIVE_TOTAL
+        )
+
+    def cross_sections_additional_velocity_total(self) -> DataFrame:
+        """Return the cross section velocity for each profile.
+
+        Returns
+        -------
+        DataFrame
+            A DataFrame containing the velocity inside the cross sections
+        """
+        return self.steady_profile_xs_output(XsSteadyAdditionalVar.VELOCITY_TOTAL)

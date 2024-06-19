@@ -575,52 +575,7 @@ class RasGeomHdf(RasHdf):
     def blocked_obstructions(self) -> GeoDataFrame:  # noqa D102
         raise NotImplementedError
 
-    def steady_flow_names(self) -> list:
-        """Return the profile information for each steady flow event.
-
-        Returns
-        -------
-        DataFrame
-            A Dataframe containing the profile names for each event
-        """
-        path = "Results/Steady/Output/Output Blocks/Base Output/Steady Profiles"
-        if path not in self:
-            return pd.DataFrame()
-
-        profile_data = self[path]
-        profile_attrs = profile_data["Profile Names"][()]
-        profilenames = [x.decode("utf-8") for x in profile_attrs]
-
-        return profilenames
-
-    def cross_sections_wsel(self) -> pd.DataFrame:
-        """Return the WSEL information for each 1D Cross Section.
-
-        Returns
-        -------
-        DataFrame
-            A Dataframe containing the water surface elevations for each cross section and event
-        """
-        path = "Results/Steady/Output/Output Blocks/Base Output/Steady Profiles/Cross Sections"
-        if path not in self:
-            return pd.DataFrame()
-
-        wsel_data = self[path]
-        wsel_attrs = wsel_data["Water Surface"][()]
-
-        xs_df = self.cross_sections()
-        xs_cols = ["River", "Reach", "RS"]
-        steadyprofiles = self.steady_flow_names()
-
-        wsel_df = pd.DataFrame(wsel_attrs, index=steadyprofiles)
-        wsel_df_t = wsel_df.transpose().copy()
-        for col in xs_cols:
-            wsel_df_t[col] = xs_df[col]
-        # wsel_df_t.set_index(xs_cols, inplace=True)
-
-        return wsel_df_t
-
-    def cross_sections_elevations(self) -> pd.DataFrame:
+    def cross_sections_elevations(self, round_to: int = 2) -> pd.DataFrame:
         """Return the model cross section elevation information.
 
         Returns
@@ -644,85 +599,8 @@ class RasGeomHdf(RasHdf):
         xs_elev_df = xs_df[
             ["xs_id", "River", "Reach", "RS", "Left Bank", "Right Bank"]
         ].copy()
-        xs_elev_df["Left Bank"] = xs_elev_df["Left Bank"].round(2).astype(str)
-        xs_elev_df["Right Bank"] = xs_elev_df["Right Bank"].round(2).astype(str)
+        xs_elev_df["Left Bank"] = xs_elev_df["Left Bank"].round(round_to).astype(str)
+        xs_elev_df["Right Bank"] = xs_elev_df["Right Bank"].round(round_to).astype(str)
         xs_elev_df["elevation info"] = elevations
 
         return xs_elev_df
-
-    def _read_cross_sections_data_transpose(self, path: str) -> pd.DataFrame:
-        """Create Dataframe from HDF based on path.
-
-        Returns
-        -------
-            Dataframe with desired hdf data.
-        """
-        profiles = self.steady_flow_names()
-
-        xsdata = self[path]
-        df = pd.DataFrame(xsdata, index=profiles)
-        df_t = df.T.copy()
-        for p in profiles:
-            df_t[p] = df_t[p].apply(lambda x: round(x, 2))
-
-        return df_t
-
-    def cross_sections_encroachment_station_left(self) -> pd.DataFrame:
-        """Return the left side encroachment information for a floodway plan hdf.
-
-        Returns
-        -------
-        DataFrame
-            A DataFrame containing the left side encroachment stations
-        """
-        path = "/Results/Steady/Output/Output Blocks/Base Output/Steady Profiles"
-        path += "/Cross Sections/Additional Variables/Encroachment Station Left"
-        if path not in self:
-            return pd.DataFrame()
-
-        return self._read_cross_sections_data_transpose(path)
-
-    def cross_sections_encroachment_station_right(self) -> pd.DataFrame:
-        """Return the right side encroachment information for a floodway plan hdf.
-
-        Returns
-        -------
-        DataFrame
-            A DataFrame containing the right side encroachment stations
-        """
-        path = "/Results/Steady/Output/Output Blocks/Base Output/Steady Profiles"
-        path += "/Cross Sections/Additional Variables/Encroachment Station Right"
-        if path not in self:
-            return pd.DataFrame()
-
-        return self._read_cross_sections_data_transpose(path)
-
-    def cross_sections_area(self) -> pd.DataFrame:
-        """Return the cross section area for each profile.
-
-        Returns
-        -------
-        DataFrame
-            A DataFrame containing the wet area inside the xs
-        """
-        path = "/Results/Steady/Output/Output Blocks/Base Output/Steady Profiles"
-        path += "/Cross Sections/Additional Variables/Area including Ineffective Total"
-        if path not in self:
-            return pd.DataFrame()
-
-        return self._read_cross_sections_data_transpose(path)
-
-    def cross_sections_velocity(self) -> pd.DataFrame:
-        """Return the cross section velocity for each profile.
-
-        Returns
-        -------
-        DataFrame
-            A DataFrame containing the velocity inside the xs
-        """
-        path = "/Results/Steady/Output/Output Blocks/Base Output/Steady Profiles"
-        path += "/Cross Sections/Additional Variables/Velocity Total"
-        if path not in self:
-            return pd.DataFrame()
-
-        return self._read_cross_sections_data_transpose(path)
