@@ -1,5 +1,4 @@
 from pathlib import Path
-
 import h5py
 from pyproj import CRS
 from src.rashdf import RasGeomHdf
@@ -10,7 +9,6 @@ TEST_DATA = Path("./tests/data")
 MUNCIE_G05 = TEST_DATA / "ras/Muncie.g05.hdf"
 COAL_G01 = TEST_DATA / "ras/Coal.g01.hdf"
 BAXTER_P01 = TEST_DATA / "ras_1d/Baxter.p01.hdf"
-FLODENCR_P01 = TEST_DATA / "ras_1d/FLODENCR.p01.hdf"
 TEST_JSON = TEST_DATA / "json"
 
 TEST_ATTRS = {"test_attribute1": "test_str1", "test_attribute2": 500}
@@ -150,27 +148,6 @@ def test_river_reaches_not_found():
         assert (ghdf.river_reaches(), None)
 
 
-def test_steady_flow_names():
-    with RasGeomHdf(BAXTER_P01) as ghdf:
-        assert ghdf.steady_flow_names() == ["Big"]
-
-
-def test_steady_flow_names_not_found():
-    with RasGeomHdf(COAL_G01) as ghdf:
-        assert (ghdf.steady_flow_names(), None)
-
-
-def test_cross_sections_wsel():
-    xs_wsel_json = TEST_JSON / "xc_wsel.json"
-    with RasGeomHdf(BAXTER_P01) as ghdf:
-        assert _gdf_matches_json_alt(ghdf.cross_sections_wsel(), xs_wsel_json)
-
-
-def test_cross_sections_wsel_not_found():
-    with RasGeomHdf(COAL_G01) as ghdf:
-        assert (ghdf.cross_sections_wsel(), None)
-
-
 def test_cross_sections_elevations():
     xs_elevs_json = TEST_JSON / "xs_elevations.json"
     with RasGeomHdf(BAXTER_P01) as ghdf:
@@ -180,51 +157,3 @@ def test_cross_sections_elevations():
 def test_cross_sections_elevations_not_found():
     with RasGeomHdf(COAL_G01) as ghdf:
         assert (ghdf.cross_sections_elevations(), None)
-
-
-def test_cross_sections_area():
-    xs_area_json = TEST_JSON / "xs_area.json"
-    with RasGeomHdf(BAXTER_P01) as ghdf:
-        assert _gdf_matches_json_alt(ghdf.cross_sections_area(), xs_area_json)
-
-
-def test_cross_sections_area_not_found():
-    with RasGeomHdf(COAL_G01) as ghdf:
-        assert (ghdf.cross_sections_area(), None)
-
-
-def test_cross_sections_velocity():
-    xs_velocity_json = TEST_JSON / "xs_velocity.json"
-    with RasGeomHdf(BAXTER_P01) as ghdf:
-        assert _gdf_matches_json_alt(ghdf.cross_sections_velocity(), xs_velocity_json)
-
-
-def test_cross_sections_velocity_not_found():
-    with RasGeomHdf(COAL_G01) as ghdf:
-        assert (ghdf.cross_sections_velocity(), None)
-
-
-def test_cross_sections_encroachment_station_left():
-    xs_enc_station_left_json = TEST_JSON / "xs_enc_station_left.json"
-    with RasGeomHdf(FLODENCR_P01) as ghdf:
-        assert _gdf_matches_json_alt(
-            ghdf.cross_sections_encroachment_station_left(), xs_enc_station_left_json
-        )
-
-
-def test_cross_sections_encroachment_station_left_not_found():
-    with RasGeomHdf(COAL_G01) as ghdf:
-        assert (ghdf.cross_sections_encroachment_station_left(), None)
-
-
-def test_cross_sections_encroachment_station_right():
-    xs_enc_station_right_json = TEST_JSON / "xs_enc_station_right.json"
-    with RasGeomHdf(FLODENCR_P01) as ghdf:
-        assert _gdf_matches_json_alt(
-            ghdf.cross_sections_encroachment_station_right(), xs_enc_station_right_json
-        )
-
-
-def test_cross_sections_encroachment_station_right_not_found():
-    with RasGeomHdf(COAL_G01) as ghdf:
-        assert (ghdf.cross_sections_encroachment_station_right(), None)

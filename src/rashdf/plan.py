@@ -26,7 +26,7 @@ class RasPlanHdfError(Exception):
 
 
 class XsSteadyOutputVar(Enum):
-    """Summary of steady cross section output variables"""
+    """Summary of steady cross section output variables."""
 
     ENERGY_GRADE = "Energy Grade"
     FLOW = "Flow"
@@ -41,7 +41,7 @@ XS_STEADY_OUTPUT = [
 
 
 class XsSteadyAdditionalVar(Enum):
-    """Summary of steady cross section additional output variables"""
+    """Summary of steady cross section additional output variables."""
 
     ENCROACHMENT_STATION_LEFT = "Encroachment Station Left"
     ENCROACHMENT_STATION_RIGHT = "Encroachment Station Right"

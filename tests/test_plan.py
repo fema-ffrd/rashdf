@@ -12,7 +12,12 @@ import pandas as pd
 from pandas.testing import assert_frame_equal
 import pytest
 
-from . import _create_hdf_with_group_attrs, _gdf_matches_json, get_sha1_hash
+from . import (
+    _create_hdf_with_group_attrs,
+    _gdf_matches_json,
+    get_sha1_hash,
+    _gdf_matches_json_alt,
+)
 
 TEST_DATA = Path("./tests/data")
 TEST_JSON = TEST_DATA / "json"
@@ -21,6 +26,9 @@ TEST_ATTRS = {"test_attribute1": "test_str1", "test_attribute2": 500}
 BALD_EAGLE_P18 = TEST_DATA / "ras/BaldEagleDamBrk.p18.hdf"
 BALD_EAGLE_P18_TIMESERIES = TEST_DATA / "ras/BaldEagleDamBrk.p18.timeseries.hdf"
 MUNCIE_G05 = TEST_DATA / "ras/Muncie.g05.hdf"
+COAL_G01 = TEST_DATA / "ras/Coal.g01.hdf"
+BAXTER_P01 = TEST_DATA / "ras_1d/Baxter.p01.hdf"
+FLODENCR_P01 = TEST_DATA / "ras_1d/FLODENCR.p01.hdf"
 
 
 def test_get_plan_info_attrs(tmp_path):
@@ -256,3 +264,77 @@ def test_mesh_timeseries_output_faces():
             dtype={"Face Velocity": np.float32},
         )
         assert_frame_equal(df, valid_df)
+
+
+def test_cross_sections_additional_velocity_total():
+    xs_velocity_json = TEST_JSON / "xs_velocity.json"
+    with RasPlanHdf(BAXTER_P01) as phdf:
+        assert _gdf_matches_json_alt(
+            phdf.cross_sections_additional_velocity_total(), xs_velocity_json
+        )
+
+
+def test_cross_sections_additional_velocity_total_not_found():
+    with RasPlanHdf(COAL_G01) as phdf:
+        assert (phdf.cross_sections_additional_velocity_total(), None)
+
+
+def test_cross_sections_additional_area_total():
+    xs_area_json = TEST_JSON / "xs_area.json"
+    with RasPlanHdf(BAXTER_P01) as phdf:
+        assert _gdf_matches_json_alt(
+            phdf.cross_sections_additional_area_total(), xs_area_json
+        )
+
+
+def test_cross_sections_additional_area_total_not_found():
+    with RasPlanHdf(COAL_G01) as phdf:
+        assert (phdf.cross_sections_additional_area_total(), None)
+
+
+def test_steady_flow_names():
+    with RasPlanHdf(BAXTER_P01) as phdf:
+        assert phdf.steady_flow_names() == ["Big"]
+
+
+def test_steady_flow_names_not_found():
+    with RasPlanHdf(COAL_G01) as phdf:
+        assert (phdf.steady_flow_names(), None)
+
+
+def test_cross_sections_wsel():
+    xs_wsel_json = TEST_JSON / "xs_wsel.json"
+    with RasPlanHdf(BAXTER_P01) as phdf:
+        assert _gdf_matches_json_alt(phdf.cross_sections_wsel(), xs_wsel_json)
+
+
+def test_cross_sections_wsel_not_found():
+    with RasPlanHdf(COAL_G01) as phdf:
+        assert (phdf.cross_sections_wsel(), None)
+
+
+def test_cross_sections_additional_enc_station_right():
+    xs_enc_station_right_json = TEST_JSON / "xs_enc_station_right.json"
+    with RasPlanHdf(FLODENCR_P01) as phdf:
+        assert _gdf_matches_json_alt(
+            phdf.cross_sections_additional_enc_station_right(),
+            xs_enc_station_right_json,
+        )
+
+
+def test_cross_sections_additional_enc_station_right_not_found():
+    with RasPlanHdf(COAL_G01) as phdf:
+        assert (phdf.cross_sections_additional_enc_station_right(), None)
+
+
+def test_cross_sections_additional_enc_station_left():
+    xs_enc_station_left_json = TEST_JSON / "xs_enc_station_left.json"
+    with RasPlanHdf(FLODENCR_P01) as phdf:
+        assert _gdf_matches_json_alt(
+            phdf.cross_sections_additional_enc_station_left(), xs_enc_station_left_json
+        )
+
+
+def test_cross_sections_additional_enc_station_left_not_found():
+    with RasPlanHdf(COAL_G01) as phdf:
+        assert (phdf.cross_sections_additional_enc_station_left(), None)
