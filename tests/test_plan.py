@@ -338,3 +338,17 @@ def test_cross_sections_additional_enc_station_left():
 def test_cross_sections_additional_enc_station_left_not_found():
     with RasPlanHdf(COAL_G01) as phdf:
         assert (phdf.cross_sections_additional_enc_station_left(), None)
+
+
+def test_cross_sections_flow():
+    xs_flow_json = TEST_JSON / "xs_flow.json"
+    with RasPlanHdf(BAXTER_P01) as phdf:
+        assert _gdf_matches_json_alt(phdf.cross_sections_flow(), xs_flow_json)
+
+
+def test_cross_sections_energy_grade():
+    xs_energy_grade_json = TEST_JSON / "xs_energy_grade.json"
+    with RasPlanHdf(BAXTER_P01) as phdf:
+        assert _gdf_matches_json_alt(
+            phdf.cross_sections_energy_grade(), xs_energy_grade_json
+        )
