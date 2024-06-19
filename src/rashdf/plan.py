@@ -1017,6 +1017,14 @@ class RasPlanHdf(RasGeomHdf):
     ) -> DataFrame:
         """Create a Dataframe from steady cross section results based on path.
 
+        Parameters
+        ----------
+        var : XsSteadyOutputVar
+            The name of the table in the steady results that information is to be retireved from.
+
+        round_to : int, optional
+            Number of decimal places to round output data to.
+
         Returns
         -------
             Dataframe with desired hdf data.
@@ -1093,7 +1101,7 @@ class RasPlanHdf(RasGeomHdf):
         )
 
     def cross_sections_additional_area_total(self) -> DataFrame:
-        """Return the cross section area for each profile.
+        """Return the 1D cross section area for each profile.
 
         Returns
         -------
@@ -1105,7 +1113,7 @@ class RasPlanHdf(RasGeomHdf):
         )
 
     def cross_sections_additional_velocity_total(self) -> DataFrame:
-        """Return the cross section velocity for each profile.
+        """Return the 1D cross section velocity for each profile.
 
         Returns
         -------
