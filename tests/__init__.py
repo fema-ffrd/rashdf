@@ -1,6 +1,6 @@
 import h5py
 from geopandas import GeoDataFrame
-
+import json
 import hashlib
 from pathlib import Path
 
@@ -20,3 +20,8 @@ def _gdf_matches_json(gdf: GeoDataFrame, json_file: Path) -> bool:
 def get_sha1_hash(path: Path) -> str:
     with open(path, "rb") as f:
         return hashlib.sha1(f.read()).hexdigest()
+
+
+def _gdf_matches_json_alt(gdf: GeoDataFrame, json_file: Path) -> bool:
+    with open(json_file) as j:
+        return json.loads(gdf.to_json()) == json.load(j)
