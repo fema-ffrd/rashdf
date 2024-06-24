@@ -1,15 +1,14 @@
+from pathlib import Path
+import h5py
+from pyproj import CRS
 from src.rashdf import RasGeomHdf
 
-import h5py
-from geopandas import GeoDataFrame
-from pyproj import CRS
-from pathlib import Path
-
-from . import _create_hdf_with_group_attrs, _gdf_matches_json
+from . import _create_hdf_with_group_attrs, _gdf_matches_json, _gdf_matches_json_alt
 
 TEST_DATA = Path("./tests/data")
 MUNCIE_G05 = TEST_DATA / "ras/Muncie.g05.hdf"
 COAL_G01 = TEST_DATA / "ras/Coal.g01.hdf"
+BAXTER_P01 = TEST_DATA / "ras_1d/Baxter.p01.hdf"
 TEST_JSON = TEST_DATA / "json"
 
 TEST_ATTRS = {"test_attribute1": "test_str1", "test_attribute2": 500}
@@ -118,3 +117,43 @@ def test_structs():
     structs_json = TEST_JSON / "structures.json"
     with RasGeomHdf(MUNCIE_G05) as ghdf:
         assert _gdf_matches_json(ghdf.structures(datetime_to_str=True), structs_json)
+
+
+def test_structs_not_found():
+    with RasGeomHdf(COAL_G01) as ghdf:
+        assert (ghdf.structures(), None)
+
+
+def test_cross_sections():
+    cross_section_json = TEST_JSON / "cross_sections.json"
+    with RasGeomHdf(BAXTER_P01) as ghdf:
+        assert _gdf_matches_json_alt(
+            ghdf.cross_sections(datetime_to_str=True), cross_section_json
+        )
+
+
+def test_cross_sections_not_found():
+    with RasGeomHdf(COAL_G01) as ghdf:
+        assert (ghdf.cross_sections(), None)
+
+
+def test_river_reaches():
+    river_reaches_json = TEST_JSON / "river_reaches.json"
+    with RasGeomHdf(BAXTER_P01) as ghdf:
+        assert _gdf_matches_json_alt(ghdf.river_reaches(), river_reaches_json)
+
+
+def test_river_reaches_not_found():
+    with RasGeomHdf(COAL_G01) as ghdf:
+        assert (ghdf.river_reaches(), None)
+
+
+def test_cross_sections_elevations():
+    xs_elevs_json = TEST_JSON / "xs_elevations.json"
+    with RasGeomHdf(BAXTER_P01) as ghdf:
+        assert _gdf_matches_json_alt(ghdf.cross_sections_elevations(), xs_elevs_json)
+
+
+def test_cross_sections_elevations_not_found():
+    with RasGeomHdf(COAL_G01) as ghdf:
+        assert (ghdf.cross_sections_elevations(), None)
