@@ -30,30 +30,18 @@ class XsSteadyOutputVar(Enum):
 
     ENERGY_GRADE = "Energy Grade"
     FLOW = "Flow"
-    WATER_SURFACE = f"Water Surface"
-
-
-XS_STEADY_OUTPUT = [
-    XsSteadyOutputVar.WATER_SURFACE,
-    XsSteadyOutputVar.ENERGY_GRADE,
-    XsSteadyOutputVar.FLOW,
-]
-
-
-class XsSteadyAdditionalVar(Enum):
-    """Summary of steady cross section additional output variables."""
-
+    WATER_SURFACE = "Water Surface"
     ENCROACHMENT_STATION_LEFT = "Encroachment Station Left"
     ENCROACHMENT_STATION_RIGHT = "Encroachment Station Right"
     AREA_INEFFECTIVE_TOTAL = "Area including Ineffective Total"
     VELOCITY_TOTAL = "Velocity Total"
 
 
-XS_STEADY_ADDITIONAL = [
-    XsSteadyAdditionalVar.ENCROACHMENT_STATION_LEFT,
-    XsSteadyAdditionalVar.ENCROACHMENT_STATION_RIGHT,
-    XsSteadyAdditionalVar.AREA_INEFFECTIVE_TOTAL,
-    XsSteadyAdditionalVar.VELOCITY_TOTAL,
+XS_STEADY_OUTPUT_ADDITIONAL = [
+    XsSteadyOutputVar.ENCROACHMENT_STATION_LEFT,
+    XsSteadyOutputVar.ENCROACHMENT_STATION_RIGHT,
+    XsSteadyOutputVar.AREA_INEFFECTIVE_TOTAL,
+    XsSteadyOutputVar.VELOCITY_TOTAL,
 ]
 
 
@@ -1029,10 +1017,10 @@ class RasPlanHdf(RasGeomHdf):
         -------
             Dataframe with desired hdf data.
         """
-        if var in XS_STEADY_OUTPUT:
-            path = f"{self.STEADY_XS_PATH}/{var.value}"
-        else:
+        if var in XS_STEADY_OUTPUT_ADDITIONAL:
             path = f"{self.STEADY_XS_ADDITIONAL_PATH}/{var.value}"
+        else:
+            path = f"{self.STEADY_XS_PATH}/{var.value}"
         if path not in self:
             return DataFrame()
 
@@ -1085,7 +1073,7 @@ class RasPlanHdf(RasGeomHdf):
             A DataFrame containing the cross sections left side encroachment stations
         """
         return self.steady_profile_xs_output(
-            XsSteadyAdditionalVar.ENCROACHMENT_STATION_LEFT
+            XsSteadyOutputVar.ENCROACHMENT_STATION_LEFT
         )
 
     def cross_sections_additional_enc_station_right(self) -> DataFrame:
@@ -1097,7 +1085,7 @@ class RasPlanHdf(RasGeomHdf):
             A DataFrame containing the cross sections right side encroachment stations
         """
         return self.steady_profile_xs_output(
-            XsSteadyAdditionalVar.ENCROACHMENT_STATION_RIGHT
+            XsSteadyOutputVar.ENCROACHMENT_STATION_RIGHT
         )
 
     def cross_sections_additional_area_total(self) -> DataFrame:
@@ -1108,9 +1096,7 @@ class RasPlanHdf(RasGeomHdf):
         DataFrame
             A DataFrame containing the wet area inside the cross sections
         """
-        return self.steady_profile_xs_output(
-            XsSteadyAdditionalVar.AREA_INEFFECTIVE_TOTAL
-        )
+        return self.steady_profile_xs_output(XsSteadyOutputVar.AREA_INEFFECTIVE_TOTAL)
 
     def cross_sections_additional_velocity_total(self) -> DataFrame:
         """Return the 1D cross section velocity for each profile.
@@ -1120,4 +1106,4 @@ class RasPlanHdf(RasGeomHdf):
         DataFrame
             A DataFrame containing the velocity inside the cross sections
         """
-        return self.steady_profile_xs_output(XsSteadyAdditionalVar.VELOCITY_TOTAL)
+        return self.steady_profile_xs_output(XsSteadyOutputVar.VELOCITY_TOTAL)
