@@ -23,6 +23,8 @@ COMMANDS = [
     "refinement_regions",
     "bc_lines",
     "breaklines",
+    "reference_lines",
+    "reference_points",
     "structures",
 ]
 

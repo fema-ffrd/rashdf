@@ -25,6 +25,7 @@ TEST_CSV = TEST_DATA / "csv"
 TEST_ATTRS = {"test_attribute1": "test_str1", "test_attribute2": 500}
 BALD_EAGLE_P18 = TEST_DATA / "ras/BaldEagleDamBrk.p18.hdf"
 BALD_EAGLE_P18_TIMESERIES = TEST_DATA / "ras/BaldEagleDamBrk.p18.timeseries.hdf"
+BALD_EAGLE_P18_REF = TEST_DATA / "ras/BaldEagleDamBrk.reflines-refpts.p18.hdf"
 MUNCIE_G05 = TEST_DATA / "ras/Muncie.g05.hdf"
 COAL_G01 = TEST_DATA / "ras/Coal.g01.hdf"
 BAXTER_P01 = TEST_DATA / "ras_1d/Baxter.p01.hdf"
@@ -264,6 +265,84 @@ def test_mesh_timeseries_output_faces():
             dtype={"Face Velocity": np.float32},
         )
         assert_frame_equal(df, valid_df)
+
+
+def test_reference_lines(tmp_path: Path):
+    plan_hdf = RasPlanHdf(BALD_EAGLE_P18_REF)
+    gdf = plan_hdf.reference_lines(datetime_to_str=True)
+    temp_lines = tmp_path / "temp-bald-eagle-reference-lines.geojson"
+    gdf.to_crs(4326).to_file(temp_lines)
+    with open(TEST_JSON / "bald-eagle-reflines.geojson") as f:
+        valid_lines = f.read()
+        with open(temp_lines) as f:
+            test_lines = f.read()
+            assert valid_lines == test_lines
+
+
+def test_reference_lines_timeseries(tmp_path: Path):
+    plan_hdf = RasPlanHdf(BALD_EAGLE_P18_REF)
+    ds = plan_hdf.reference_lines_timeseries_output()
+    assert "time" in ds.coords
+    assert "refln_id" in ds.coords
+    assert "refln_name" in ds.coords
+    assert "mesh_name" in ds.coords
+    assert "Water Surface" in ds.variables
+    assert "Flow" in ds.variables
+
+    ws = ds["Water Surface"]
+    assert ws.shape == (37, 4)
+    assert ws.attrs["Units"] == "ft"
+    q = ds["Flow"]
+    assert q.shape == (37, 4)
+    assert q.attrs["Units"] == "cfs"
+
+    df = ds.sel(refln_id=2).to_dataframe()
+    valid_df = pd.read_csv(
+        TEST_CSV / "BaldEagleDamBrk.reflines.2.csv",
+        index_col="time",
+        parse_dates=True,
+        dtype={"Water Surface": np.float32, "Flow": np.float32},
+    )
+    assert_frame_equal(df, valid_df)
+
+
+def test_reference_points(tmp_path: Path):
+    plan_hdf = RasPlanHdf(BALD_EAGLE_P18_REF)
+    gdf = plan_hdf.reference_points(datetime_to_str=True)
+    temp_lines = tmp_path / "temp-bald-eagle-reference-points.geojson"
+    gdf.to_crs(4326).to_file(temp_lines)
+    with open(TEST_JSON / "bald-eagle-refpoints.geojson") as f:
+        valid_points = f.read()
+        with open(temp_lines) as f:
+            test_points = f.read()
+            assert valid_points == test_points
+
+
+def test_reference_points_timeseries():
+    plan_hdf = RasPlanHdf(BALD_EAGLE_P18_REF)
+    ds = plan_hdf.reference_points_timeseries_output()
+    assert "time" in ds.coords
+    assert "refpt_id" in ds.coords
+    assert "refpt_name" in ds.coords
+    assert "mesh_name" in ds.coords
+    assert "Water Surface" in ds.variables
+    assert "Velocity" in ds.variables
+
+    ws = ds["Water Surface"]
+    assert ws.shape == (37, 3)
+    assert ws.attrs["Units"] == "ft"
+    v = ds["Velocity"]
+    assert v.attrs["Units"] == "ft/s"
+    assert v.shape == (37, 3)
+
+    df = ds.sel(refpt_id=1).to_dataframe()
+    valid_df = pd.read_csv(
+        TEST_CSV / "BaldEagleDamBrk.refpoints.1.csv",
+        index_col="time",
+        parse_dates=True,
+        dtype={"Water Surface": np.float32, "Velocity": np.float32},
+    )
+    assert_frame_equal(df, valid_df)
 
 
 def test_cross_sections_additional_velocity_total():

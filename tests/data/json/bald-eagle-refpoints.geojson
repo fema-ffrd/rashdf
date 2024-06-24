@@ -1,0 +1,9 @@
+{
+"type": "FeatureCollection",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"features": [
+{ "type": "Feature", "properties": { "refpt_id": 0, "refpt_name": "Reference Point 1", "mesh_name": "Upper 2D Area", "cell_id": 73, "max_ws": 669.060791015625, "max_ws_time": "1999-01-03T12:00:00", "min_ws": 629.8768310546875, "min_ws_time": "1999-01-01T14:00:00", "max_v": 0.039320502430200577, "max_v_time": "1999-01-03T10:00:00", "min_v": 0.011099513620138168, "min_v_time": "1999-01-01T12:00:00" }, "geometry": { "type": "Point", "coordinates": [ -77.612301724014344, 41.04620910874042 ] } },
+{ "type": "Feature", "properties": { "refpt_id": 1, "refpt_name": "Reference Point 2", "mesh_name": "BaldEagleCr", "cell_id": 3096, "max_ws": 599.75103759765625, "max_ws_time": "1999-01-03T12:00:00", "min_ws": 576.738037109375, "min_ws_time": "1999-01-01T12:00:00", "max_v": 6.7790994644165039, "max_v_time": "1999-01-03T12:00:00", "min_v": 0.0, "min_v_time": "1999-01-01T12:00:00" }, "geometry": { "type": "Point", "coordinates": [ -77.594854058613322, 41.059372716828641 ] } },
+{ "type": "Feature", "properties": { "refpt_id": 2, "refpt_name": "Reference Point 3", "mesh_name": "BaldEagleCr", "cell_id": 1540, "max_ws": 575.11370849609375, "max_ws_time": "1999-01-03T16:00:00", "min_ws": 548.5784912109375, "min_ws_time": "1999-01-01T12:00:00", "max_v": 2.1526575088500977, "max_v_time": "1999-01-03T00:00:00", "min_v": 0.0, "min_v_time": "1999-01-01T12:00:00" }, "geometry": { "type": "Point", "coordinates": [ -77.486125160451479, 41.122147549124158 ] } }
+]
+}
