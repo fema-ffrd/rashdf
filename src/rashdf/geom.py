@@ -44,6 +44,8 @@ class RasGeomHdf(RasHdf):
     BREAKLINES_PATH = f"{GEOM_PATH}/2D Flow Area Break Lines"
     REFERENCE_LINES_PATH = f"{GEOM_PATH}/Reference Lines"
     REFERENCE_POINTS_PATH = f"{GEOM_PATH}/Reference Points"
+    CROSS_SECTIONS = f"{GEOM_PATH}/Cross Sections"
+    RIVER_CENTERLINES = f"{GEOM_PATH}/River Centerlines"
 
     def __init__(self, name: str, **kwargs):
         """Open a HEC-RAS Geometry HDF file.
@@ -606,33 +608,17 @@ class RasGeomHdf(RasHdf):
         GeoDataFrame
             A GeoDataFrame containing the model 1D cross sections if they exist.
         """
-        if "/Geometry/Cross Sections" not in self:
+        if self.CROSS_SECTIONS not in self:
             return GeoDataFrame()
 
-        xs_data = self["/Geometry/Cross Sections"]
+        xs_data = self[self.CROSS_SECTIONS]
         v_conv_val = np.vectorize(convert_ras_hdf_value)
         xs_attrs = xs_data["Attributes"][()]
         xs_dict = {"xs_id": range(xs_attrs.shape[0])}
         xs_dict.update(
             {name: v_conv_val(xs_attrs[name]) for name in xs_attrs.dtype.names}
         )
-        geoms = list()
-        for pnt_start, pnt_cnt, part_start, part_cnt in xs_data["Polyline Info"][()]:
-            points = xs_data["Polyline Points"][()][pnt_start : pnt_start + pnt_cnt]
-            if part_cnt == 1:
-                geoms.append(LineString(points))
-            else:
-                parts = xs_data["Polyline Parts"][()][
-                    part_start : part_start + part_cnt
-                ]
-                geoms.append(
-                    MultiLineString(
-                        list(
-                            points[part_pnt_start : part_pnt_start + part_pnt_cnt]
-                            for part_pnt_start, part_pnt_cnt in parts
-                        )
-                    )
-                )
+        geoms = self._get_polylines(self.CROSS_SECTIONS)
         xs_gdf = GeoDataFrame(
             xs_dict,
             geometry=geoms,
@@ -652,10 +638,10 @@ class RasGeomHdf(RasHdf):
         GeoDataFrame
             A GeoDataFrame containing the model 1D river reach lines if they exist.
         """
-        if "/Geometry/River Centerlines" not in self:
+        if self.RIVER_CENTERLINES not in self:
             return GeoDataFrame()
 
-        river_data = self["/Geometry/River Centerlines"]
+        river_data = self[self.RIVER_CENTERLINES]
         v_conv_val = np.vectorize(convert_ras_hdf_value)
         river_attrs = river_data["Attributes"][()]
         river_dict = {"river_id": range(river_attrs.shape[0])}
@@ -663,22 +649,7 @@ class RasGeomHdf(RasHdf):
             {name: v_conv_val(river_attrs[name]) for name in river_attrs.dtype.names}
         )
         geoms = list()
-        for pnt_start, pnt_cnt, part_start, part_cnt in river_data["Polyline Info"][()]:
-            points = river_data["Polyline Points"][()][pnt_start : pnt_start + pnt_cnt]
-            if part_cnt == 1:
-                geoms.append(LineString(points))
-            else:
-                parts = river_data["Polyline Parts"][()][
-                    part_start : part_start + part_cnt
-                ]
-                geoms.append(
-                    MultiLineString(
-                        list(
-                            points[part_pnt_start : part_pnt_start + part_pnt_cnt]
-                            for part_pnt_start, part_pnt_cnt in parts
-                        )
-                    )
-                )
+        geoms = self._get_polylines(self.RIVER_CENTERLINES)
         river_gdf = GeoDataFrame(
             river_dict,
             geometry=geoms,
