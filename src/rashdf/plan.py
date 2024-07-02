@@ -966,7 +966,13 @@ class RasPlanHdf(RasGeomHdf):
             group = reference_group.get(var)
             if group is None:
                 continue
-            values = group[:]
+            try:
+                import dask.array as da
+
+                # TODO: user-specified chunks?
+                values = da.from_array(group, chunks=group.chunks)
+            except ImportError:
+                values = group[:]
             units = group.attrs["Units"].decode("utf-8")
             da = xr.DataArray(
                 values,
