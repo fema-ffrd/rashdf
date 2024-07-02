@@ -12,7 +12,6 @@ jobs:
   release:
     name: release
     runs-on: ubuntu-latest
-    environment: release-env
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python
