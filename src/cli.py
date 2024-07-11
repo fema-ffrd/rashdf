@@ -3,7 +3,6 @@
 from rashdf import RasGeomHdf, RasPlanHdf
 from rashdf.utils import df_datetimes_to_str
 
-import fiona
 from geopandas import GeoDataFrame
 
 import argparse
@@ -52,6 +51,20 @@ def docstring_to_help(docstring: Optional[str]) -> str:
     return help_text
 
 
+def pyogrio_supported_drivers() -> List[str]:
+    """Return a list of drivers supported by PyOGRIO for writing output files.
+
+    Returns
+    -------
+    list
+        A list of drivers supported by PyOGRIO for writing output files.
+    """
+    import pyogrio
+
+    drivers = pyogrio.list_drivers(write=True)
+    return sorted(drivers)
+
+
 def fiona_supported_drivers() -> List[str]:
     """Return a list of drivers supported by Fiona for writing output files.
 
@@ -60,18 +73,34 @@ def fiona_supported_drivers() -> List[str]:
     list
         A list of drivers supported by Fiona for writing output files.
     """
+    import fiona
+
     drivers = [d for d, s in fiona.supported_drivers.items() if "w" in s]
-    return drivers
+    return sorted(drivers)
 
 
 def parse_args(args: str) -> argparse.Namespace:
     """Parse command-line arguments."""
     parser = argparse.ArgumentParser(description="Extract data from HEC-RAS HDF files.")
     parser.add_argument(
-        "--fiona-drivers",
+        "--pyogrio-drivers",
         action="store_true",
-        help="List the drivers supported by Fiona for writing output files.",
+        help="List the drivers supported by pyogrio for writing output files.",
     )
+    fiona_installed = False
+    engines = ["pyogrio"]
+    try:
+        import fiona
+
+        fiona_installed = True
+        engines.append("fiona")
+        parser.add_argument(
+            "--fiona-drivers",
+            action="store_true",
+            help="List the drivers supported by Fiona for writing output files.",
+        )
+    except ImportError:
+        pass
     subparsers = parser.add_subparsers(help="Sub-command help")
     for command in COMMANDS:
         f = getattr(RasGeomHdf, command)
@@ -93,6 +122,13 @@ def parse_args(args: str) -> argparse.Namespace:
         output_group.add_argument(
             "--feather", action="store_true", help="Output as Feather."
         )
+        output_group.add_argument(
+            "--engine",
+            type=str,
+            choices=engines,
+            default="pyogrio",
+            help="Engine for writing output data.",
+        )
         subparser.add_argument(
             "--kwargs",
             type=str,
@@ -107,7 +143,11 @@ def parse_args(args: str) -> argparse.Namespace:
 
 def export(args: argparse.Namespace) -> Optional[str]:
     """Act on parsed arguments to extract data from HEC-RAS HDF files."""
-    if args.fiona_drivers:
+    if args.pyogrio_drivers:
+        for driver in pyogrio_supported_drivers():
+            print(driver)
+        return
+    if hasattr(args, "fiona_drivers") and args.fiona_drivers:
         for driver in fiona_supported_drivers():
             print(driver)
         return
@@ -140,6 +180,7 @@ def export(args: argparse.Namespace) -> Optional[str]:
                 ),
             )
             result = gdf.to_json(**kwargs)
+        print("No output file!")
         print(result)
         return result
     elif args.parquet:
@@ -155,7 +196,7 @@ def export(args: argparse.Namespace) -> Optional[str]:
         # convert any datetime columns to string.
         # TODO: besides Geopackage, which of the standard Fiona drivers allow datetime?
         gdf = df_datetimes_to_str(gdf)
-    gdf.to_file(args.output_file, **kwargs)
+    gdf.to_file(args.output_file, engine=args.engine, **kwargs)
 
 
 def main():
