@@ -52,12 +52,12 @@ def docstring_to_help(docstring: Optional[str]) -> str:
 
 
 def pyogrio_supported_drivers() -> List[str]:
-    """Return a list of drivers supported by PyOGRIO for writing output files.
+    """Return a list of drivers supported by pyogrio for writing output files.
 
     Returns
     -------
     list
-        A list of drivers supported by PyOGRIO for writing output files.
+        A list of drivers supported by pyogrio for writing output files.
     """
     import pyogrio
 
