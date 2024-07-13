@@ -1,12 +1,13 @@
 """HEC-RAS Geometry HDF class."""
 
-from typing import Dict, List, Optional
-
 import numpy as np
 import pandas as pd
 from geopandas import GeoDataFrame
 from pyproj import CRS
 from shapely import (
+    Geometry,
+    Polygon,
+    Point,
     LineString,
     MultiLineString,
     MultiPolygon,
@@ -14,6 +15,9 @@ from shapely import (
     Polygon,
     polygonize_full,
 )
+
+from typing import Dict, List, Optional, Union
+
 
 from .base import RasHdf
 from .utils import (
@@ -24,12 +28,24 @@ from .utils import (
 )
 
 
+class RasGeomHdfError(Exception):
+    """HEC-RAS Plan HDF error class."""
+
+    pass
+
+
 class RasGeomHdf(RasHdf):
     """HEC-RAS Geometry HDF class."""
 
     GEOM_PATH = "Geometry"
     GEOM_STRUCTURES_PATH = f"{GEOM_PATH}/Structures"
     FLOW_AREA_2D_PATH = f"{GEOM_PATH}/2D Flow Areas"
+    BC_LINES_PATH = f"{GEOM_PATH}/Boundary Condition Lines"
+    BREAKLINES_PATH = f"{GEOM_PATH}/2D Flow Area Break Lines"
+    REFERENCE_LINES_PATH = f"{GEOM_PATH}/Reference Lines"
+    REFERENCE_POINTS_PATH = f"{GEOM_PATH}/Reference Points"
+    CROSS_SECTIONS = f"{GEOM_PATH}/Cross Sections"
+    RIVER_CENTERLINES = f"{GEOM_PATH}/River Centerlines"
 
     def __init__(self, name: str, **kwargs):
         """Open a HEC-RAS Geometry HDF file.
@@ -262,35 +278,28 @@ class RasGeomHdf(RasHdf):
 
         return d2_flow_area_attrs
 
-    def bc_lines(self) -> GeoDataFrame:
-        """Return 2D mesh area boundary condition lines.
+    def _get_polylines(
+        self,
+        path: str,
+        info_name: str = "Polyline Info",
+        parts_name: str = "Polyline Parts",
+        points_name: str = "Polyline Points",
+    ) -> List[Geometry]:
+        polyline_info_path = f"{path}/{info_name}"
+        polyline_parts_path = f"{path}/{parts_name}"
+        polyline_points_path = f"{path}/{points_name}"
 
-        Returns
-        -------
-        GeoDataFrame
-            A GeoDataFrame containing the 2D mesh area boundary condition lines if they exist.
-        """
-        if "/Geometry/Boundary Condition Lines" not in self:
-            return GeoDataFrame()
-        bc_line_data = self["/Geometry/Boundary Condition Lines"]
-        bc_line_ids = range(bc_line_data["Attributes"][()].shape[0])
-        v_conv_str = np.vectorize(convert_ras_hdf_string)
-        names = v_conv_str(bc_line_data["Attributes"][()]["Name"])
-        mesh_names = v_conv_str(bc_line_data["Attributes"][()]["SA-2D"])
-        types = v_conv_str(bc_line_data["Attributes"][()]["Type"])
-        geoms = list()
-        for pnt_start, pnt_cnt, part_start, part_cnt in bc_line_data["Polyline Info"][
-            ()
-        ]:
-            points = bc_line_data["Polyline Points"][()][
-                pnt_start : pnt_start + pnt_cnt
-            ]
+        polyline_info = self[polyline_info_path][()]
+        polyline_parts = self[polyline_parts_path][()]
+        polyline_points = self[polyline_points_path][()]
+
+        geoms = []
+        for pnt_start, pnt_cnt, part_start, part_cnt in polyline_info:
+            points = polyline_points[pnt_start : pnt_start + pnt_cnt]
             if part_cnt == 1:
                 geoms.append(LineString(points))
             else:
-                parts = bc_line_data["Polyline Parts"][()][
-                    part_start : part_start + part_cnt
-                ]
+                parts = polyline_parts[part_start : part_start + part_cnt]
                 geoms.append(
                     MultiLineString(
                         list(
@@ -299,6 +308,25 @@ class RasGeomHdf(RasHdf):
                         )
                     )
                 )
+        return geoms
+
+    def bc_lines(self) -> GeoDataFrame:
+        """Return 2D mesh area boundary condition lines.
+
+        Returns
+        -------
+        GeoDataFrame
+            A GeoDataFrame containing the 2D mesh area boundary condition lines if they exist.
+        """
+        if self.BC_LINES_PATH not in self:
+            return GeoDataFrame()
+        bc_line_data = self[self.BC_LINES_PATH]
+        bc_line_ids = range(bc_line_data["Attributes"][()].shape[0])
+        v_conv_str = np.vectorize(convert_ras_hdf_string)
+        names = v_conv_str(bc_line_data["Attributes"][()]["Name"])
+        mesh_names = v_conv_str(bc_line_data["Attributes"][()]["SA-2D"])
+        types = v_conv_str(bc_line_data["Attributes"][()]["Type"])
+        geoms = self._get_polylines(self.BC_LINES_PATH)
         return GeoDataFrame(
             {
                 "bc_line_id": bc_line_ids,
@@ -319,34 +347,14 @@ class RasGeomHdf(RasHdf):
         GeoDataFrame
             A GeoDataFrame containing the 2D mesh area breaklines if they exist.
         """
-        if "/Geometry/2D Flow Area Break Lines" not in self:
+        if self.BREAKLINES_PATH not in self:
             return GeoDataFrame()
-        bl_line_data = self["/Geometry/2D Flow Area Break Lines"]
+        bl_line_data = self[self.BREAKLINES_PATH]
         bl_line_ids = range(bl_line_data["Attributes"][()].shape[0])
         names = np.vectorize(convert_ras_hdf_string)(
             bl_line_data["Attributes"][()]["Name"]
         )
-        geoms = list()
-        for pnt_start, pnt_cnt, part_start, part_cnt in bl_line_data["Polyline Info"][
-            ()
-        ]:
-            points = bl_line_data["Polyline Points"][()][
-                pnt_start : pnt_start + pnt_cnt
-            ]
-            if part_cnt == 1:
-                geoms.append(LineString(points))
-            else:
-                parts = bl_line_data["Polyline Parts"][()][
-                    part_start : part_start + part_cnt
-                ]
-                geoms.append(
-                    MultiLineString(
-                        list(
-                            points[part_pnt_start : part_pnt_start + part_pnt_cnt]
-                            for part_pnt_start, part_pnt_cnt in parts
-                        )
-                    )
-                )
+        geoms = self._get_polylines(self.BREAKLINES_PATH)
         return GeoDataFrame(
             {"bl_id": bl_line_ids, "name": names, "geometry": geoms},
             geometry="geometry",
@@ -400,36 +408,21 @@ class RasGeomHdf(RasHdf):
         GeoDataFrame
             A GeoDataFrame containing the model structures if they exist.
         """
-        if "/Geometry/Structures" not in self:
+        if self.GEOM_STRUCTURES_PATH not in self:
             return GeoDataFrame()
-        struct_data = self["/Geometry/Structures"]
+        struct_data = self[self.GEOM_STRUCTURES_PATH]
         v_conv_val = np.vectorize(convert_ras_hdf_value)
         sd_attrs = struct_data["Attributes"][()]
         struct_dict = {"struct_id": range(sd_attrs.shape[0])}
         struct_dict.update(
             {name: v_conv_val(sd_attrs[name]) for name in sd_attrs.dtype.names}
         )
-        geoms = list()
-        for pnt_start, pnt_cnt, part_start, part_cnt in struct_data["Centerline Info"][
-            ()
-        ]:
-            points = struct_data["Centerline Points"][()][
-                pnt_start : pnt_start + pnt_cnt
-            ]
-            if part_cnt == 1:
-                geoms.append(LineString(points))
-            else:
-                parts = struct_data["Centerline Parts"][()][
-                    part_start : part_start + part_cnt
-                ]
-                geoms.append(
-                    MultiLineString(
-                        list(
-                            points[part_pnt_start : part_pnt_start + part_pnt_cnt]
-                            for part_pnt_start, part_pnt_cnt in parts
-                        )
-                    )
-                )
+        geoms = self._get_polylines(
+            self.GEOM_STRUCTURES_PATH,
+            info_name="Centerline Info",
+            parts_name="Centerline Parts",
+            points_name="Centerline Points",
+        )
         struct_gdf = GeoDataFrame(
             struct_dict,
             geometry=geoms,
@@ -447,11 +440,153 @@ class RasGeomHdf(RasHdf):
     def ic_points(self) -> GeoDataFrame:  # noqa D102
         raise NotImplementedError
 
-    def reference_lines(self) -> GeoDataFrame:  # noqa D102
-        raise NotImplementedError
+    def _reference_lines_points_names(
+        self, reftype: str = "lines", mesh_name: Optional[str] = None
+    ) -> Union[Dict[str, List[str]], List[str]]:
+        """Return reference line names.
 
-    def reference_points(self) -> GeoDataFrame:  # noqa D102
-        raise NotImplementedError
+        If a mesh name is provided, return a list of the reference line names for that mesh area.
+        If no mesh name is provided, return a dictionary of mesh names and their reference line names.
+
+        Parameters
+        ----------
+        mesh_name : str, optional
+            The name of the mesh area for which to return reference line names.
+
+        Returns
+        -------
+        Union[Dict[str, List[str]], List[str]]
+            A dictionary of mesh names and their reference line names if mesh_name is None.
+            A list of reference line names for the specified mesh area if mesh_name is not None.
+        """
+        if reftype == "lines":
+            path = self.REFERENCE_LINES_PATH
+            sa_2d_field = "SA-2D"
+        elif reftype == "points":
+            path = self.REFERENCE_POINTS_PATH
+            sa_2d_field = "SA/2D"
+        else:
+            raise RasGeomHdfError(
+                f"Invalid reference type: {reftype} -- must be 'lines' or 'points'."
+            )
+        attributes_path = f"{path}/Attributes"
+        if mesh_name is None and attributes_path not in self:
+            return {m: [] for m in self.mesh_area_names()}
+        if mesh_name is not None and attributes_path not in self:
+            return []
+        attributes = self[attributes_path][()]
+        v_conv_str = np.vectorize(convert_ras_hdf_string)
+        names = np.vectorize(convert_ras_hdf_string)(attributes["Name"])
+        if mesh_name is not None:
+            return names[v_conv_str(attributes[sa_2d_field]) == mesh_name].tolist()
+        mesh_names = np.vectorize(convert_ras_hdf_string)(attributes[sa_2d_field])
+        return {m: names[mesh_names == m].tolist() for m in np.unique(mesh_names)}
+
+    def reference_lines_names(
+        self, mesh_name: Optional[str] = None
+    ) -> Union[Dict[str, List[str]], List[str]]:
+        """Return reference line names.
+
+        If a mesh name is provided, return a list of the reference line names for that mesh area.
+        If no mesh name is provided, return a dictionary of mesh names and their reference line names.
+
+        Parameters
+        ----------
+        mesh_name : str, optional
+            The name of the mesh area for which to return reference line names.
+
+        Returns
+        -------
+        Union[Dict[str, List[str]], List[str]]
+            A dictionary of mesh names and their reference line names if mesh_name is None.
+            A list of reference line names for the specified mesh area if mesh_name is not None.
+        """
+        return self._reference_lines_points_names("lines", mesh_name)
+
+    def reference_points_names(
+        self, mesh_name: Optional[str] = None
+    ) -> Union[Dict[str, List[str]], List[str]]:
+        """Return reference point names.
+
+        If a mesh name is provided, return a list of the reference point names for that mesh area.
+        If no mesh name is provided, return a dictionary of mesh names and their reference point names.
+
+        Parameters
+        ----------
+        mesh_name : str, optional
+            The name of the mesh area for which to return reference point names.
+
+        Returns
+        -------
+        Union[Dict[str, List[str]], List[str]]
+            A dictionary of mesh names and their reference point names if mesh_name is None.
+            A list of reference point names for the specified mesh area if mesh_name is not None.
+        """
+        return self._reference_lines_points_names("points", mesh_name)
+
+    def reference_lines(self) -> GeoDataFrame:
+        """Return the reference lines geometry and attributes.
+
+        Returns
+        -------
+        GeoDataFrame
+            A GeoDataFrame containing the reference lines if they exist.
+        """
+        attributes_path = f"{self.REFERENCE_LINES_PATH}/Attributes"
+        if attributes_path not in self:
+            return GeoDataFrame()
+        attributes = self[attributes_path][()]
+        refline_ids = range(attributes.shape[0])
+        v_conv_str = np.vectorize(convert_ras_hdf_string)
+        names = v_conv_str(attributes["Name"])
+        mesh_names = v_conv_str(attributes["SA-2D"])
+        try:
+            types = v_conv_str(attributes["Type"])
+        except ValueError:
+            # "Type" field doesn't exist -- observed in some RAS HDF files
+            types = np.array([""] * attributes.shape[0])
+        geoms = self._get_polylines(self.REFERENCE_LINES_PATH)
+        return GeoDataFrame(
+            {
+                "refln_id": refline_ids,
+                "refln_name": names,
+                "mesh_name": mesh_names,
+                "type": types,
+                "geometry": geoms,
+            },
+            geometry="geometry",
+            crs=self.projection(),
+        )
+
+    def reference_points(self) -> GeoDataFrame:
+        """Return the reference points geometry and attributes.
+
+        Returns
+        -------
+        GeoDataFrame
+            A GeoDataFrame containing the reference points if they exist.
+        """
+        attributes_path = f"{self.REFERENCE_POINTS_PATH}/Attributes"
+        if attributes_path not in self:
+            return GeoDataFrame()
+        ref_points_group = self[self.REFERENCE_POINTS_PATH]
+        attributes = ref_points_group["Attributes"][:]
+        v_conv_str = np.vectorize(convert_ras_hdf_string)
+        names = v_conv_str(attributes["Name"])
+        mesh_names = v_conv_str(attributes["SA/2D"])
+        cell_id = attributes["Cell Index"]
+        points = ref_points_group["Points"][()]
+        return GeoDataFrame(
+            {
+                "refpt_id": range(attributes.shape[0]),
+                "refpt_name": names,
+                "mesh_name": mesh_names,
+                "cell_id": cell_id,
+                "geometry": list(map(Point, points)),
+            },
+            geometry="geometry",
+            crs=self.projection(),
+        )
 
     def pump_stations(self) -> GeoDataFrame:  # noqa D102
         raise NotImplementedError
@@ -473,33 +608,17 @@ class RasGeomHdf(RasHdf):
         GeoDataFrame
             A GeoDataFrame containing the model 1D cross sections if they exist.
         """
-        if "/Geometry/Cross Sections" not in self:
+        if self.CROSS_SECTIONS not in self:
             return GeoDataFrame()
 
-        xs_data = self["/Geometry/Cross Sections"]
+        xs_data = self[self.CROSS_SECTIONS]
         v_conv_val = np.vectorize(convert_ras_hdf_value)
         xs_attrs = xs_data["Attributes"][()]
         xs_dict = {"xs_id": range(xs_attrs.shape[0])}
         xs_dict.update(
             {name: v_conv_val(xs_attrs[name]) for name in xs_attrs.dtype.names}
         )
-        geoms = list()
-        for pnt_start, pnt_cnt, part_start, part_cnt in xs_data["Polyline Info"][()]:
-            points = xs_data["Polyline Points"][()][pnt_start : pnt_start + pnt_cnt]
-            if part_cnt == 1:
-                geoms.append(LineString(points))
-            else:
-                parts = xs_data["Polyline Parts"][()][
-                    part_start : part_start + part_cnt
-                ]
-                geoms.append(
-                    MultiLineString(
-                        list(
-                            points[part_pnt_start : part_pnt_start + part_pnt_cnt]
-                            for part_pnt_start, part_pnt_cnt in parts
-                        )
-                    )
-                )
+        geoms = self._get_polylines(self.CROSS_SECTIONS)
         xs_gdf = GeoDataFrame(
             xs_dict,
             geometry=geoms,
@@ -519,10 +638,10 @@ class RasGeomHdf(RasHdf):
         GeoDataFrame
             A GeoDataFrame containing the model 1D river reach lines if they exist.
         """
-        if "/Geometry/River Centerlines" not in self:
+        if self.RIVER_CENTERLINES not in self:
             return GeoDataFrame()
 
-        river_data = self["/Geometry/River Centerlines"]
+        river_data = self[self.RIVER_CENTERLINES]
         v_conv_val = np.vectorize(convert_ras_hdf_value)
         river_attrs = river_data["Attributes"][()]
         river_dict = {"river_id": range(river_attrs.shape[0])}
@@ -530,22 +649,7 @@ class RasGeomHdf(RasHdf):
             {name: v_conv_val(river_attrs[name]) for name in river_attrs.dtype.names}
         )
         geoms = list()
-        for pnt_start, pnt_cnt, part_start, part_cnt in river_data["Polyline Info"][()]:
-            points = river_data["Polyline Points"][()][pnt_start : pnt_start + pnt_cnt]
-            if part_cnt == 1:
-                geoms.append(LineString(points))
-            else:
-                parts = river_data["Polyline Parts"][()][
-                    part_start : part_start + part_cnt
-                ]
-                geoms.append(
-                    MultiLineString(
-                        list(
-                            points[part_pnt_start : part_pnt_start + part_pnt_cnt]
-                            for part_pnt_start, part_pnt_cnt in parts
-                        )
-                    )
-                )
+        geoms = self._get_polylines(self.RIVER_CENTERLINES)
         river_gdf = GeoDataFrame(
             river_dict,
             geometry=geoms,
