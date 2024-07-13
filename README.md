@@ -72,9 +72,9 @@ CLI help:
 $ rashdf --help
 ```
 
-Print the output formats supported by Fiona:
+Print the output formats supported by pyorgio:
 ```
-$ rashdf --fiona-drivers
+$ rashdf --pyogrio-drivers
 ```
 
 Help for a specific subcommand:

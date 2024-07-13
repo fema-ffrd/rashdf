@@ -144,7 +144,7 @@ def test_mesh_cell_points_with_output(tmp_path):
     )
     temp_points = tmp_path / "temp-bald-eagle-mesh-cell-points.geojson"
     gdf = gdf.to_crs(4326)
-    gdf.to_file(temp_points)
+    gdf.to_file(temp_points, engine="fiona")
     valid = get_sha1_hash(TEST_JSON / "bald-eagle-mesh-cell-points.geojson")
     test = get_sha1_hash(temp_points)
     assert valid == test
@@ -161,7 +161,7 @@ def test_mesh_cell_polygons_with_output(tmp_path):
         ],
     )
     temp_polygons = tmp_path / "temp-bald-eagle-mesh-cell-polygons.geojson"
-    gdf.to_crs(4326).to_file(temp_polygons)
+    gdf.to_crs(4326).to_file(temp_polygons, engine="fiona")
     valid = get_sha1_hash(TEST_JSON / "bald-eagle-mesh-cell-polygons.geojson")
     test = get_sha1_hash(temp_polygons)
     assert valid == test
@@ -177,7 +177,7 @@ def test_mesh_cell_faces_with_output(tmp_path):
         ],
     )
     temp_faces = tmp_path / "temp-bald-eagle-mesh-cell-faces.geojson"
-    gdf.to_crs(4326).to_file(temp_faces)
+    gdf.to_crs(4326).to_file(temp_faces, engine="fiona")
     valid = get_sha1_hash(TEST_JSON / "bald-eagle-mesh-cell-faces.geojson")
     test = get_sha1_hash(temp_faces)
     assert valid == test
@@ -271,7 +271,7 @@ def test_reference_lines(tmp_path: Path):
     plan_hdf = RasPlanHdf(BALD_EAGLE_P18_REF)
     gdf = plan_hdf.reference_lines(datetime_to_str=True)
     temp_lines = tmp_path / "temp-bald-eagle-reference-lines.geojson"
-    gdf.to_crs(4326).to_file(temp_lines)
+    gdf.to_crs(4326).to_file(temp_lines, engine="fiona")
     with open(TEST_JSON / "bald-eagle-reflines.geojson") as f:
         valid_lines = f.read()
         with open(temp_lines) as f:
@@ -310,7 +310,7 @@ def test_reference_points(tmp_path: Path):
     plan_hdf = RasPlanHdf(BALD_EAGLE_P18_REF)
     gdf = plan_hdf.reference_points(datetime_to_str=True)
     temp_lines = tmp_path / "temp-bald-eagle-reference-points.geojson"
-    gdf.to_crs(4326).to_file(temp_lines)
+    gdf.to_crs(4326).to_file(temp_lines, engine="fiona")
     with open(TEST_JSON / "bald-eagle-refpoints.geojson") as f:
         valid_points = f.read()
         with open(temp_lines) as f:

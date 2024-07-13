@@ -1,8 +1,16 @@
-from src.cli import parse_args, export, docstring_to_help, fiona_supported_drivers
+from src.cli import (
+    parse_args,
+    export,
+    docstring_to_help,
+    fiona_supported_drivers,
+    pyogrio_supported_drivers,
+)
 
 import geopandas as gpd
 from pyproj import CRS
+import pytest
 
+import builtins
 import json
 from pathlib import Path
 
@@ -30,6 +38,15 @@ def test_fiona_supported_drivers():
     assert "ESRI Shapefile" in drivers
     assert "GeoJSON" in drivers
     assert "GPKG" in drivers
+    assert "MBTiles" not in drivers
+
+
+def test_pyogrio_supported_drivers():
+    drivers = pyogrio_supported_drivers()
+    assert "ESRI Shapefile" in drivers
+    assert "GeoJSON" in drivers
+    assert "GPKG" in drivers
+    assert "MBTiles" in drivers
 
 
 def test_parse_args():
@@ -114,3 +131,40 @@ def test_export_plan_hdf():
     exported = json.loads(export(args))
     gdf = gpd.GeoDataFrame.from_features(exported)
     assert len(gdf) == 4425
+
+
+def test_fiona_missing(monkeypatch):
+    # Test behavior when fiona isn't installed
+
+    def mock_import(name, globals=None, locals=None, fromlist=(), level=0):
+        if name == "fiona":
+            raise ImportError("No module named 'fiona'")
+        return real_import(name, globals, locals, fromlist, level)
+
+    real_import = builtins.__import__
+
+    # Replace the built-in __import__ function with our mock
+    monkeypatch.setattr(builtins, "__import__", mock_import)
+
+    # Verify that the --fiona-drivers argument is not available
+    # when fiona is not installed
+    args = parse_args(["structures", "fake_file.hdf"])
+    assert not hasattr(args, "fiona_drivers")
+
+
+def test_print_pyogrio_supported_drivers(capfd):
+    export(parse_args(["--pyogrio-drivers"]))
+    captured = capfd.readouterr()
+    assert "ESRI Shapefile" in captured.out
+    assert "GeoJSON" in captured.out
+    assert "GPKG" in captured.out
+    assert "MBTiles" in captured.out
+
+
+def test_print_fiona_supported_drivers(capfd):
+    export(parse_args(["--fiona-drivers"]))
+    captured = capfd.readouterr()
+    assert "ESRI Shapefile" in captured.out
+    assert "GeoJSON" in captured.out
+    assert "GPKG" in captured.out
+    assert "MBTiles" not in captured.out
