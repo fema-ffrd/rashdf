@@ -47,8 +47,8 @@ Also, methods to extract certain HDF group attributes as dictionaries:
 ```python
 >>> from rashdf import RasPlanHdf
 >>> with RasPlanHdf("path/to/rasmodel/Muncie.p04.hdf") as plan_hdf:
->>> results_unsteady_summary = plan_hdf.get_results_unsteady_summary()
->>> results_unsteady_summary
+>>> results_unsteady_summary_attrs = plan_hdf.get_results_unsteady_summary_attrs()
+>>> results_unsteady_summary_attrs
 {'Computation Time DSS': datetime.timedelta(0),
 'Computation Time Total': datetime.timedelta(seconds=23),
 'Maximum WSEL Error': 0.0099277812987566,
