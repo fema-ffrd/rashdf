@@ -593,3 +593,27 @@ def test_mesh_faces_summary_output(tmp_path):
             TEST_CSV / "BaldEagleDamBrk.summary-faces.csv",
             shallow=False,
         )
+
+
+def test__mesh_summary_outputs_df(tmp_path):
+    with RasPlanHdf(BALD_EAGLE_P18) as phdf:
+        with pytest.raises(ValueError):
+            phdf._mesh_summary_outputs_df("neither")
+
+        with pytest.raises(ValueError):
+            phdf._mesh_summary_outputs_df(cells_or_faces="cells", output_vars="wrong")
+
+        df = phdf._mesh_summary_outputs_df(
+            cells_or_faces="cells",
+            output_vars=[
+                SummaryOutputVar.MAXIMUM_WATER_SURFACE,
+                SummaryOutputVar.MINIMUM_WATER_SURFACE,
+            ],
+        )
+        test_csv = tmp_path / "BaldEagleDamBrk.summary-cells-selectvars.test.csv"
+        df.to_csv(test_csv)
+        filecmp.cmp(
+            test_csv,
+            TEST_CSV / "BaldEagleDamBrk.summary-cells-selectvars.csv",
+            shallow=False,
+        )
