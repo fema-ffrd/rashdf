@@ -19,7 +19,7 @@ something like this::
 
     >>> from rashdf import RasPlanHdf
     >>> plan_hdf = RasPlanHdf.open_uri("s3://bucket/simulations/1/BigRiver.p01.hdf")
-    >>> plan_hdf.mesh_timeseries_output_cells("BigRiverMesh1")
+    >>> plan_hdf.mesh_cells_timeseries_output("BigRiverMesh1")
     <xarray.Dataset> Size: 66MB
     Dimensions:                              (time: 577, cell_id: 14188)
     Coordinates:
@@ -48,7 +48,7 @@ libraries :code:`kerchunk`, :code:`zarr`, :code:`fsspec`, and :code:`s3fs`::
     for sim in sims:
         s3_url = s3_url_pattern.format(sim=sim)
         plan_hdf = RasPlanHdf.open_uri(s3_url)
-        zmeta = plan_hdf.zmeta_mesh_timeseries_output_cells("BigRiverMesh1")
+        zmeta = plan_hdf.zmeta_mesh_cells_timeseries_output("BigRiverMesh1")
         json_file = f"BigRiver.{sim}.p01.hdf.json"
         with open(json_file, "w") as f:
             json.dump(zmeta, f)

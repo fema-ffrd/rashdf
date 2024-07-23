@@ -13,6 +13,8 @@ RasPlanHdf
              mesh_max_ws_err,
              mesh_max_iter,
              mesh_last_iter,
+             mesh_cells_timeseries_output,
+             mesh_faces_timeseries_output,
              reference_lines,
              reference_lines_names,
              reference_points,
@@ -32,7 +34,7 @@ RasPlanHdf
              cross_sections_wsel,
              steady_flow_names,
              steady_profile_xs_output,
-             zmeta_mesh_timeseries_output_cells,
-             zmeta_mesh_timeseries_output_faces,
+             zmeta_mesh_cells_timeseries_output,
+             zmeta_mesh_faces_timeseries_output,
              zmeta_reference_lines_timeseries_output,
              zmeta_reference_points_timeseries_output

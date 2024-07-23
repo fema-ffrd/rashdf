@@ -196,9 +196,9 @@ def test_mesh_timeseries_output():
             plan_hdf.mesh_timeseries_output("BaldEagleCr", "Fake Variable")
 
 
-def test_mesh_timeseries_output_cells():
+def test_mesh_cells_timeseries_output():
     with RasPlanHdf(BALD_EAGLE_P18_TIMESERIES) as plan_hdf:
-        ds = plan_hdf.mesh_timeseries_output_cells("BaldEagleCr")
+        ds = plan_hdf.mesh_cells_timeseries_output("BaldEagleCr")
         assert "time" in ds.coords
         assert "cell_id" in ds.coords
         assert "Water Surface" in ds.variables
@@ -215,7 +215,7 @@ def test_mesh_timeseries_output_cells():
         )
         assert_frame_equal(df, valid_df)
 
-        ds = plan_hdf.mesh_timeseries_output_cells("Upper 2D Area")
+        ds = plan_hdf.mesh_cells_timeseries_output("Upper 2D Area")
         assert "time" in ds.coords
         assert "cell_id" in ds.coords
         assert "Water Surface" in ds.variables
@@ -233,9 +233,15 @@ def test_mesh_timeseries_output_cells():
         assert_frame_equal(df, valid_df)
 
 
-def test_mesh_timeseries_output_faces():
+def test_mesh_timeseries_output_cells():
+    with pytest.warns(DeprecationWarning):
+        with RasPlanHdf(BALD_EAGLE_P18_TIMESERIES) as plan_hdf:
+            plan_hdf.mesh_timeseries_output_cells("BaldEagleCr")
+
+
+def test_mesh_faces_timeseries_output():
     with RasPlanHdf(BALD_EAGLE_P18_TIMESERIES) as plan_hdf:
-        ds = plan_hdf.mesh_timeseries_output_faces("BaldEagleCr")
+        ds = plan_hdf.mesh_faces_timeseries_output("BaldEagleCr")
         assert "time" in ds.coords
         assert "face_id" in ds.coords
         assert "Face Velocity" in ds.variables
@@ -252,7 +258,7 @@ def test_mesh_timeseries_output_faces():
         )
         assert_frame_equal(df, valid_df)
 
-        ds = plan_hdf.mesh_timeseries_output_faces("Upper 2D Area")
+        ds = plan_hdf.mesh_faces_timeseries_output("Upper 2D Area")
         assert "time" in ds.coords
         assert "face_id" in ds.coords
         assert "Face Velocity" in ds.variables
@@ -268,6 +274,12 @@ def test_mesh_timeseries_output_faces():
             dtype={"Face Velocity": np.float32},
         )
         assert_frame_equal(df, valid_df)
+
+
+def test_mesh_timeseries_output_faces():
+    with pytest.warns(DeprecationWarning):
+        with RasPlanHdf(BALD_EAGLE_P18_TIMESERIES) as plan_hdf:
+            plan_hdf.mesh_timeseries_output_faces("BaldEagleCr")
 
 
 def test_reference_lines(tmp_path: Path):
@@ -442,10 +454,10 @@ def _compare_json(json_file1, json_file2) -> bool:
             return json.load(j1) == json.load(j2)
 
 
-def test_zmeta_mesh_timeseries_output_cells(tmp_path):
+def test_zmeta_mesh_cells_timeseries_output(tmp_path):
     with RasPlanHdf(BALD_EAGLE_P18_TIMESERIES) as phdf:
         # Generate Zarr metadata
-        zmeta = phdf.zmeta_mesh_timeseries_output_cells("BaldEagleCr")
+        zmeta = phdf.zmeta_mesh_cells_timeseries_output("BaldEagleCr")
 
     # Write the Zarr metadata to JSON
     zmeta_test_path = tmp_path / "bald-eagle-mesh-cells-zmeta.test.json"
@@ -471,10 +483,10 @@ def test_zmeta_mesh_timeseries_output_cells(tmp_path):
     assert ds.attrs["mesh_name"] == "BaldEagleCr"
 
 
-def test_zmeta_mesh_timeseries_output_faces(tmp_path):
+def test_zmeta_mesh_faces_timeseries_output(tmp_path):
     with RasPlanHdf(BALD_EAGLE_P18_TIMESERIES) as phdf:
         # Generate Zarr metadata
-        zmeta = phdf.zmeta_mesh_timeseries_output_faces("BaldEagleCr")
+        zmeta = phdf.zmeta_mesh_faces_timeseries_output("BaldEagleCr")
 
     # Write the Zarr metadata to JSON
     zmeta_test_path = tmp_path / "bald-eagle-mesh-faces-zmeta.test.json"

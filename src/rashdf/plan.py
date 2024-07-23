@@ -5,6 +5,7 @@ from .utils import (
     df_datetimes_to_str,
     ras_timesteps_to_datetimes,
     parse_ras_datetime_ms,
+    deprecated,
 )
 
 from geopandas import GeoDataFrame
@@ -902,7 +903,7 @@ class RasPlanHdf(RasGeomHdf):
         ds = xr.Dataset(datasets, attrs={"mesh_name": mesh_name})
         return ds
 
-    def mesh_timeseries_output_cells(self, mesh_name: str) -> xr.Dataset:
+    def mesh_cells_timeseries_output(self, mesh_name: str) -> xr.Dataset:
         """Return the time series output data for cells in a 2D flow area mesh.
 
         Parameters
@@ -918,7 +919,25 @@ class RasPlanHdf(RasGeomHdf):
         ds = self._mesh_timeseries_outputs(mesh_name, TIME_SERIES_OUTPUT_VARS_CELLS)
         return ds
 
-    def mesh_timeseries_output_faces(self, mesh_name: str) -> xr.Dataset:
+    @deprecated
+    def mesh_timeseries_output_cells(self, mesh_name: str) -> xr.Dataset:
+        """Return the time series output data for cells in a 2D flow area mesh.
+
+        Deprecated: use mesh_cells_timeseries_output instead.
+
+        Parameters
+        ----------
+        mesh_name : str
+            The name of the 2D flow area mesh.
+
+        Returns
+        -------
+        xr.Dataset
+            An xarray Dataset with DataArrays for each time series output variable.
+        """
+        return self.mesh_cells_timeseries_output(mesh_name)
+
+    def mesh_faces_timeseries_output(self, mesh_name: str) -> xr.Dataset:
         """Return the time series output data for faces in a 2D flow area mesh.
 
         Parameters
@@ -933,6 +952,24 @@ class RasPlanHdf(RasGeomHdf):
         """
         ds = self._mesh_timeseries_outputs(mesh_name, TIME_SERIES_OUTPUT_VARS_FACES)
         return ds
+
+    @deprecated
+    def mesh_timeseries_output_faces(self, mesh_name: str) -> xr.Dataset:
+        """Return the time series output data for faces in a 2D flow area mesh.
+
+        Deprecated: use mesh_faces_timeseries_output instead.
+
+        Parameters
+        ----------
+        mesh_name : str
+            The name of the 2D flow area mesh.
+
+        Returns
+        -------
+        xr.Dataset
+            An xarray Dataset with DataArrays for each time series output variable.
+        """
+        return self.mesh_faces_timeseries_output(mesh_name)
 
     def reference_timeseries_output(self, reftype: str = "lines") -> xr.Dataset:
         """Return timeseries output data for reference lines or points from a HEC-RAS HDF plan file.
@@ -1329,39 +1366,6 @@ class RasPlanHdf(RasGeomHdf):
         """
         return self.steady_profile_xs_output(XsSteadyOutputVar.VELOCITY_TOTAL)
 
-    # def _zmeta_mesh_timeseries_output(
-    #     self, mesh_name, vars: List[TimeSeriesOutputVar]
-    # ) -> Dict:
-    #     from kerchunk.hdf import SingleHdf5ToZarr
-    #     import zarr
-    #     import base64
-
-    #     encoding = {}
-    #     chunk_meta = {}
-    #     for var in vars:
-    #         hdf_ds_path = self._mesh_timeseries_output_path(mesh_name, var.value)
-    #         hdf_ds = self.get(hdf_ds_path)
-    #         if hdf_ds is None:
-    #             continue
-    #         filters = SingleHdf5ToZarr._decode_filters(None, hdf_ds)
-    #         encoding[var.value] = {"compressor": None, "filters": filters}
-    #         storage_info = SingleHdf5ToZarr._storage_info(None, hdf_ds)
-    #         for key, value in storage_info.items():
-    #             chunk_key = f"{var.value}/{key[0]}.{key[1]}"
-    #             chunk_meta[chunk_key] = [self._loc, value["offset"], value["size"]]
-    #     zarr_tmp = zarr.MemoryStore()
-    #     ds = self._mesh_timeseries_outputs(mesh_name, vars, truncate=False)
-    #     ds.to_zarr(zarr_tmp, mode="w", compute=False, encoding=encoding)
-    #     zarr_meta = {"version": 1, "refs": {}}
-    #     for key, value in zarr_tmp.items():
-    #         try:
-    #             value_str = value.decode("utf-8")
-    #         except UnicodeDecodeError:
-    #             value_str = "base64:" + base64.b64encode(value).decode("utf-8")
-    #         zarr_meta["refs"][key] = value_str
-    #     zarr_meta["refs"].update(chunk_meta)
-    #     return zarr_meta
-
     def _zmeta(self, ds: xr.Dataset) -> Dict:
         from kerchunk.hdf import SingleHdf5ToZarr
         import zarr
@@ -1392,7 +1396,7 @@ class RasPlanHdf(RasGeomHdf):
         zarr_meta["refs"].update(chunk_meta)
         return zarr_meta
 
-    def zmeta_mesh_timeseries_output_cells(self, mesh_name: str) -> Dict:
+    def zmeta_mesh_cells_timeseries_output(self, mesh_name: str) -> Dict:
         """Return kerchunk-style zarr reference metadata.
 
         Requires the 'zarr' and 'kerchunk' packages.
@@ -1407,7 +1411,7 @@ class RasPlanHdf(RasGeomHdf):
         )
         return self._zmeta(ds)
 
-    def zmeta_mesh_timeseries_output_faces(self, mesh_name: str) -> Dict:
+    def zmeta_mesh_faces_timeseries_output(self, mesh_name: str) -> Dict:
         """Return kerchunk-style zarr reference metadata.
 
         Requires the 'zarr' and 'kerchunk' packages.
