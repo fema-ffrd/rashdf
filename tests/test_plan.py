@@ -569,3 +569,27 @@ def test_zmeta_reference_points_timeseries_output(tmp_path):
     assert len(ds.coords["time"]) == 37
     assert len(ds.coords["refpt_id"]) == 3
     assert ds.attrs == {}
+
+
+def test_mesh_cells_summary_output(tmp_path):
+    with RasPlanHdf(BALD_EAGLE_P18) as phdf:
+        df = phdf.mesh_cells_summary_output()
+        test_csv = tmp_path / "BaldEagleDamBrk.summary-cells.test.csv"
+        df.to_csv(test_csv)
+        filecmp.cmp(
+            test_csv,
+            TEST_CSV / "BaldEagleDamBrk.summary-cells.csv",
+            shallow=False,
+        )
+
+
+def test_mesh_faces_summary_output(tmp_path):
+    with RasPlanHdf(BALD_EAGLE_P18) as phdf:
+        df = phdf.mesh_faces_summary_output()
+        test_csv = tmp_path / "BaldEagleDamBrk.summary-faces.test.csv"
+        df.to_csv(test_csv)
+        filecmp.cmp(
+            test_csv,
+            TEST_CSV / "BaldEagleDamBrk.summary-faces.csv",
+            shallow=False,
+        )

@@ -586,7 +586,8 @@ class RasPlanHdf(RasGeomHdf):
         Returns
         -------
         DataFrame
-            A DataFrame with columns 'mesh_name', 'cell_id' or 'face_id', a value column, and a time column.
+            A DataFrame with columns 'mesh_name', 'cell_id' or 'face_id', a value column,
+            and a time column if the value corresponds to a specific time.
         """
         methods_with_times = {
             SummaryOutputVar.MAXIMUM_WATER_SURFACE: self.mesh_max_ws,
@@ -604,6 +605,76 @@ class RasPlanHdf(RasGeomHdf):
         else:
             df = other_methods[var]()
         return df
+
+    def _mesh_summary_outputs_df(
+        self,
+        cells_or_faces: str,
+        output_vars: Optional[List[SummaryOutputVar]] = None,
+        round_to: str = "0.1 s",
+    ) -> DataFrame:
+        if cells_or_faces == "cells":
+            feature_id_field = "cell_id"
+        elif cells_or_faces == "faces":
+            feature_id_field = "face_id"
+        else:
+            raise ValueError('cells_or_faces must be either "cells" or "faces".')
+        if output_vars is None:
+            summary_output_vars = self._summary_output_vars(
+                cells_or_faces=cells_or_faces
+            )
+        elif isinstance(output_vars, list):
+            summary_output_vars = []
+            for var in output_vars:
+                if not isinstance(var, SummaryOutputVar):
+                    var = SummaryOutputVar(var)
+                summary_output_vars.append(var)
+        else:
+            raise ValueError(
+                "include_output must be a boolean or a list of SummaryOutputVar values."
+            )
+        df = self.mesh_summary_output(summary_output_vars[0], round_to=round_to)
+        for var in summary_output_vars[1:]:
+            df_var = self.mesh_summary_output(var, round_to=round_to)
+            df = df.merge(df_var, on=["mesh_name", feature_id_field], how="left")
+        return df
+
+    def mesh_cells_summary_output(self, round_to: str = "0.1 s") -> DataFrame:
+        """
+        Return a DataFrame with summary output data for each mesh cell in the model.
+
+        Parameters
+        ----------
+        round_to : str, optional
+            The time unit to round the datetimes to. Default: "0.1 s" (seconds).
+            See Pandas documentation for valid time units:
+            https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html
+
+        Returns
+        -------
+        DataFrame
+            A DataFrame with columns 'mesh_name', 'cell_id', and columns for each
+            summary output variable.
+        """
+        return self._mesh_summary_outputs_df("cells", round_to=round_to)
+
+    def mesh_faces_summary_output(self, round_to: str = "0.1 s") -> DataFrame:
+        """
+        Return a DataFrame with summary output data for each mesh face in the model.
+
+        Parameters
+        ----------
+        round_to : str, optional
+            The time unit to round the datetimes to. Default: "0.1 s" (seconds).
+            See Pandas documentation for valid time units:
+            https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html
+
+        Returns
+        -------
+        DataFrame
+            A DataFrame with columns 'mesh_name', 'face_id', and columns for each
+            summary output variable.
+        """
+        return self._mesh_summary_outputs_df("faces", round_to=round_to)
 
     def _summary_output_vars(
         self, cells_or_faces: Optional[str] = None

@@ -13,6 +13,8 @@ RasPlanHdf
              mesh_max_ws_err,
              mesh_max_iter,
              mesh_last_iter,
+             mesh_cells_summary_output,
+             mesh_faces_summary_output,
              mesh_cells_timeseries_output,
              mesh_faces_timeseries_output,
              reference_lines,
