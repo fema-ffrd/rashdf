@@ -884,7 +884,6 @@ class RasPlanHdf(RasGeomHdf):
         mesh_name: str,
         var: TimeSeriesOutputVar,
     ) -> Tuple[np.ndarray, str]:
-        # path = f"{self.UNSTEADY_TIME_SERIES_PATH}/2D Flow Areas/{mesh_name}/{var.value}"
         path = self._mesh_timeseries_output_path(mesh_name, var.value)
         group = self.get(path)
         try:
