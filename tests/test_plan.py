@@ -5,12 +5,15 @@ from src.rashdf.plan import (
     TimeSeriesOutputVar,
 )
 
+import filecmp
+import json
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 from pandas.testing import assert_frame_equal
 import pytest
+import xarray as xr
 
 from . import (
     _create_hdf_with_group_attrs,
@@ -291,10 +294,10 @@ def test_reference_lines_timeseries(tmp_path: Path):
 
     ws = ds["Water Surface"]
     assert ws.shape == (37, 4)
-    assert ws.attrs["Units"] == "ft"
+    assert ws.attrs["units"] == "ft"
     q = ds["Flow"]
     assert q.shape == (37, 4)
-    assert q.attrs["Units"] == "cfs"
+    assert q.attrs["units"] == "cfs"
 
     df = ds.sel(refln_id=2).to_dataframe()
     valid_df = pd.read_csv(
@@ -330,9 +333,9 @@ def test_reference_points_timeseries():
 
     ws = ds["Water Surface"]
     assert ws.shape == (37, 3)
-    assert ws.attrs["Units"] == "ft"
+    assert ws.attrs["units"] == "ft"
     v = ds["Velocity"]
-    assert v.attrs["Units"] == "ft/s"
+    assert v.attrs["units"] == "ft/s"
     assert v.shape == (37, 3)
 
     df = ds.sel(refpt_id=1).to_dataframe()
@@ -431,3 +434,126 @@ def test_cross_sections_energy_grade():
         assert _gdf_matches_json_alt(
             phdf.cross_sections_energy_grade(), xs_energy_grade_json
         )
+
+
+def _compare_json(json_file1, json_file2) -> bool:
+    with open(json_file1) as j1:
+        with open(json_file2) as j2:
+            return json.load(j1) == json.load(j2)
+
+
+def test_zmeta_mesh_timeseries_output_cells(tmp_path):
+    with RasPlanHdf(BALD_EAGLE_P18_TIMESERIES) as phdf:
+        # Generate Zarr metadata
+        zmeta = phdf.zmeta_mesh_timeseries_output_cells("BaldEagleCr")
+
+    # Write the Zarr metadata to JSON
+    zmeta_test_path = tmp_path / "bald-eagle-mesh-cells-zmeta.test.json"
+    with open(zmeta_test_path, "w") as f:
+        json.dump(zmeta, f, indent=4)
+
+    # Compare to a validated JSON file
+    zmeta_valid_path = TEST_JSON / "bald-eagle-mesh-cells-zmeta.json"
+    assert _compare_json(zmeta_test_path, zmeta_valid_path)
+
+    # Verify that the Zarr metadata can be used to open a dataset
+    ds = xr.open_dataset(
+        "reference://",
+        engine="zarr",
+        backend_kwargs={
+            "consolidated": False,
+            "storage_options": {"fo": str(zmeta_test_path)},
+        },
+    )
+    assert ds["Water Surface"].shape == (37, 3947)
+    assert len(ds.coords["time"]) == 37
+    assert len(ds.coords["cell_id"]) == 3947
+    assert ds.attrs["mesh_name"] == "BaldEagleCr"
+
+
+def test_zmeta_mesh_timeseries_output_faces(tmp_path):
+    with RasPlanHdf(BALD_EAGLE_P18_TIMESERIES) as phdf:
+        # Generate Zarr metadata
+        zmeta = phdf.zmeta_mesh_timeseries_output_faces("BaldEagleCr")
+
+    # Write the Zarr metadata to JSON
+    zmeta_test_path = tmp_path / "bald-eagle-mesh-faces-zmeta.test.json"
+    with open(zmeta_test_path, "w") as f:
+        json.dump(zmeta, f, indent=4)
+
+    # Compare to a validated JSON file
+    zmeta_valid_path = TEST_JSON / "bald-eagle-mesh-faces-zmeta.json"
+    assert _compare_json(zmeta_test_path, zmeta_valid_path)
+
+    # Verify that the Zarr metadata can be used to open a dataset
+    ds = xr.open_dataset(
+        "reference://",
+        engine="zarr",
+        backend_kwargs={
+            "consolidated": False,
+            "storage_options": {"fo": str(zmeta_test_path)},
+        },
+    )
+    assert ds["Face Velocity"].shape == (37, 7295)
+    assert len(ds.coords["time"]) == 37
+    assert len(ds.coords["face_id"]) == 7295
+    assert ds.attrs["mesh_name"] == "BaldEagleCr"
+
+
+def test_zmeta_reference_lines_timeseries_output(tmp_path):
+    with RasPlanHdf(BALD_EAGLE_P18_REF) as phdf:
+        # Generate Zarr metadata
+        zmeta = phdf.zmeta_reference_lines_timeseries_output()
+
+    # Write the Zarr metadata to JSON
+    zmeta_test_path = tmp_path / "bald-eagle-reflines-zmeta.test.json"
+    with open(zmeta_test_path, "w") as f:
+        json.dump(zmeta, f, indent=4)
+
+    # Compare to a validated JSON file
+    zmeta_valid_path = TEST_JSON / "bald-eagle-reflines-zmeta.json"
+    assert _compare_json(zmeta_test_path, zmeta_valid_path)
+
+    # Verify that the Zarr metadata can be used to open a dataset
+    ds = xr.open_dataset(
+        "reference://",
+        engine="zarr",
+        backend_kwargs={
+            "consolidated": False,
+            "storage_options": {"fo": str(zmeta_test_path)},
+        },
+    )
+    assert ds["Flow"].shape == (37, 4)
+    assert len(ds.coords["time"]) == 37
+    assert len(ds.coords["refln_id"]) == 4
+    assert ds.attrs == {}
+
+
+def test_zmeta_reference_points_timeseries_output(tmp_path):
+    with RasPlanHdf(BALD_EAGLE_P18_REF) as phdf:
+        # Generate Zarr metadata
+        zmeta = phdf.zmeta_reference_points_timeseries_output()
+
+    # Write the Zarr metadata to JSON
+    zmeta_test_path = tmp_path / "bald-eagle-refpoints-zmeta.test.json"
+    with open(zmeta_test_path, "w") as f:
+        json.dump(zmeta, f, indent=4)
+
+    # Compare to a validated JSON file
+    zmeta_valid_path = TEST_JSON / "bald-eagle-refpoints-zmeta.json"
+    assert _compare_json(zmeta_test_path, zmeta_valid_path)
+
+    # Verify that the Zarr metadata can be used to open a dataset
+    ds = xr.open_dataset(
+        "reference://",
+        engine="zarr",
+        backend_kwargs={
+            "consolidated": False,
+            "storage_options": {"fo": str(zmeta_test_path)},
+        },
+    )
+    assert ds["Water Surface"].shape == (37, 3)
+    assert ds["Velocity"].shape == (37, 3)
+    assert len(ds.coords["time"]) == 37
+    assert len(ds.coords["refpt_id"]) == 3
+    assert ds.attrs == {}

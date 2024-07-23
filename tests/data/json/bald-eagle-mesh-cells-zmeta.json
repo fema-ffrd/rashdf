@@ -1,0 +1,36 @@
+{
+    "version": 1,
+    "refs": {
+        ".zgroup": "{\n    \"zarr_format\": 2\n}",
+        ".zattrs": "{\n    \"mesh_name\": \"BaldEagleCr\"\n}",
+        "cell_id/.zarray": "{\n    \"chunks\": [\n        3947\n    ],\n    \"compressor\": {\n        \"blocksize\": 0,\n        \"clevel\": 5,\n        \"cname\": \"lz4\",\n        \"id\": \"blosc\",\n        \"shuffle\": 1\n    },\n    \"dtype\": \"<i8\",\n    \"fill_value\": null,\n    \"filters\": null,\n    \"order\": \"C\",\n    \"shape\": [\n        3947\n    ],\n    \"zarr_format\": 2\n}",
+        "cell_id/.zattrs": "{\n    \"_ARRAY_DIMENSIONS\": [\n        \"cell_id\"\n    ]\n}",
+        "cell_id/0": "base64:AgEhCFh7AABYewAAPwIAABQAAAAZAQAA//EAAQIDBAUGBwgJCgsMDQ4PEBESExQVFhcYGRobHB0eHyAhIiMkJSYnKCkqKywtLi8wMTIzNDU2Nzg5Ojs8PT4/QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl9gYWJjZGVmZ2hpamtsbW5vcHFyc3R1dnd4eXp7fH1+f4CBgoOEhYaHiImKi4yNjo+QkZKTlJWWl5iZmpucnZ6foKGio6SlpqeoqaqrrK2ur7CxsrO0tba3uLm6u7y9vr/AwcLDxMXGx8jJysvMzc7P0NHS09TV1tfY2drb3N3e3+Dh4uPk5ebn6Onq6+zt7u/w8fLz9PX29/j5+vv8/f7/AAH//////////////////2FQZmdoaWpWAAAAHwABAOwfAQEA7B8CAQDsHwMBAOwfBAEA7B8FAQDsHwYBAOwfBwEA7B8IAQDsHwkBAOwfCgEA7B8LAQDsHwwBAOwfDQEA7B8OAQDsHw8BAFJQDw8PDw8aAAAAHwABAP///////////////////2FQAAAAAAAaAAAAHwABAP///////////////////2FQAAAAAAAaAAAAHwABAP///////////////////2FQAAAAAAAaAAAAHwABAP///////////////////2FQAAAAAAAaAAAAHwABAP///////////////////2FQAAAAAAAaAAAAHwABAP///////////////////2FQAAAAAAA=",
+        "Water Surface/.zarray": "{\n    \"chunks\": [\n        12,\n        3947\n    ],\n    \"compressor\": null,\n    \"dtype\": \"<f4\",\n    \"fill_value\": \"NaN\",\n    \"filters\": [\n        {\n            \"id\": \"zlib\",\n            \"level\": 1\n        }\n    ],\n    \"order\": \"C\",\n    \"shape\": [\n        37,\n        3947\n    ],\n    \"zarr_format\": 2\n}",
+        "Water Surface/.zattrs": "{\n    \"_ARRAY_DIMENSIONS\": [\n        \"time\",\n        \"cell_id\"\n    ],\n    \"hdf_path\": \"Results/Unsteady/Output/Output Blocks/Base Output/Unsteady Time Series/2D Flow Areas/BaldEagleCr/Water Surface\",\n    \"mesh_name\": \"BaldEagleCr\",\n    \"units\": \"ft\",\n    \"variable\": \"Water Surface\"\n}",
+        "time/.zarray": "{\n    \"chunks\": [\n        37\n    ],\n    \"compressor\": {\n        \"blocksize\": 0,\n        \"clevel\": 5,\n        \"cname\": \"lz4\",\n        \"id\": \"blosc\",\n        \"shuffle\": 1\n    },\n    \"dtype\": \"<i8\",\n    \"fill_value\": null,\n    \"filters\": null,\n    \"order\": \"C\",\n    \"shape\": [\n        37\n    ],\n    \"zarr_format\": 2\n}",
+        "time/.zattrs": "{\n    \"_ARRAY_DIMENSIONS\": [\n        \"time\"\n    ],\n    \"calendar\": \"proleptic_gregorian\",\n    \"units\": \"hours since 1999-01-01 12:00:00\"\n}",
+        "time/0": "base64:AgExCCgBAAAoAQAATQAAABQAAAA1AAAA/xsAAgQGCAoMDhASFBYYGhweICIkJigqLC4wMjQ2ODo8PkBCREZIAAAAAAAFAOZQAAAAAAA=",
+        ".zmetadata": "{\n    \"metadata\": {\n        \".zattrs\": {\n            \"mesh_name\": \"BaldEagleCr\"\n        },\n        \".zgroup\": {\n            \"zarr_format\": 2\n        },\n        \"Water Surface/.zarray\": {\n            \"chunks\": [\n                12,\n                3947\n            ],\n            \"compressor\": null,\n            \"dtype\": \"<f4\",\n            \"fill_value\": \"NaN\",\n            \"filters\": [\n                {\n                    \"id\": \"zlib\",\n                    \"level\": 1\n                }\n            ],\n            \"order\": \"C\",\n            \"shape\": [\n                37,\n                3947\n            ],\n            \"zarr_format\": 2\n        },\n        \"Water Surface/.zattrs\": {\n            \"_ARRAY_DIMENSIONS\": [\n                \"time\",\n                \"cell_id\"\n            ],\n            \"hdf_path\": \"Results/Unsteady/Output/Output Blocks/Base Output/Unsteady Time Series/2D Flow Areas/BaldEagleCr/Water Surface\",\n            \"mesh_name\": \"BaldEagleCr\",\n            \"units\": \"ft\",\n            \"variable\": \"Water Surface\"\n        },\n        \"cell_id/.zarray\": {\n            \"chunks\": [\n                3947\n            ],\n            \"compressor\": {\n                \"blocksize\": 0,\n                \"clevel\": 5,\n                \"cname\": \"lz4\",\n                \"id\": \"blosc\",\n                \"shuffle\": 1\n            },\n            \"dtype\": \"<i8\",\n            \"fill_value\": null,\n            \"filters\": null,\n            \"order\": \"C\",\n            \"shape\": [\n                3947\n            ],\n            \"zarr_format\": 2\n        },\n        \"cell_id/.zattrs\": {\n            \"_ARRAY_DIMENSIONS\": [\n                \"cell_id\"\n            ]\n        },\n        \"time/.zarray\": {\n            \"chunks\": [\n                37\n            ],\n            \"compressor\": {\n                \"blocksize\": 0,\n                \"clevel\": 5,\n                \"cname\": \"lz4\",\n                \"id\": \"blosc\",\n                \"shuffle\": 1\n            },\n            \"dtype\": \"<i8\",\n            \"fill_value\": null,\n            \"filters\": null,\n            \"order\": \"C\",\n            \"shape\": [\n                37\n            ],\n            \"zarr_format\": 2\n        },\n        \"time/.zattrs\": {\n            \"_ARRAY_DIMENSIONS\": [\n                \"time\"\n            ],\n            \"calendar\": \"proleptic_gregorian\",\n            \"units\": \"hours since 1999-01-01 12:00:00\"\n        }\n    },\n    \"zarr_consolidated_format\": 1\n}",
+        "Water Surface/0.0": [
+            "tests/data/ras/BaldEagleDamBrk.p18.timeseries.hdf",
+            19872,
+            41160
+        ],
+        "Water Surface/1.0": [
+            "tests/data/ras/BaldEagleDamBrk.p18.timeseries.hdf",
+            61032,
+            66241
+        ],
+        "Water Surface/2.0": [
+            "tests/data/ras/BaldEagleDamBrk.p18.timeseries.hdf",
+            127273,
+            79058
+        ],
+        "Water Surface/3.0": [
+            "tests/data/ras/BaldEagleDamBrk.p18.timeseries.hdf",
+            206331,
+            13437
+        ]
+    }
+}

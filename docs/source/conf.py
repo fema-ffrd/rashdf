@@ -30,6 +30,8 @@ numpydoc_show_class_members = False
 templates_path = ["_templates"]
 exclude_patterns = []
 
+master_doc = "index"
+
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output

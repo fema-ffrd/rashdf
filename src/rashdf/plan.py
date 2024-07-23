@@ -812,7 +812,8 @@ class RasPlanHdf(RasGeomHdf):
         mesh_name: str,
         var: TimeSeriesOutputVar,
     ) -> Tuple[np.ndarray, str]:
-        path = f"{self.UNSTEADY_TIME_SERIES_PATH}/2D Flow Areas/{mesh_name}/{var.value}"
+        # path = f"{self.UNSTEADY_TIME_SERIES_PATH}/2D Flow Areas/{mesh_name}/{var.value}"
+        path = self._mesh_timeseries_output_path(mesh_name, var.value)
         group = self.get(path)
         try:
             import dask.array as da
@@ -830,6 +831,7 @@ class RasPlanHdf(RasGeomHdf):
         self,
         mesh_name: str,
         var: Union[str, TimeSeriesOutputVar],
+        truncate: bool = True,
     ) -> xr.DataArray:
         """Return the time series output data for a given variable.
 
@@ -839,6 +841,8 @@ class RasPlanHdf(RasGeomHdf):
             The name of the 2D flow area mesh.
         var : TimeSeriesOutputVar
             The time series output variable to retrieve.
+        truncate : bool, optional
+            If True, truncate the number of cells to the listed cell count.
 
         Returns
         -------
@@ -856,7 +860,10 @@ class RasPlanHdf(RasGeomHdf):
         values, units = self._mesh_timeseries_output_values_units(mesh_name, var)
         if var in TIME_SERIES_OUTPUT_VARS_CELLS:
             cell_count = mesh_names_counts[mesh_name]
-            values = values[:, :cell_count]
+            if truncate:
+                values = values[:, :cell_count]
+            else:
+                values = values[:, :]
             id_coord = "cell_id"
         elif var in TIME_SERIES_OUTPUT_VARS_FACES:
             id_coord = "face_id"
@@ -874,19 +881,23 @@ class RasPlanHdf(RasGeomHdf):
                 "mesh_name": mesh_name,
                 "variable": var.value,
                 "units": units,
+                "hdf_path": self._mesh_timeseries_output_path(mesh_name, var.value),
             },
         )
         return da
 
+    def _mesh_timeseries_output_path(self, mesh_name: str, var_name: str) -> str:
+        return f"{self.UNSTEADY_TIME_SERIES_PATH}/2D Flow Areas/{mesh_name}/{var_name}"
+
     def _mesh_timeseries_outputs(
-        self, mesh_name: str, vars: List[TimeSeriesOutputVar]
+        self, mesh_name: str, vars: List[TimeSeriesOutputVar], truncate: bool = True
     ) -> xr.Dataset:
         datasets = {}
         for var in vars:
             var_path = f"{self.UNSTEADY_TIME_SERIES_PATH}/2D Flow Areas/{mesh_name}/{var.value}"
             if self.get(var_path) is None:
                 continue
-            da = self.mesh_timeseries_output(mesh_name, var)
+            da = self.mesh_timeseries_output(mesh_name, var, truncate=truncate)
             datasets[var.value] = da
         ds = xr.Dataset(datasets, attrs={"mesh_name": mesh_name})
         return ds
@@ -984,7 +995,7 @@ class RasPlanHdf(RasGeomHdf):
                     f"{abbrev}_name": (f"{abbrev}_id", names),
                     "mesh_name": (f"{abbrev}_id", mesh_areas),
                 },
-                attrs={"Units": units},
+                attrs={"units": units, "hdf_path": f"{output_path}/{var}"},
             )
             das[var] = da
         return xr.Dataset(das)
@@ -1317,3 +1328,122 @@ class RasPlanHdf(RasGeomHdf):
             A DataFrame containing the velocity inside the cross sections
         """
         return self.steady_profile_xs_output(XsSteadyOutputVar.VELOCITY_TOTAL)
+
+    # def _zmeta_mesh_timeseries_output(
+    #     self, mesh_name, vars: List[TimeSeriesOutputVar]
+    # ) -> Dict:
+    #     from kerchunk.hdf import SingleHdf5ToZarr
+    #     import zarr
+    #     import base64
+
+    #     encoding = {}
+    #     chunk_meta = {}
+    #     for var in vars:
+    #         hdf_ds_path = self._mesh_timeseries_output_path(mesh_name, var.value)
+    #         hdf_ds = self.get(hdf_ds_path)
+    #         if hdf_ds is None:
+    #             continue
+    #         filters = SingleHdf5ToZarr._decode_filters(None, hdf_ds)
+    #         encoding[var.value] = {"compressor": None, "filters": filters}
+    #         storage_info = SingleHdf5ToZarr._storage_info(None, hdf_ds)
+    #         for key, value in storage_info.items():
+    #             chunk_key = f"{var.value}/{key[0]}.{key[1]}"
+    #             chunk_meta[chunk_key] = [self._loc, value["offset"], value["size"]]
+    #     zarr_tmp = zarr.MemoryStore()
+    #     ds = self._mesh_timeseries_outputs(mesh_name, vars, truncate=False)
+    #     ds.to_zarr(zarr_tmp, mode="w", compute=False, encoding=encoding)
+    #     zarr_meta = {"version": 1, "refs": {}}
+    #     for key, value in zarr_tmp.items():
+    #         try:
+    #             value_str = value.decode("utf-8")
+    #         except UnicodeDecodeError:
+    #             value_str = "base64:" + base64.b64encode(value).decode("utf-8")
+    #         zarr_meta["refs"][key] = value_str
+    #     zarr_meta["refs"].update(chunk_meta)
+    #     return zarr_meta
+
+    def _zmeta(self, ds: xr.Dataset) -> Dict:
+        from kerchunk.hdf import SingleHdf5ToZarr
+        import zarr
+        import base64
+
+        encoding = {}
+        chunk_meta = {}
+        for var, da in ds.data_vars.items():
+            hdf_ds_path = da.attrs["hdf_path"]
+            hdf_ds = self.get(hdf_ds_path)
+            if hdf_ds is None:
+                continue
+            filters = SingleHdf5ToZarr._decode_filters(None, hdf_ds)
+            encoding[var] = {"compressor": None, "filters": filters}
+            storage_info = SingleHdf5ToZarr._storage_info(None, hdf_ds)
+            for key, value in storage_info.items():
+                chunk_key = f"{var}/{key[0]}.{key[1]}"
+                chunk_meta[chunk_key] = [str(self._loc), value["offset"], value["size"]]
+        zarr_tmp = zarr.MemoryStore()
+        ds.to_zarr(zarr_tmp, mode="w", compute=False, encoding=encoding)
+        zarr_meta = {"version": 1, "refs": {}}
+        for key, value in zarr_tmp.items():
+            try:
+                value_str = value.decode("utf-8")
+            except UnicodeDecodeError:
+                value_str = "base64:" + base64.b64encode(value).decode("utf-8")
+            zarr_meta["refs"][key] = value_str
+        zarr_meta["refs"].update(chunk_meta)
+        return zarr_meta
+
+    def zmeta_mesh_timeseries_output_cells(self, mesh_name: str) -> Dict:
+        """Return kerchunk-style zarr reference metadata.
+
+        Requires the 'zarr' and 'kerchunk' packages.
+
+        Returns
+        -------
+        dict
+            Dictionary of kerchunk-style zarr reference metadata.
+        """
+        ds = self._mesh_timeseries_outputs(
+            mesh_name, TIME_SERIES_OUTPUT_VARS_CELLS, truncate=False
+        )
+        return self._zmeta(ds)
+
+    def zmeta_mesh_timeseries_output_faces(self, mesh_name: str) -> Dict:
+        """Return kerchunk-style zarr reference metadata.
+
+        Requires the 'zarr' and 'kerchunk' packages.
+
+        Returns
+        -------
+        dict
+            Dictionary of kerchunk-style zarr reference metadata.
+        """
+        ds = self._mesh_timeseries_outputs(
+            mesh_name, TIME_SERIES_OUTPUT_VARS_FACES, truncate=False
+        )
+        return self._zmeta(ds)
+
+    def zmeta_reference_lines_timeseries_output(self) -> Dict:
+        """Return kerchunk-style zarr reference metadata.
+
+        Requires the 'zarr' and 'kerchunk' packages.
+
+        Returns
+        -------
+        dict
+            Dictionary of kerchunk-style zarr reference metadata.
+        """
+        ds = self.reference_lines_timeseries_output()
+        return self._zmeta(ds)
+
+    def zmeta_reference_points_timeseries_output(self) -> Dict:
+        """Return kerchunk-style zarr reference metadata.
+
+        Requires the 'zarr' and 'kerchunk' packages.
+
+        Returns
+        -------
+        dict
+            Dictionary of kerchunk-style zarr reference metadata.
+        """
+        ds = self.reference_points_timeseries_output()
+        return self._zmeta(ds)
