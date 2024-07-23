@@ -12,7 +12,7 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
 ]
-version = "0.5.0"
+version = "0.6.0"
 dependencies = ["h5py", "geopandas>=1.0,<2.0", "pyarrow", "xarray"]
 
 [project.optional-dependencies]
