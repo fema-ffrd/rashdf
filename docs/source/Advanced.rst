@@ -52,7 +52,7 @@ libraries :code:`kerchunk`, :code:`zarr`, :code:`fsspec`, and :code:`s3fs`::
         json_file = f"BigRiver.{sim}.p01.hdf.json"
         with open(json_file, "w") as f:
             json.dump(zmeta, f)
-        json_list.append(json_file)
+        zmeta_files.append(json_file)
     
     # Combine Zarr metadata files into a single Kerchunk metadata file
     # with a new "sim" dimension
