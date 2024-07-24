@@ -1437,26 +1437,50 @@ class RasPlanHdf(RasGeomHdf):
         return self.steady_profile_xs_output(XsSteadyOutputVar.VELOCITY_TOTAL)
 
     def _zmeta(self, ds: xr.Dataset) -> Dict:
+        """Given a xarray Dataset, return kerchunk-style zarr reference metadata."""
         from kerchunk.hdf import SingleHdf5ToZarr
         import zarr
         import base64
 
         encoding = {}
         chunk_meta = {}
+
+        # Loop through each variable / DataArray in the Dataset
         for var, da in ds.data_vars.items():
+            # The "hdf_path" attribute is the path within the HDF5 file
+            # that the DataArray was read from. This is attribute is inserted
+            # by rashdf (see "mesh_timeseries_output" method).
             hdf_ds_path = da.attrs["hdf_path"]
             hdf_ds = self.get(hdf_ds_path)
             if hdf_ds is None:
+                # If we don't know where in the HDF5 the data came from, we
+                # have to skip it, because we won't be able to generate the
+                # correct metadata for it.
                 continue
+            # Get the filters and storage info for the HDF5 dataset.
+            # Calling private methods from Kerchunk here because
+            # there's not a nice public API for this part. This is hacky
+            # and a bit risky because these private methods are more likely
+            # to change, but short of reimplementing these functions ourselves
+            # it's the best way to get the metadata we need.
+            # TODO: raise an issue in Kerchunk to expose this functionality?
             filters = SingleHdf5ToZarr._decode_filters(None, hdf_ds)
             encoding[var] = {"compressor": None, "filters": filters}
             storage_info = SingleHdf5ToZarr._storage_info(None, hdf_ds)
+            # Generate chunk metadata for the DataArray
             for key, value in storage_info.items():
-                chunk_key = f"{var}/{key[0]}.{key[1]}"
+                chunk_number = ".".join([str(k) for k in key])
+                chunk_key = f"{var}/{chunk_number}"
                 chunk_meta[chunk_key] = [str(self._loc), value["offset"], value["size"]]
+        # "Write" the Dataset to a temporary in-memory zarr store (which
+        # is the same a Python dictionary)
         zarr_tmp = zarr.MemoryStore()
+        # Use compute=False here because we don't _actually_ want to write
+        # the data to the zarr store, we just want to generate the metadata.
         ds.to_zarr(zarr_tmp, mode="w", compute=False, encoding=encoding)
         zarr_meta = {"version": 1, "refs": {}}
+        # Loop through the in-memory Zarr store, decode the data to strings,
+        # and add it to the final metadata dictionary.
         for key, value in zarr_tmp.items():
             try:
                 value_str = value.decode("utf-8")
