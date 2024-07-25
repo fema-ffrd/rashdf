@@ -19,6 +19,7 @@ class RasHdf(h5py.File):
             Additional keyword arguments to pass to h5py.File
         """
         super().__init__(name, mode="r", **kwargs)
+        self._loc = name
 
     @classmethod
     def open_uri(
@@ -49,7 +50,9 @@ class RasHdf(h5py.File):
         import fsspec
 
         remote_file = fsspec.open(uri, mode="rb", **fsspec_kwargs)
-        return cls(remote_file.open(), **h5py_kwargs)
+        result = cls(remote_file.open(), **h5py_kwargs)
+        result._loc = uri
+        return result
 
     def get_attrs(self, attr_path: str) -> Dict:
         """Convert attributes from a HEC-RAS HDF file into a Python dictionary for a given attribute path.

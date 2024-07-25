@@ -5,6 +5,7 @@ from .utils import (
     df_datetimes_to_str,
     ras_timesteps_to_datetimes,
     parse_ras_datetime_ms,
+    deprecated,
 )
 
 from geopandas import GeoDataFrame
@@ -585,7 +586,8 @@ class RasPlanHdf(RasGeomHdf):
         Returns
         -------
         DataFrame
-            A DataFrame with columns 'mesh_name', 'cell_id' or 'face_id', a value column, and a time column.
+            A DataFrame with columns 'mesh_name', 'cell_id' or 'face_id', a value column,
+            and a time column if the value corresponds to a specific time.
         """
         methods_with_times = {
             SummaryOutputVar.MAXIMUM_WATER_SURFACE: self.mesh_max_ws,
@@ -603,6 +605,76 @@ class RasPlanHdf(RasGeomHdf):
         else:
             df = other_methods[var]()
         return df
+
+    def _mesh_summary_outputs_df(
+        self,
+        cells_or_faces: str,
+        output_vars: Optional[List[SummaryOutputVar]] = None,
+        round_to: str = "0.1 s",
+    ) -> DataFrame:
+        if cells_or_faces == "cells":
+            feature_id_field = "cell_id"
+        elif cells_or_faces == "faces":
+            feature_id_field = "face_id"
+        else:
+            raise ValueError('cells_or_faces must be either "cells" or "faces".')
+        if output_vars is None:
+            summary_output_vars = self._summary_output_vars(
+                cells_or_faces=cells_or_faces
+            )
+        elif isinstance(output_vars, list):
+            summary_output_vars = []
+            for var in output_vars:
+                if not isinstance(var, SummaryOutputVar):
+                    var = SummaryOutputVar(var)
+                summary_output_vars.append(var)
+        else:
+            raise ValueError(
+                "include_output must be a boolean or a list of SummaryOutputVar values."
+            )
+        df = self.mesh_summary_output(summary_output_vars[0], round_to=round_to)
+        for var in summary_output_vars[1:]:
+            df_var = self.mesh_summary_output(var, round_to=round_to)
+            df = df.merge(df_var, on=["mesh_name", feature_id_field], how="left")
+        return df
+
+    def mesh_cells_summary_output(self, round_to: str = "0.1 s") -> DataFrame:
+        """
+        Return a DataFrame with summary output data for each mesh cell in the model.
+
+        Parameters
+        ----------
+        round_to : str, optional
+            The time unit to round the datetimes to. Default: "0.1 s" (seconds).
+            See Pandas documentation for valid time units:
+            https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html
+
+        Returns
+        -------
+        DataFrame
+            A DataFrame with columns 'mesh_name', 'cell_id', and columns for each
+            summary output variable.
+        """
+        return self._mesh_summary_outputs_df("cells", round_to=round_to)
+
+    def mesh_faces_summary_output(self, round_to: str = "0.1 s") -> DataFrame:
+        """
+        Return a DataFrame with summary output data for each mesh face in the model.
+
+        Parameters
+        ----------
+        round_to : str, optional
+            The time unit to round the datetimes to. Default: "0.1 s" (seconds).
+            See Pandas documentation for valid time units:
+            https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html
+
+        Returns
+        -------
+        DataFrame
+            A DataFrame with columns 'mesh_name', 'face_id', and columns for each
+            summary output variable.
+        """
+        return self._mesh_summary_outputs_df("faces", round_to=round_to)
 
     def _summary_output_vars(
         self, cells_or_faces: Optional[str] = None
@@ -812,7 +884,7 @@ class RasPlanHdf(RasGeomHdf):
         mesh_name: str,
         var: TimeSeriesOutputVar,
     ) -> Tuple[np.ndarray, str]:
-        path = f"{self.UNSTEADY_TIME_SERIES_PATH}/2D Flow Areas/{mesh_name}/{var.value}"
+        path = self._mesh_timeseries_output_path(mesh_name, var.value)
         group = self.get(path)
         try:
             import dask.array as da
@@ -830,6 +902,7 @@ class RasPlanHdf(RasGeomHdf):
         self,
         mesh_name: str,
         var: Union[str, TimeSeriesOutputVar],
+        truncate: bool = True,
     ) -> xr.DataArray:
         """Return the time series output data for a given variable.
 
@@ -839,6 +912,8 @@ class RasPlanHdf(RasGeomHdf):
             The name of the 2D flow area mesh.
         var : TimeSeriesOutputVar
             The time series output variable to retrieve.
+        truncate : bool, optional
+            If True, truncate the number of cells to the listed cell count.
 
         Returns
         -------
@@ -856,7 +931,10 @@ class RasPlanHdf(RasGeomHdf):
         values, units = self._mesh_timeseries_output_values_units(mesh_name, var)
         if var in TIME_SERIES_OUTPUT_VARS_CELLS:
             cell_count = mesh_names_counts[mesh_name]
-            values = values[:, :cell_count]
+            if truncate:
+                values = values[:, :cell_count]
+            else:
+                values = values[:, :]
             id_coord = "cell_id"
         elif var in TIME_SERIES_OUTPUT_VARS_FACES:
             id_coord = "face_id"
@@ -874,24 +952,28 @@ class RasPlanHdf(RasGeomHdf):
                 "mesh_name": mesh_name,
                 "variable": var.value,
                 "units": units,
+                "hdf_path": self._mesh_timeseries_output_path(mesh_name, var.value),
             },
         )
         return da
 
+    def _mesh_timeseries_output_path(self, mesh_name: str, var_name: str) -> str:
+        return f"{self.UNSTEADY_TIME_SERIES_PATH}/2D Flow Areas/{mesh_name}/{var_name}"
+
     def _mesh_timeseries_outputs(
-        self, mesh_name: str, vars: List[TimeSeriesOutputVar]
+        self, mesh_name: str, vars: List[TimeSeriesOutputVar], truncate: bool = True
     ) -> xr.Dataset:
         datasets = {}
         for var in vars:
             var_path = f"{self.UNSTEADY_TIME_SERIES_PATH}/2D Flow Areas/{mesh_name}/{var.value}"
             if self.get(var_path) is None:
                 continue
-            da = self.mesh_timeseries_output(mesh_name, var)
+            da = self.mesh_timeseries_output(mesh_name, var, truncate=truncate)
             datasets[var.value] = da
         ds = xr.Dataset(datasets, attrs={"mesh_name": mesh_name})
         return ds
 
-    def mesh_timeseries_output_cells(self, mesh_name: str) -> xr.Dataset:
+    def mesh_cells_timeseries_output(self, mesh_name: str) -> xr.Dataset:
         """Return the time series output data for cells in a 2D flow area mesh.
 
         Parameters
@@ -907,7 +989,25 @@ class RasPlanHdf(RasGeomHdf):
         ds = self._mesh_timeseries_outputs(mesh_name, TIME_SERIES_OUTPUT_VARS_CELLS)
         return ds
 
-    def mesh_timeseries_output_faces(self, mesh_name: str) -> xr.Dataset:
+    @deprecated
+    def mesh_timeseries_output_cells(self, mesh_name: str) -> xr.Dataset:
+        """Return the time series output data for cells in a 2D flow area mesh.
+
+        Deprecated: use mesh_cells_timeseries_output instead.
+
+        Parameters
+        ----------
+        mesh_name : str
+            The name of the 2D flow area mesh.
+
+        Returns
+        -------
+        xr.Dataset
+            An xarray Dataset with DataArrays for each time series output variable.
+        """
+        return self.mesh_cells_timeseries_output(mesh_name)
+
+    def mesh_faces_timeseries_output(self, mesh_name: str) -> xr.Dataset:
         """Return the time series output data for faces in a 2D flow area mesh.
 
         Parameters
@@ -922,6 +1022,24 @@ class RasPlanHdf(RasGeomHdf):
         """
         ds = self._mesh_timeseries_outputs(mesh_name, TIME_SERIES_OUTPUT_VARS_FACES)
         return ds
+
+    @deprecated
+    def mesh_timeseries_output_faces(self, mesh_name: str) -> xr.Dataset:
+        """Return the time series output data for faces in a 2D flow area mesh.
+
+        Deprecated: use mesh_faces_timeseries_output instead.
+
+        Parameters
+        ----------
+        mesh_name : str
+            The name of the 2D flow area mesh.
+
+        Returns
+        -------
+        xr.Dataset
+            An xarray Dataset with DataArrays for each time series output variable.
+        """
+        return self.mesh_faces_timeseries_output(mesh_name)
 
     def reference_timeseries_output(self, reftype: str = "lines") -> xr.Dataset:
         """Return timeseries output data for reference lines or points from a HEC-RAS HDF plan file.
@@ -984,7 +1102,7 @@ class RasPlanHdf(RasGeomHdf):
                     f"{abbrev}_name": (f"{abbrev}_id", names),
                     "mesh_name": (f"{abbrev}_id", mesh_areas),
                 },
-                attrs={"Units": units},
+                attrs={"units": units, "hdf_path": f"{output_path}/{var}"},
             )
             das[var] = da
         return xr.Dataset(das)
@@ -1317,3 +1435,113 @@ class RasPlanHdf(RasGeomHdf):
             A DataFrame containing the velocity inside the cross sections
         """
         return self.steady_profile_xs_output(XsSteadyOutputVar.VELOCITY_TOTAL)
+
+    def _zmeta(self, ds: xr.Dataset) -> Dict:
+        """Given a xarray Dataset, return kerchunk-style zarr reference metadata."""
+        from kerchunk.hdf import SingleHdf5ToZarr
+        import zarr
+        import base64
+
+        encoding = {}
+        chunk_meta = {}
+
+        # Loop through each variable / DataArray in the Dataset
+        for var, da in ds.data_vars.items():
+            # The "hdf_path" attribute is the path within the HDF5 file
+            # that the DataArray was read from. This is attribute is inserted
+            # by rashdf (see "mesh_timeseries_output" method).
+            hdf_ds_path = da.attrs["hdf_path"]
+            hdf_ds = self.get(hdf_ds_path)
+            if hdf_ds is None:
+                # If we don't know where in the HDF5 the data came from, we
+                # have to skip it, because we won't be able to generate the
+                # correct metadata for it.
+                continue
+            # Get the filters and storage info for the HDF5 dataset.
+            # Calling private methods from Kerchunk here because
+            # there's not a nice public API for this part. This is hacky
+            # and a bit risky because these private methods are more likely
+            # to change, but short of reimplementing these functions ourselves
+            # it's the best way to get the metadata we need.
+            # TODO: raise an issue in Kerchunk to expose this functionality?
+            filters = SingleHdf5ToZarr._decode_filters(None, hdf_ds)
+            encoding[var] = {"compressor": None, "filters": filters}
+            storage_info = SingleHdf5ToZarr._storage_info(None, hdf_ds)
+            # Generate chunk metadata for the DataArray
+            for key, value in storage_info.items():
+                chunk_number = ".".join([str(k) for k in key])
+                chunk_key = f"{var}/{chunk_number}"
+                chunk_meta[chunk_key] = [str(self._loc), value["offset"], value["size"]]
+        # "Write" the Dataset to a temporary in-memory zarr store (which
+        # is the same a Python dictionary)
+        zarr_tmp = zarr.MemoryStore()
+        # Use compute=False here because we don't _actually_ want to write
+        # the data to the zarr store, we just want to generate the metadata.
+        ds.to_zarr(zarr_tmp, mode="w", compute=False, encoding=encoding)
+        zarr_meta = {"version": 1, "refs": {}}
+        # Loop through the in-memory Zarr store, decode the data to strings,
+        # and add it to the final metadata dictionary.
+        for key, value in zarr_tmp.items():
+            try:
+                value_str = value.decode("utf-8")
+            except UnicodeDecodeError:
+                value_str = "base64:" + base64.b64encode(value).decode("utf-8")
+            zarr_meta["refs"][key] = value_str
+        zarr_meta["refs"].update(chunk_meta)
+        return zarr_meta
+
+    def zmeta_mesh_cells_timeseries_output(self, mesh_name: str) -> Dict:
+        """Return kerchunk-style zarr reference metadata.
+
+        Requires the 'zarr' and 'kerchunk' packages.
+
+        Returns
+        -------
+        dict
+            Dictionary of kerchunk-style zarr reference metadata.
+        """
+        ds = self._mesh_timeseries_outputs(
+            mesh_name, TIME_SERIES_OUTPUT_VARS_CELLS, truncate=False
+        )
+        return self._zmeta(ds)
+
+    def zmeta_mesh_faces_timeseries_output(self, mesh_name: str) -> Dict:
+        """Return kerchunk-style zarr reference metadata.
+
+        Requires the 'zarr' and 'kerchunk' packages.
+
+        Returns
+        -------
+        dict
+            Dictionary of kerchunk-style zarr reference metadata.
+        """
+        ds = self._mesh_timeseries_outputs(
+            mesh_name, TIME_SERIES_OUTPUT_VARS_FACES, truncate=False
+        )
+        return self._zmeta(ds)
+
+    def zmeta_reference_lines_timeseries_output(self) -> Dict:
+        """Return kerchunk-style zarr reference metadata.
+
+        Requires the 'zarr' and 'kerchunk' packages.
+
+        Returns
+        -------
+        dict
+            Dictionary of kerchunk-style zarr reference metadata.
+        """
+        ds = self.reference_lines_timeseries_output()
+        return self._zmeta(ds)
+
+    def zmeta_reference_points_timeseries_output(self) -> Dict:
+        """Return kerchunk-style zarr reference metadata.
+
+        Requires the 'zarr' and 'kerchunk' packages.
+
+        Returns
+        -------
+        dict
+            Dictionary of kerchunk-style zarr reference metadata.
+        """
+        ds = self.reference_points_timeseries_output()
+        return self._zmeta(ds)

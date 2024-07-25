@@ -1,5 +1,6 @@
 RasGeomHdf
 ==========
+
 .. currentmodule:: rashdf
 .. autoclass:: RasGeomHdf
    :show-inheritance:
@@ -21,6 +22,6 @@ RasGeomHdf
              get_geom_structures_attrs,
              get_geom_2d_flow_area_attrs,
              cross_sections_elevations,
-             cross_sections
+             cross_sections,
              river_reaches
 

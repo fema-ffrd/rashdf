@@ -11,6 +11,12 @@ HDF5 files. It is a wrapper around the :code:`h5py` library, and provides an int
 convenience functions for reading key HEC-RAS geometry data, output data,
 and metadata.
 
+.. toctree::
+   :maxdepth: 2
+
+   API
+   Advanced
+
 Installation
 ============
 With :code:`pip`::
@@ -82,21 +88,3 @@ credentials)::
    'Simulation Start Time': datetime.datetime(1996, 1, 14, 12, 0),
    'Time Window': [datetime.datetime(1996, 1, 14, 12, 0),
    datetime.datetime(1996, 2, 7, 12, 0)]}
-
-
-API
-===
-.. toctree::
-   :maxdepth: 1
-
-   RasGeomHdf
-   RasPlanHdf
-   RasHdf
-
-:code:`rashdf` provides two primary classes for reading data from
-HEC-RAS geometry and plan HDF files: :code:`RasGeomHdf` and :code:`RasPlanHdf`.
-Both of these classes inherit from the :code:`RasHdf` base class, which
-inherits from the :code:`h5py.File` class.
-
-Note that :code:`RasPlanHdf` inherits from :code:`RasGeomHdf`, so all of the
-methods available in :code:`RasGeomHdf` are also available in :code:`RasPlanHdf`.

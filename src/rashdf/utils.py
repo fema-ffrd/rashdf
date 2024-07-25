@@ -6,8 +6,8 @@ import pandas as pd
 
 from datetime import datetime, timedelta
 import re
-from typing import Any, List, Tuple, Union, Optional
-from shapely import LineString, Polygon, polygonize_full
+from typing import Any, Callable, List, Tuple, Union, Optional
+import warnings
 
 
 def parse_ras_datetime_ms(datetime_str: str) -> datetime:
@@ -308,3 +308,33 @@ def ras_timesteps_to_datetimes(
         start_time + pd.Timedelta(timestep, unit=time_unit).round(round_to)
         for timestep in timesteps.astype(np.float64)
     ]
+
+
+def deprecated(func) -> Callable:
+    """
+    Deprecate a function.
+
+    This is a decorator which can be used to mark functions as deprecated.
+    It will result in a warning being emitted when the function is used.
+
+    Parameters
+    ----------
+        func: The function to be deprecated.
+
+    Returns
+    -------
+        The decorated function.
+    """
+
+    def new_func(*args, **kwargs):
+        warnings.warn(
+            f"{func.__name__} is deprecated and will be removed in a future version.",
+            category=DeprecationWarning,
+            stacklevel=2,
+        )
+        return func(*args, **kwargs)
+
+    new_func.__name__ = func.__name__
+    new_func.__doc__ = func.__doc__
+    new_func.__dict__.update(func.__dict__)
+    return new_func
