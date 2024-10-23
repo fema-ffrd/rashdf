@@ -1129,7 +1129,15 @@ class RasPlanHdf(RasGeomHdf):
         Returns
         -------
         xr.Dataset
-            An xarray Dataset with reference line timeseries data.
+            An xarray Dataset with observed timeseries data for both reference lines and reference points.
+
+            Coordinates:
+            - 'time': datetime64[ns]
+            - 'obs_name': object
+
+            Data variables:
+            - 'Flow': (obs_name, time) float64
+            - 'Stage': (obs_name, time) float64
         """
 
         # Decode the contents of the DataFrame from utf-8
