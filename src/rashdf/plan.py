@@ -156,6 +156,7 @@ class RasPlanHdf(RasGeomHdf):
     PLAN_INFO_PATH = "Plan Data/Plan Information"
     PLAN_PARAMS_PATH = "Plan Data/Plan Parameters"
     PRECIP_PATH = "Event Conditions/Meteorology/Precipitation"
+    OBS_DATA_PATH = "Event Conditions/Observed Data"
     RESULTS_UNSTEADY_PATH = "Results/Unsteady"
     RESULTS_UNSTEADY_SUMMARY_PATH = f"{RESULTS_UNSTEADY_PATH}/Summary"
     VOLUME_ACCOUNTING_PATH = f"{RESULTS_UNSTEADY_PATH}/Volume Accounting"
@@ -166,6 +167,8 @@ class RasPlanHdf(RasGeomHdf):
     UNSTEADY_TIME_SERIES_PATH = f"{BASE_OUTPUT_PATH}/Unsteady Time Series"
     REFERENCE_LINES_OUTPUT_PATH = f"{UNSTEADY_TIME_SERIES_PATH}/Reference Lines"
     REFERENCE_POINTS_OUTPUT_PATH = f"{UNSTEADY_TIME_SERIES_PATH}/Reference Points"
+    OBS_FLOW_OUTPUT_PATH = f"{OBS_DATA_PATH}/Flow"
+    OBS_STAGE_OUTPUT_PATH = f"{OBS_DATA_PATH}/Stage"
 
     RESULTS_STEADY_PATH = "Results/Steady"
     BASE_STEADY_PATH = f"{RESULTS_STEADY_PATH}/Output/Output Blocks/Base Output"
@@ -1117,6 +1120,106 @@ class RasPlanHdf(RasGeomHdf):
         """
         return self.reference_timeseries_output(reftype="lines")
 
+    def observed_timeseries_output(self, vartype: str = "Flow") -> xr.Dataset:
+        """Return observed timeseries output data for reference lines and points from a HEC-RAS HDF plan file.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+        xr.Dataset
+            An xarray Dataset with reference line timeseries data.
+        """
+
+        # Decode the contents of the DataFrame from utf-8
+        def decode_bytes(val):
+            if isinstance(val, bytes):
+                return val.decode('utf-8')
+            return val
+
+        # Function to adjust invalid hour values
+        def adjust_invalid_hour(date_str):
+            if '24:00:00' in date_str:
+                # Split the date and time parts
+                date_part, time_part = date_str.split()
+                # Replace '24:00:00' with '00:00:00'
+                new_time_part = '00:00:00'
+                # Convert the date part to a datetime object and add one day
+                new_date_part = (pd.to_datetime(date_part, format='%d%b%Y') + pd.Timedelta(days=1)).strftime('%d%b%Y')
+                # Combine the new date and time parts
+                return f'{new_date_part} {new_time_part}'
+            return date_str
+
+        if vartype == "Flow":
+            output_path = self.OBS_FLOW_OUTPUT_PATH
+        elif vartype == "Stage":
+            output_path = self.OBS_STAGE_OUTPUT_PATH
+        else:
+            raise ValueError('vartype must be either "Flow" or "Stage".')
+
+        observed_group = self.get(output_path)
+        if observed_group is None:
+            raise RasPlanHdfError(
+                f"Could not find HDF group at path '{output_path}'."
+                f" Does the Plan HDF file contain reference {vartype[:-1]} output data?"
+            )
+        
+        for var in observed_group.keys():
+            var_path = observed_group[var]
+            var_keys = var_path.keys()
+        if 'Attributes' in var_keys:
+            attrs_df = pd.DataFrame(var_path['Attributes'][:])
+            # Apply the decoding function to each element in the DataFrame
+            attrs_df = attrs_df.map(decode_bytes)
+            if var == 'Flow':
+                attrs_df['Units'] = 'cfs'
+            elif var == 'Stage':
+                attrs_df['Units'] = 'ft'
+            else:
+                attrs_df['Units'] = 'Unknown'
+        for site in var_keys:
+            if site != 'Attributes':
+                # Site Ex: 'Ref Point: Grapevine_Lake_RP'
+                prefix = site.split(":")[0]
+                suffix = site.split(":")[1][1:]
+                data_df = pd.DataFrame(var_path[site][:])
+                # Apply the decoding function to each element in the DataFrame
+                data_df = data_df.map(decode_bytes)
+                # Assign data types to the columns
+                data_df['Date'] = data_df['Date'].apply(adjust_invalid_hour)
+                data_df['Date'] = pd.to_datetime(data_df['Date'], format='%d%b%Y %H:%M:%S')
+                data_df['Value'] = data_df['Value'].astype(float)
+                # Determine the site type
+                site_type = 'reference_line' if 'Ref Line' in site else 'reference_point'
+                # Package into an xarray DataArray
+                da = xr.DataArray(
+                    data_df['Value'].values,
+                    name=suffix,
+                    dims=["time"],
+                    coords={
+                        "time": data_df['Date'].values,
+                    },
+                    attrs={"units": attrs_df['Units'][0], "hdf_path": f"{output_path}/{var}/{site}"}
+                )
+                da_list.append(da.to_dataset(name=var))
+                site_list.append(suffix)
+
+        # Combine into an xarray dataset with 'site' as a dimension
+        ds = xr.concat(da_list, dim=pd.Index(site_list, name='site'))
+
+        return ds
+
+    def observed_data_timeseries_output(self) -> xr.Dataset:
+        """Return observed data timeseries output data for reference lines or points from a HEC-RAS HDF plan file.
+
+        Returns
+        -------
+        xr.Dataset
+            An xarray Dataset with observed timeseries output data for reference lines or points.
+        """
+        return self.observed_timeseries_output(vartype="Flow")
+
     def reference_points_timeseries_output(self) -> xr.Dataset:
         """Return timeseries output data for reference points from a HEC-RAS HDF plan file.
 
@@ -1278,6 +1381,16 @@ class RasPlanHdf(RasGeomHdf):
             Dictionary of precipitation attributes.
         """
         return self.get_attrs(self.PRECIP_PATH)
+
+    def get_obs_data_attrs(self) -> Dict:
+        """Return observed data attributes from a HEC-RAS HDF plan file.
+
+        Returns
+        -------
+        dict
+            Dictionary of observed data attributes.
+        """
+        return self.get_attrs(self.OBS_DATA_PATH)
 
     def get_results_unsteady_attrs(self) -> Dict:
         """Return unsteady attributes from a HEC-RAS HDF plan file.
