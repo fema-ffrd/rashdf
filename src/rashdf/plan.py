@@ -1125,6 +1125,9 @@ class RasPlanHdf(RasGeomHdf):
 
         Parameters
         ----------
+        vartype : str, optional
+            The type of observed data to retrieve. Must be either "Flow" or "Stage".
+            (default: "Flow")
 
         Returns
         -------
