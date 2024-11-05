@@ -4,6 +4,7 @@ from .geom import RasGeomHdf
 from .utils import (
     df_datetimes_to_str,
     ras_timesteps_to_datetimes,
+    parse_ras_datetime,
     parse_ras_datetime_ms,
     deprecated,
 )
@@ -1120,8 +1121,8 @@ class RasPlanHdf(RasGeomHdf):
         """
         return self.reference_timeseries_output(reftype="lines")
 
-    def observed_timeseries_output(self, vartype: str = "Flow") -> xr.Dataset:
-        """Return observed timeseries output data for reference lines and points from a HEC-RAS HDF plan file.
+    def observed_timeseries_input(self, vartype: str = "Flow") -> xr.Dataset:
+        """Return observed timeseries input data for reference lines and points from a HEC-RAS HDF plan file.
 
         Parameters
         ----------
@@ -1131,36 +1132,21 @@ class RasPlanHdf(RasGeomHdf):
 
         Returns
         -------
-        xr.Dataset
+        Dict[Site: str, xr.DataArray]
             An xarray Dataset with observed timeseries data for both reference lines and reference points.
 
             Coordinates:
             - 'time': datetime64[ns]
-            - 'obs_name': object
 
             Data variables:
-            - 'Flow': (obs_name, time) float64
-            - 'Stage': (obs_name, time) float64
+            - 'Flow' or 'Stage': float64
         """
 
         # Decode the contents of the DataFrame from utf-8
         def decode_bytes(val):
             if isinstance(val, bytes):
-                return val.decode('utf-8')
+                return val.decode("utf-8")
             return val
-
-        # Function to adjust invalid hour values
-        def adjust_invalid_hour(date_str):
-            if '24:00:00' in date_str:
-                # Split the date and time parts
-                date_part, time_part = date_str.split()
-                # Replace '24:00:00' with '00:00:00'
-                new_time_part = '00:00:00'
-                # Convert the date part to a datetime object and add one day
-                new_date_part = (pd.to_datetime(date_part, format='%d%b%Y') + pd.Timedelta(days=1)).strftime('%d%b%Y')
-                # Combine the new date and time parts
-                return f'{new_date_part} {new_time_part}'
-            return date_str
 
         if vartype == "Flow":
             output_path = self.OBS_FLOW_OUTPUT_PATH
@@ -1175,61 +1161,65 @@ class RasPlanHdf(RasGeomHdf):
                 f"Could not find HDF group at path '{output_path}'."
                 f" Does the Plan HDF file contain reference {vartype[:-1]} output data?"
             )
-        
-        for var in observed_group.keys():
-            var_path = observed_group[var]
-            var_keys = var_path.keys()
-        if 'Attributes' in var_keys:
-            attrs_df = pd.DataFrame(var_path['Attributes'][:])
+        print(f"observed_group: {observed_group}")
+        if "Attributes" in observed_group.keys():
+            attr_path = observed_group["Attributes"]
+            print(f"attr_path: {attr_path}")
+            attrs_df = pd.DataFrame(attr_path[:])
             # Apply the decoding function to each element in the DataFrame
             attrs_df = attrs_df.map(decode_bytes)
-            if var == 'Flow':
-                attrs_df['Units'] = 'cfs'
-            elif var == 'Stage':
-                attrs_df['Units'] = 'ft'
+            if vartype == "Flow":
+                attrs_df["Units"] = "cfs"
+            elif vartype == "Stage":
+                attrs_df["Units"] = "ft"
             else:
-                attrs_df['Units'] = 'Unknown'
-        for site in var_keys:
-            if site != 'Attributes':
+                attrs_df["Units"] = "Unknown"
+        das = {}
+        for site in observed_group.keys():
+            if site != "Attributes":
                 # Site Ex: 'Ref Point: Grapevine_Lake_RP'
+                site_path = observed_group[site]
                 prefix = site.split(":")[0]
                 suffix = site.split(":")[1][1:]
-                data_df = pd.DataFrame(var_path[site][:])
+                data_df = pd.DataFrame(site_path[:])
                 # Apply the decoding function to each element in the DataFrame
                 data_df = data_df.map(decode_bytes)
                 # Assign data types to the columns
-                data_df['Date'] = data_df['Date'].apply(adjust_invalid_hour)
-                data_df['Date'] = pd.to_datetime(data_df['Date'], format='%d%b%Y %H:%M:%S')
-                data_df['Value'] = data_df['Value'].astype(float)
+                data_df["Date"] = data_df["Date"].apply(parse_ras_datetime)
+                data_df["Date"] = pd.to_datetime(
+                    data_df["Date"], format="%d%b%Y %H:%M:%S"
+                )
+                data_df["Value"] = data_df["Value"].astype(float)
                 # Determine the site type
-                site_type = 'reference_line' if 'Ref Line' in site else 'reference_point'
+                site_type = (
+                    "reference_line" if "Ref Line" in site else "reference_point"
+                )
                 # Package into an xarray DataArray
                 da = xr.DataArray(
-                    data_df['Value'].values,
-                    name=suffix,
+                    data_df["Value"].values,
+                    name=vartype,
                     dims=["time"],
                     coords={
-                        "time": data_df['Date'].values,
+                        "time": data_df["Date"].values,
                     },
-                    attrs={"units": attrs_df['Units'][0], "hdf_path": f"{output_path}/{var}/{site}"}
+                    attrs={
+                        "units": attrs_df["Units"][0],
+                        "hdf_path": f"{output_path}/{site}",
+                    },
                 )
-                da_list.append(da.to_dataset(name=var))
-                site_list.append(suffix)
+                das[suffix] = da
 
-        # Combine into an xarray dataset with 'site' as a dimension
-        ds = xr.concat(da_list, dim=pd.Index(site_list, name='site'))
+        return das
 
-        return ds
-
-    def observed_data_timeseries_output(self) -> xr.Dataset:
-        """Return observed data timeseries output data for reference lines or points from a HEC-RAS HDF plan file.
+    def observed_data_timeseries_input(self) -> xr.Dataset:
+        """Return observed data timeseries input data for reference lines or points from a HEC-RAS HDF plan file.
 
         Returns
         -------
         xr.Dataset
-            An xarray Dataset with observed timeseries output data for reference lines or points.
+            An xarray Dataset with observed timeseries input data for reference lines or points.
         """
-        return self.observed_timeseries_output(vartype="Flow")
+        return self.observed_timeseries_input(vartype="Flow")
 
     def reference_points_timeseries_output(self) -> xr.Dataset:
         """Return timeseries output data for reference points from a HEC-RAS HDF plan file.
