@@ -29,6 +29,7 @@ TEST_ATTRS = {"test_attribute1": "test_str1", "test_attribute2": 500}
 BALD_EAGLE_P18 = TEST_DATA / "ras/BaldEagleDamBrk.p18.hdf"
 BALD_EAGLE_P18_TIMESERIES = TEST_DATA / "ras/BaldEagleDamBrk.p18.timeseries.hdf"
 BALD_EAGLE_P18_REF = TEST_DATA / "ras/BaldEagleDamBrk.reflines-refpts.p18.hdf"
+DENTON = TEST_DATA / "ras/Denton.hdf"
 MUNCIE_G05 = TEST_DATA / "ras/Muncie.g05.hdf"
 COAL_G01 = TEST_DATA / "ras/Coal.g01.hdf"
 BAXTER_P01 = TEST_DATA / "ras_1d/Baxter.p01.hdf"
@@ -617,3 +618,27 @@ def test__mesh_summary_outputs_df(tmp_path):
             TEST_CSV / "BaldEagleDamBrk.summary-cells-selectvars.csv",
             shallow=False,
         )
+
+
+def test_observed_timeseries_input_flow():
+    with RasPlanHdf(DENTON) as phdf:
+        ds = phdf.observed_timeseries_input(vartype="Flow")
+        df = ds["Denton-Justin_RL"].to_dataframe()
+        valid_df = pd.read_csv(
+            TEST_CSV / "Denton-Justin_RL_Flow.csv",
+            index_col="time",
+            parse_dates=True,
+        )
+        assert_frame_equal(df, valid_df)
+
+
+def test_observed_timeseries_input_stage():
+    with RasPlanHdf(DENTON) as phdf:
+        ds = phdf.observed_timeseries_input(vartype="Stage")
+        df = ds["Grapevine_Lake_RP"].to_dataframe()
+        valid_df = pd.read_csv(
+            TEST_CSV / "Grapevine_Lake_RP_Stage.csv",
+            index_col="time",
+            parse_dates=True,
+        )
+        assert_frame_equal(df, valid_df)
