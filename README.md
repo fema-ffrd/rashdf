@@ -110,8 +110,11 @@ $ python -m venv venv-rashdf
 
 Activate the virtual environment:
 ```
+# For macOS/Linux
 $ source ./venv/bin/activate
 (venv-rashdf) $
+# For Windows
+$ source venv-rashdf/Scripts/activate
 ```
 
 Install dev dependencies:
