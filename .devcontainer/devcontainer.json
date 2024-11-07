@@ -1,0 +1,28 @@
+{
+	"name": "rashdf-devcontainer",
+	"build": {
+		"dockerfile": "Dockerfile",
+		"context": ".."
+	},
+	"features": {
+		"ghcr.io/devcontainers/features/git:1": {},
+		"ghcr.io/devcontainers/features/python:1":{"version":"3.12"}
+	},
+  "mounts": [],
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"ms-python.python",
+				"ms-python.pylint",
+				"GitHub.copilot",
+				"ms-python.black-formatter"
+			],
+			"settings": {
+				"python.defaultInterpreterPath": "/opt/conda/envs/rashdf/bin/python"
+			}
+		}
+	},
+	// avoid dubious ownership of the workspace folder https://www.kenmuse.com/blog/avoiding-dubious-ownership-in-dev-containers/
+	"postStartCommand": "git config --global --add safe.directory ${containerWorkspaceFolder}",
+	"postCreateCommand": "sudo chown -R vscode:vscode ${containerWorkspaceFolder}"
+}
