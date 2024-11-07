@@ -112,7 +112,10 @@ Activate the virtual environment:
 ```
 # For macOS/Linux
 $ source ./venv/bin/activate
-(venv-rashdf) $
+(venv-rashdf)
+Or
+$ source venv-rashdf/bin/activate
+
 # For Windows
 $ source venv-rashdf/Scripts/activate
 ```
