@@ -7,6 +7,7 @@ from .utils import (
     parse_ras_datetime,
     parse_ras_datetime_ms,
     deprecated,
+    convert_ras_hdf_value,
 )
 
 from geopandas import GeoDataFrame
@@ -1121,7 +1122,7 @@ class RasPlanHdf(RasGeomHdf):
         """
         return self.reference_timeseries_output(reftype="lines")
 
-    def observed_timeseries_input(self, vartype: str = "Flow") -> xr.Dataset:
+    def observed_timeseries_input(self, vartype: str = "Flow") -> dict:
         """Return observed timeseries input data for reference lines and points from a HEC-RAS HDF plan file.
 
         Parameters
@@ -1132,22 +1133,16 @@ class RasPlanHdf(RasGeomHdf):
 
         Returns
         -------
-        Dict[Site: str, xr.DataArray]
-            An xarray Dataset with observed timeseries data for both reference lines and reference points.
+        Dict
+            A dictionary of xarray datasets with observed timeseries data for both reference lines and reference points.
 
-            Coordinates:
-            - 'time': datetime64[ns]
-
-            Data variables:
-            - 'Flow' or 'Stage': float64
+            Keys: Reference line and reference point names
+            Values: xarray Datasets with observed timeseries data
+                Coordinates:
+                - 'Date': datetime64[ns]
+                Data variables:
+                - 'Flow' or 'Stage': float64
         """
-
-        # Decode the contents of the DataFrame from utf-8
-        def decode_bytes(val):
-            if isinstance(val, bytes):
-                return val.decode("utf-8")
-            return val
-
         if vartype == "Flow":
             output_path = self.OBS_FLOW_OUTPUT_PATH
         elif vartype == "Stage":
@@ -1161,13 +1156,10 @@ class RasPlanHdf(RasGeomHdf):
                 f"Could not find HDF group at path '{output_path}'."
                 f" Does the Plan HDF file contain reference {vartype[:-1]} output data?"
             )
-        print(f"observed_group: {observed_group}")
         if "Attributes" in observed_group.keys():
             attr_path = observed_group["Attributes"]
             print(f"attr_path: {attr_path}")
-            attrs_df = pd.DataFrame(attr_path[:])
-            # Apply the decoding function to each element in the DataFrame
-            attrs_df = attrs_df.map(decode_bytes)
+            attrs_df = pd.DataFrame(attr_path[:]).map(convert_ras_hdf_value)
             if vartype == "Flow":
                 attrs_df["Units"] = "cfs"
             elif vartype == "Stage":
@@ -1179,47 +1171,24 @@ class RasPlanHdf(RasGeomHdf):
             if site != "Attributes":
                 # Site Ex: 'Ref Point: Grapevine_Lake_RP'
                 site_path = observed_group[site]
-                prefix = site.split(":")[0]
-                suffix = site.split(":")[1][1:]
-                data_df = pd.DataFrame(site_path[:])
-                # Apply the decoding function to each element in the DataFrame
-                data_df = data_df.map(decode_bytes)
-                # Assign data types to the columns
-                data_df["Date"] = data_df["Date"].apply(parse_ras_datetime)
-                data_df["Date"] = pd.to_datetime(
-                    data_df["Date"], format="%d%b%Y %H:%M:%S"
-                )
-                data_df["Value"] = data_df["Value"].astype(float)
-                # Determine the site type
-                site_type = (
-                    "reference_line" if "Ref Line" in site else "reference_point"
-                )
+                site_name = site.split(":")[1][1:]
+                data_df = pd.DataFrame(site_path[:]).map(convert_ras_hdf_value)
                 # Package into an xarray DataArray
                 da = xr.DataArray(
                     data_df["Value"].values,
                     name=vartype,
-                    dims=["time"],
+                    dims=["Date"],
                     coords={
-                        "time": data_df["Date"].values,
+                        "Date": data_df["Date"].values,
                     },
                     attrs={
                         "units": attrs_df["Units"][0],
                         "hdf_path": f"{output_path}/{site}",
                     },
                 )
-                das[suffix] = da
+                das[site_name] = da
 
         return das
-
-    def observed_data_timeseries_input(self) -> xr.Dataset:
-        """Return observed data timeseries input data for reference lines or points from a HEC-RAS HDF plan file.
-
-        Returns
-        -------
-        xr.Dataset
-            An xarray Dataset with observed timeseries input data for reference lines or points.
-        """
-        return self.observed_timeseries_input(vartype="Flow")
 
     def reference_points_timeseries_output(self) -> xr.Dataset:
         """Return timeseries output data for reference points from a HEC-RAS HDF plan file.
@@ -1382,16 +1351,6 @@ class RasPlanHdf(RasGeomHdf):
             Dictionary of precipitation attributes.
         """
         return self.get_attrs(self.PRECIP_PATH)
-
-    def get_obs_data_attrs(self) -> Dict:
-        """Return observed data attributes from a HEC-RAS HDF plan file.
-
-        Returns
-        -------
-        dict
-            Dictionary of observed data attributes.
-        """
-        return self.get_attrs(self.OBS_DATA_PATH)
 
     def get_results_unsteady_attrs(self) -> Dict:
         """Return unsteady attributes from a HEC-RAS HDF plan file.
