@@ -626,7 +626,7 @@ def test_observed_timeseries_input_flow():
         df = ds["Denton-Justin_RL"].to_dataframe()
         valid_df = pd.read_csv(
             TEST_CSV / "Denton-Justin_RL_Flow.csv",
-            index_col="time",
+            index_col="Date",
             parse_dates=True,
         )
         assert_frame_equal(df, valid_df)
@@ -638,7 +638,7 @@ def test_observed_timeseries_input_stage():
         df = ds["Grapevine_Lake_RP"].to_dataframe()
         valid_df = pd.read_csv(
             TEST_CSV / "Grapevine_Lake_RP_Stage.csv",
-            index_col="time",
+            index_col="Date",
             parse_dates=True,
         )
         assert_frame_equal(df, valid_df)
