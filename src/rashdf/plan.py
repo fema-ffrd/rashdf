@@ -4,7 +4,6 @@ from .geom import RasGeomHdf
 from .utils import (
     df_datetimes_to_str,
     ras_timesteps_to_datetimes,
-    parse_ras_datetime,
     parse_ras_datetime_ms,
     deprecated,
     convert_ras_hdf_value,
@@ -1162,10 +1161,9 @@ class RasPlanHdf(RasGeomHdf):
             attrs_df = pd.DataFrame(attr_path[:]).map(convert_ras_hdf_value)
             if vartype == "Flow":
                 attrs_df["Units"] = "cfs"
-            elif vartype == "Stage":
-                attrs_df["Units"] = "ft"
             else:
-                attrs_df["Units"] = "Unknown"
+                attrs_df["Units"] = "ft"
+
         das = {}
         for site in observed_group.keys():
             if site != "Attributes":
