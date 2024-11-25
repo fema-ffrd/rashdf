@@ -623,24 +623,20 @@ def test__mesh_summary_outputs_df(tmp_path):
 def test_observed_timeseries_input_flow():
     with RasPlanHdf(DENTON) as phdf:
         ds = phdf.observed_timeseries_input(vartype="Flow")
-        df = ds["Denton-Justin_RL"].to_dataframe()
-        valid_df = pd.read_csv(
-            TEST_CSV / "Denton-Justin_RL_Flow.csv",
-            index_col="Date",
-            parse_dates=True,
-        )
+        df = ds.sel(refln_name="Denton-Justin_RL").to_dataframe().dropna().reset_index()
+        valid_df = pd.read_csv(TEST_CSV / "Denton-Justin_RL_Flow.csv")
+        valid_df["Date"] = pd.to_datetime(valid_df["Date"])
         assert_frame_equal(df, valid_df)
 
 
 def test_observed_timeseries_input_stage():
     with RasPlanHdf(DENTON) as phdf:
         ds = phdf.observed_timeseries_input(vartype="Stage")
-        df = ds["Grapevine_Lake_RP"].to_dataframe()
-        valid_df = pd.read_csv(
-            TEST_CSV / "Grapevine_Lake_RP_Stage.csv",
-            index_col="Date",
-            parse_dates=True,
+        df = (
+            ds.sel(refpt_name="Grapevine_Lake_RP").to_dataframe().dropna().reset_index()
         )
+        valid_df = pd.read_csv(TEST_CSV / "Grapevine_Lake_RP_Stage.csv")
+        valid_df["Date"] = pd.to_datetime(valid_df["Date"])
         assert_frame_equal(df, valid_df)
 
 
