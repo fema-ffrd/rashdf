@@ -642,3 +642,15 @@ def test_observed_timeseries_input_stage():
             parse_dates=True,
         )
         assert_frame_equal(df, valid_df)
+
+
+def test_observed_timeseries_input_value_error():
+    with RasPlanHdf(DENTON) as phdf:
+        with pytest.raises(ValueError):
+            phdf.observed_timeseries_input(vartype="Fake Variable")
+
+
+def test_observed_timeseries_input_rasplanhdf_error():
+    with RasPlanHdf(BALD_EAGLE_P18) as phdf:
+        with pytest.raises(RasPlanHdfError):
+            phdf.observed_timeseries_input(vartype="Flow")
