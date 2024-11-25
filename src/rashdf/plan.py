@@ -1132,15 +1132,8 @@ class RasPlanHdf(RasGeomHdf):
 
         Returns
         -------
-        Dict
-            A dictionary of xarray datasets with observed timeseries data for both reference lines and reference points.
-
-            Keys: Reference line and reference point names
-            Values: xarray Datasets with observed timeseries data
-                Coordinates:
-                - 'Date': datetime64[ns]
-                Data variables:
-                - 'Flow' or 'Stage': float64
+        xr.Dataset
+            An xarray Dataset with observed timeseries input data for both reference lines and reference points.
         """
         if vartype == "Flow":
             output_path = self.OBS_FLOW_OUTPUT_PATH
@@ -1153,39 +1146,45 @@ class RasPlanHdf(RasGeomHdf):
         if observed_group is None:
             raise RasPlanHdfError(
                 f"Could not find HDF group at path '{output_path}'."
-                f" Does the Plan HDF file contain reference {vartype[:-1]} output data?"
+                f" Does the Plan HDF file contain reference {vartype} output data?"
             )
         if "Attributes" in observed_group.keys():
             attr_path = observed_group["Attributes"]
-            print(f"attr_path: {attr_path}")
             attrs_df = pd.DataFrame(attr_path[:]).map(convert_ras_hdf_value)
-            if vartype == "Flow":
-                attrs_df["Units"] = "cfs"
-            else:
-                attrs_df["Units"] = "ft"
 
         das = {}
-        for site in observed_group.keys():
+        for idx, site in enumerate(observed_group.keys()):
             if site != "Attributes":
                 # Site Ex: 'Ref Point: Grapevine_Lake_RP'
                 site_path = observed_group[site]
-                site_name = site.split(":")[1][1:]
-                data_df = pd.DataFrame(site_path[:]).map(convert_ras_hdf_value)
-                # Package into an xarray DataArray
+                site_name = site.split(":")[1][1:]  # Grapevine_Lake_RP
+                ref_type = site.split(":")[0]  # Ref Point
+                if ref_type == "Ref Line":
+                    ref_type = "refln"
+                else:
+                    ref_type = "refpt"
+                df = pd.DataFrame(site_path[:]).map(convert_ras_hdf_value)
+                # Ensure the Date index is unique
+                df = df.drop_duplicates(subset="Date")
+                # Package into an 1D xarray DataArray
+                values = df["Value"].values
+                times = df["Date"].values
                 da = xr.DataArray(
-                    data_df["Value"].values,
+                    values,
                     name=vartype,
                     dims=["Date"],
                     coords={
-                        "Date": data_df["Date"].values,
+                        "Date": times,
                     },
                     attrs={
-                        "units": attrs_df["Units"][0],
                         "hdf_path": f"{output_path}/{site}",
                     },
                 )
+                # Expand dimensions to add additional coordinates
+                da = da.expand_dims({f"{ref_type}_id": [idx - 1]})
+                da = da.expand_dims({f"{ref_type}_name": [site_name]})
                 das[site_name] = da
-
+        das = xr.concat([das[site] for site in das.keys()], dim="Date")
         return das
 
     def reference_points_timeseries_output(self) -> xr.Dataset:
