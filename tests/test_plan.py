@@ -625,7 +625,7 @@ def test_observed_timeseries_input_flow():
         ds = phdf.observed_timeseries_input(vartype="Flow")
         df = ds.sel(refln_name="Denton-Justin_RL").to_dataframe().dropna().reset_index()
         valid_df = pd.read_csv(TEST_CSV / "Denton-Justin_RL_Flow.csv")
-        valid_df["Date"] = pd.to_datetime(valid_df["Date"])
+        valid_df["time"] = pd.to_datetime(valid_df["time"])
         assert_frame_equal(df, valid_df)
 
 
@@ -636,7 +636,7 @@ def test_observed_timeseries_input_stage():
             ds.sel(refpt_name="Grapevine_Lake_RP").to_dataframe().dropna().reset_index()
         )
         valid_df = pd.read_csv(TEST_CSV / "Grapevine_Lake_RP_Stage.csv")
-        valid_df["Date"] = pd.to_datetime(valid_df["Date"])
+        valid_df["time"] = pd.to_datetime(valid_df["time"])
         assert_frame_equal(df, valid_df)
 
 
