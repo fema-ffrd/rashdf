@@ -1164,17 +1164,19 @@ class RasPlanHdf(RasGeomHdf):
                 else:
                     ref_type = "refpt"
                 df = pd.DataFrame(site_path[:]).map(convert_ras_hdf_value)
+                # rename Date to time
+                df = df.rename(columns={"Date": "time"})
                 # Ensure the Date index is unique
-                df = df.drop_duplicates(subset="Date")
+                df = df.drop_duplicates(subset="time")
                 # Package into an 1D xarray DataArray
                 values = df["Value"].values
-                times = df["Date"].values
+                times = df["time"].values
                 da = xr.DataArray(
                     values,
                     name=vartype,
-                    dims=["Date"],
+                    dims=["time"],
                     coords={
-                        "Date": times,
+                        "time": times,
                     },
                     attrs={
                         "hdf_path": f"{output_path}/{site}",
@@ -1184,7 +1186,7 @@ class RasPlanHdf(RasGeomHdf):
                 da = da.expand_dims({f"{ref_type}_id": [idx - 1]})
                 da = da.expand_dims({f"{ref_type}_name": [site_name]})
                 das[site_name] = da
-        das = xr.concat([das[site] for site in das.keys()], dim="Date")
+        das = xr.concat([das[site] for site in das.keys()], dim="time")
         return das
 
     def reference_points_timeseries_output(self) -> xr.Dataset:
