@@ -1121,7 +1121,7 @@ class RasPlanHdf(RasGeomHdf):
         """
         return self.reference_timeseries_output(reftype="lines")
 
-    def observed_timeseries_input(self, vartype: str = "Flow") -> dict:
+    def observed_timeseries_input(self, vartype: str = "Flow") -> xr.DataArray:
         """Return observed timeseries input data for reference lines and points from a HEC-RAS HDF plan file.
 
         Parameters
@@ -1132,8 +1132,8 @@ class RasPlanHdf(RasGeomHdf):
 
         Returns
         -------
-        xr.Dataset
-            An xarray Dataset with observed timeseries input data for both reference lines and reference points.
+        xr.DataArray
+            An xarray DataArray with observed timeseries input data for reference lines or reference points.
         """
         if vartype == "Flow":
             output_path = self.OBS_FLOW_OUTPUT_PATH
