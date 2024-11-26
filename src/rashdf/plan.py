@@ -6,6 +6,7 @@ from .utils import (
     ras_timesteps_to_datetimes,
     parse_ras_datetime_ms,
     deprecated,
+    convert_ras_hdf_value,
 )
 
 from geopandas import GeoDataFrame
@@ -156,6 +157,7 @@ class RasPlanHdf(RasGeomHdf):
     PLAN_INFO_PATH = "Plan Data/Plan Information"
     PLAN_PARAMS_PATH = "Plan Data/Plan Parameters"
     PRECIP_PATH = "Event Conditions/Meteorology/Precipitation"
+    OBS_DATA_PATH = "Event Conditions/Observed Data"
     RESULTS_UNSTEADY_PATH = "Results/Unsteady"
     RESULTS_UNSTEADY_SUMMARY_PATH = f"{RESULTS_UNSTEADY_PATH}/Summary"
     VOLUME_ACCOUNTING_PATH = f"{RESULTS_UNSTEADY_PATH}/Volume Accounting"
@@ -166,6 +168,8 @@ class RasPlanHdf(RasGeomHdf):
     UNSTEADY_TIME_SERIES_PATH = f"{BASE_OUTPUT_PATH}/Unsteady Time Series"
     REFERENCE_LINES_OUTPUT_PATH = f"{UNSTEADY_TIME_SERIES_PATH}/Reference Lines"
     REFERENCE_POINTS_OUTPUT_PATH = f"{UNSTEADY_TIME_SERIES_PATH}/Reference Points"
+    OBS_FLOW_OUTPUT_PATH = f"{OBS_DATA_PATH}/Flow"
+    OBS_STAGE_OUTPUT_PATH = f"{OBS_DATA_PATH}/Stage"
 
     RESULTS_STEADY_PATH = "Results/Steady"
     BASE_STEADY_PATH = f"{RESULTS_STEADY_PATH}/Output/Output Blocks/Base Output"
@@ -1116,6 +1120,74 @@ class RasPlanHdf(RasGeomHdf):
             An xarray Dataset with timeseries output data for reference lines.
         """
         return self.reference_timeseries_output(reftype="lines")
+
+    def observed_timeseries_input(self, vartype: str = "Flow") -> dict:
+        """Return observed timeseries input data for reference lines and points from a HEC-RAS HDF plan file.
+
+        Parameters
+        ----------
+        vartype : str, optional
+            The type of observed data to retrieve. Must be either "Flow" or "Stage".
+            (default: "Flow")
+
+        Returns
+        -------
+        xr.Dataset
+            An xarray Dataset with observed timeseries input data for both reference lines and reference points.
+        """
+        if vartype == "Flow":
+            output_path = self.OBS_FLOW_OUTPUT_PATH
+        elif vartype == "Stage":
+            output_path = self.OBS_STAGE_OUTPUT_PATH
+        else:
+            raise ValueError('vartype must be either "Flow" or "Stage".')
+
+        observed_group = self.get(output_path)
+        if observed_group is None:
+            raise RasPlanHdfError(
+                f"Could not find HDF group at path '{output_path}'."
+                f" Does the Plan HDF file contain reference {vartype} output data?"
+            )
+        if "Attributes" in observed_group.keys():
+            attr_path = observed_group["Attributes"]
+            attrs_df = pd.DataFrame(attr_path[:]).map(convert_ras_hdf_value)
+
+        das = {}
+        for idx, site in enumerate(observed_group.keys()):
+            if site != "Attributes":
+                # Site Ex: 'Ref Point: Grapevine_Lake_RP'
+                site_path = observed_group[site]
+                site_name = site.split(":")[1][1:]  # Grapevine_Lake_RP
+                ref_type = site.split(":")[0]  # Ref Point
+                if ref_type == "Ref Line":
+                    ref_type = "refln"
+                else:
+                    ref_type = "refpt"
+                df = pd.DataFrame(site_path[:]).map(convert_ras_hdf_value)
+                # rename Date to time
+                df = df.rename(columns={"Date": "time"})
+                # Ensure the Date index is unique
+                df = df.drop_duplicates(subset="time")
+                # Package into an 1D xarray DataArray
+                values = df["Value"].values
+                times = df["time"].values
+                da = xr.DataArray(
+                    values,
+                    name=vartype,
+                    dims=["time"],
+                    coords={
+                        "time": times,
+                    },
+                    attrs={
+                        "hdf_path": f"{output_path}/{site}",
+                    },
+                )
+                # Expand dimensions to add additional coordinates
+                da = da.expand_dims({f"{ref_type}_id": [idx - 1]})
+                da = da.expand_dims({f"{ref_type}_name": [site_name]})
+                das[site_name] = da
+        das = xr.concat([das[site] for site in das.keys()], dim="time")
+        return das
 
     def reference_points_timeseries_output(self) -> xr.Dataset:
         """Return timeseries output data for reference points from a HEC-RAS HDF plan file.

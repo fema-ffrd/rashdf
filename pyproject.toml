@@ -16,7 +16,7 @@ version = "0.6.0"
 dependencies = ["h5py", "geopandas>=1.0,<2.0", "pyarrow", "xarray"]
 
 [project.optional-dependencies]
-dev = ["pre-commit", "ruff", "pytest", "pytest-cov", "fiona", "kerchunk", "zarr", "dask", "fsspec", "s3fs"]
+dev = ["pre-commit", "ruff", "pytest", "pytest-cov", "kerchunk", "zarr", "dask", "fsspec", "s3fs", "fiona==1.9.6"]
 docs = ["sphinx", "numpydoc", "sphinx_rtd_theme"]
 
 [project.urls]
