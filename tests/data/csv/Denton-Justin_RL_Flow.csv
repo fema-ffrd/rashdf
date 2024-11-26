@@ -1,4 +1,4 @@
-refln_id,Date,refln_name,Flow
+refln_id,time,refln_name,Flow
 0,2015-10-22 23:45:00,Denton-Justin_RL,1.9600000381469727
 0,2015-10-23 00:00:00,Denton-Justin_RL,1.9600000381469727
 0,2015-10-23 00:15:00,Denton-Justin_RL,1.7999999523162842

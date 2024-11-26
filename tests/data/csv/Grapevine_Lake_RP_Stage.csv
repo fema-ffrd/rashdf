@@ -1,4 +1,4 @@
-refpt_id,Date,refpt_name,Stage
+refpt_id,time,refpt_name,Stage
 1,2015-10-22 23:00:00,Grapevine_Lake_RP,534.6328735351562
 1,2015-10-23 00:00:00,Grapevine_Lake_RP,534.6582641601562
 1,2015-10-23 01:00:00,Grapevine_Lake_RP,534.7096557617188
