@@ -160,7 +160,7 @@ class RasPlanHdf(RasGeomHdf):
     OBS_DATA_PATH = "Event Conditions/Observed Data"
     RESULTS_UNSTEADY_PATH = "Results/Unsteady"
     RESULTS_UNSTEADY_SUMMARY_PATH = f"{RESULTS_UNSTEADY_PATH}/Summary"
-    VOLUME_ACCOUNTING_PATH = f"{RESULTS_UNSTEADY_PATH}/Volume Accounting"
+    VOLUME_ACCOUNTING_PATH = f"{RESULTS_UNSTEADY_SUMMARY_PATH}/Volume Accounting"
     BASE_OUTPUT_PATH = f"{RESULTS_UNSTEADY_PATH}/Output/Output Blocks/Base Output"
     SUMMARY_OUTPUT_2D_FLOW_AREAS_PATH = (
         f"{BASE_OUTPUT_PATH}/Summary Output/2D Flow Areas"
