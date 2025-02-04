@@ -160,7 +160,7 @@ class RasPlanHdf(RasGeomHdf):
     OBS_DATA_PATH = "Event Conditions/Observed Data"
     RESULTS_UNSTEADY_PATH = "Results/Unsteady"
     RESULTS_UNSTEADY_SUMMARY_PATH = f"{RESULTS_UNSTEADY_PATH}/Summary"
-    VOLUME_ACCOUNTING_PATH = f"{RESULTS_UNSTEADY_PATH}/Volume Accounting"
+    VOLUME_ACCOUNTING_PATH = f"{RESULTS_UNSTEADY_SUMMARY_PATH}/Volume Accounting"
     BASE_OUTPUT_PATH = f"{RESULTS_UNSTEADY_PATH}/Output/Output Blocks/Base Output"
     SUMMARY_OUTPUT_2D_FLOW_AREAS_PATH = (
         f"{BASE_OUTPUT_PATH}/Summary Output/2D Flow Areas"
@@ -1511,7 +1511,7 @@ class RasPlanHdf(RasGeomHdf):
     def _zmeta(self, ds: xr.Dataset) -> Dict:
         """Given a xarray Dataset, return kerchunk-style zarr reference metadata."""
         from kerchunk.hdf import SingleHdf5ToZarr
-        import zarr
+        from zarr.storage import MemoryStore
         import base64
 
         encoding = {}
@@ -1546,7 +1546,7 @@ class RasPlanHdf(RasGeomHdf):
                 chunk_meta[chunk_key] = [str(self._loc), value["offset"], value["size"]]
         # "Write" the Dataset to a temporary in-memory zarr store (which
         # is the same a Python dictionary)
-        zarr_tmp = zarr.MemoryStore()
+        zarr_tmp = MemoryStore()
         # Use compute=False here because we don't _actually_ want to write
         # the data to the zarr store, we just want to generate the metadata.
         ds.to_zarr(zarr_tmp, mode="w", compute=False, encoding=encoding)
