@@ -1381,8 +1381,47 @@ class RasPlanHdf(RasGeomHdf):
         """
         return self.get_attrs(self.VOLUME_ACCOUNTING_PATH)
 
-    def enroachment_points(self) -> GeoDataFrame:  # noqa: D102
-        raise NotImplementedError
+    def encroachment_points(self, profile_name: str) -> GeoDataFrame:
+        """Return encroachment points from a HEC-RAS plan HDF file based on a user-specified flow profile.
+
+        Returns
+        -------
+        GeoDataframe
+            A GeoDataFrame with cross-section encroachments represented as Point geometry features along with pertinent attributes.
+        """
+        XSs = self.cross_sections()
+        XSs["Enc_Profile"] = profile_name
+
+        leftmost_sta = self.cross_sections_elevations()["elevation info"].apply(
+            lambda x: x[0][0]
+        )
+        left_enc_sta = self.cross_sections_additional_enc_station_left()[profile_name]
+        left_enc_points = GeoDataFrame(
+            pd.concat(
+                [
+                    XSs[["River", "Reach", "RS", "Enc_Profile"]],
+                    left_enc_sta.rename("Enc_Sta", inplace=False),
+                ],
+                axis=1,
+            ),
+            geometry=XSs.geometry.interpolate(left_enc_sta - leftmost_sta),
+        )
+        left_enc_points["Side"] = "Left"
+
+        right_enc_sta = self.cross_sections_additional_enc_station_right()[profile_name]
+        right_enc_points = GeoDataFrame(
+            pd.concat(
+                [
+                    XSs[["River", "Reach", "RS", "Enc_Profile"]],
+                    right_enc_sta.rename("Enc_Sta", inplace=False),
+                ],
+                axis=1,
+            ),
+            geometry=XSs.geometry.interpolate(right_enc_sta - leftmost_sta),
+        )
+        right_enc_points["Side"] = "Right"
+
+        return GeoDataFrame(pd.concat([left_enc_points, right_enc_points]))
 
     def steady_flow_names(self) -> list:
         """Return the profile information for each steady flow event.
