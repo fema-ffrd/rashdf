@@ -1389,8 +1389,8 @@ class RasPlanHdf(RasGeomHdf):
         GeoDataframe
             A GeoDataFrame with cross-section encroachments represented as Point geometry features along with pertinent attributes.
         """
-        XSs = self.cross_sections()
-        XSs["Enc_Profile"] = profile_name
+        cross_sections = self.cross_sections()
+        cross_sections["Enc_Profile"] = profile_name
 
         leftmost_sta = self.cross_sections_elevations()["elevation info"].apply(
             lambda x: x[0][0]
@@ -1399,12 +1399,12 @@ class RasPlanHdf(RasGeomHdf):
         left_enc_points = GeoDataFrame(
             pd.concat(
                 [
-                    XSs[["River", "Reach", "RS", "Enc_Profile"]],
+                    cross_sections[["River", "Reach", "RS", "Enc_Profile"]],
                     left_enc_sta.rename("Enc_Sta", inplace=False),
                 ],
                 axis=1,
             ),
-            geometry=XSs.geometry.interpolate(left_enc_sta - leftmost_sta),
+            geometry=cross_sections.geometry.interpolate(left_enc_sta - leftmost_sta),
         )
         left_enc_points["Side"] = "Left"
 
@@ -1412,12 +1412,12 @@ class RasPlanHdf(RasGeomHdf):
         right_enc_points = GeoDataFrame(
             pd.concat(
                 [
-                    XSs[["River", "Reach", "RS", "Enc_Profile"]],
+                    cross_sections[["River", "Reach", "RS", "Enc_Profile"]],
                     right_enc_sta.rename("Enc_Sta", inplace=False),
                 ],
                 axis=1,
             ),
-            geometry=XSs.geometry.interpolate(right_enc_sta - leftmost_sta),
+            geometry=cross_sections.geometry.interpolate(right_enc_sta - leftmost_sta),
         )
         right_enc_points["Side"] = "Right"
 
