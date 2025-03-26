@@ -408,7 +408,10 @@ class RasGeomHdf(RasHdf):
         GeoDataFrame
             A GeoDataFrame containing the model structures if they exist.
         """
-        if self.GEOM_STRUCTURES_PATH not in self:
+        if (
+            self.GEOM_STRUCTURES_PATH not in self
+            or f"{self.GEOM_STRUCTURES_PATH}/Attributes" not in self
+        ):
             return GeoDataFrame()
         struct_data = self[self.GEOM_STRUCTURES_PATH]
         v_conv_val = np.vectorize(convert_ras_hdf_value)
