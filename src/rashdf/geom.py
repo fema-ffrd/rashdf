@@ -257,7 +257,11 @@ class RasGeomHdf(RasHdf):
         dict
             Dictionary filled with geometry structures attributes.
         """
-        return self.get_attrs(self.GEOM_STRUCTURES_PATH)
+        return (
+            self.get_attrs(self.GEOM_STRUCTURES_PATH)
+            if self.GEOM_STRUCTURES_PATH in self
+            else dict()
+        )
 
     def get_geom_2d_flow_area_attrs(self) -> Dict:
         """Return geometry 2d flow area attributes from a HEC-RAS HDF file.
@@ -408,7 +412,10 @@ class RasGeomHdf(RasHdf):
         GeoDataFrame
             A GeoDataFrame containing the model structures if they exist.
         """
-        if self.GEOM_STRUCTURES_PATH not in self:
+        if (
+            self.GEOM_STRUCTURES_PATH not in self
+            or f"{self.GEOM_STRUCTURES_PATH}/Attributes" not in self
+        ):
             return GeoDataFrame()
         struct_data = self[self.GEOM_STRUCTURES_PATH]
         v_conv_val = np.vectorize(convert_ras_hdf_value)
