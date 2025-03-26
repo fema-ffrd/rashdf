@@ -1,0 +1,461 @@
+{
+    "type": "FeatureCollection",
+    "features": [
+        {
+            "id": "0",
+            "type": "Feature",
+            "properties": {
+                "River": "Beaver Creek",
+                "Reach": "Kentwood",
+                "RS": "5.99",
+                "Enc_Profile": "PF#2",
+                "Enc_Sta": 176.92,
+                "Side": "Left"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    0.01388839937458,
+                    0.74513518786371
+                ]
+            }
+        },
+        {
+            "id": "1",
+            "type": "Feature",
+            "properties": {
+                "River": "Beaver Creek",
+                "Reach": "Kentwood",
+                "RS": "5.875*",
+                "Enc_Profile": "PF#2",
+                "Enc_Sta": 332.68,
+                "Side": "Left"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    0.05704636004153,
+                    0.685733938522
+                ]
+            }
+        },
+        {
+            "id": "2",
+            "type": "Feature",
+            "properties": {
+                "River": "Beaver Creek",
+                "Reach": "Kentwood",
+                "RS": "5.76",
+                "Enc_Profile": "PF#2",
+                "Enc_Sta": 341.0,
+                "Side": "Left"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    0.07624024530036,
+                    0.58536612039423
+                ]
+            }
+        },
+        {
+            "id": "3",
+            "type": "Feature",
+            "properties": {
+                "River": "Beaver Creek",
+                "Reach": "Kentwood",
+                "RS": "5.685*",
+                "Enc_Profile": "PF#2",
+                "Enc_Sta": 441.45,
+                "Side": "Left"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    0.11155702963727,
+                    0.53394210024077
+                ]
+            }
+        },
+        {
+            "id": "4",
+            "type": "Feature",
+            "properties": {
+                "River": "Beaver Creek",
+                "Reach": "Kentwood",
+                "RS": "5.61",
+                "Enc_Profile": "PF#2",
+                "Enc_Sta": 494.17,
+                "Side": "Left"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    0.16475043154013,
+                    0.47702052748622
+                ]
+            }
+        },
+        {
+            "id": "5",
+            "type": "Feature",
+            "properties": {
+                "River": "Beaver Creek",
+                "Reach": "Kentwood",
+                "RS": "5.49*",
+                "Enc_Profile": "PF#2",
+                "Enc_Sta": 343.44,
+                "Side": "Left"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    0.23254723288707,
+                    0.36363811202698
+                ]
+            }
+        },
+        {
+            "id": "6",
+            "type": "Feature",
+            "properties": {
+                "River": "Beaver Creek",
+                "Reach": "Kentwood",
+                "RS": "5.41",
+                "Enc_Profile": "PF#2",
+                "Enc_Sta": 313.68,
+                "Side": "Left"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    0.29152704920011,
+                    0.26359860431742
+                ]
+            }
+        },
+        {
+            "id": "7",
+            "type": "Feature",
+            "properties": {
+                "River": "Beaver Creek",
+                "Reach": "Kentwood",
+                "RS": "5.39",
+                "Enc_Profile": "PF#2",
+                "Enc_Sta": 313.68,
+                "Side": "Left"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    0.30945415041177,
+                    0.24717319851861
+                ]
+            }
+        },
+        {
+            "id": "8",
+            "type": "Feature",
+            "properties": {
+                "River": "Beaver Creek",
+                "Reach": "Kentwood",
+                "RS": "5.24*",
+                "Enc_Profile": "PF#2",
+                "Enc_Sta": 85.7,
+                "Side": "Left"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    0.39560665779075,
+                    0.03210483108838
+                ]
+            }
+        },
+        {
+            "id": "9",
+            "type": "Feature",
+            "properties": {
+                "River": "Beaver Creek",
+                "Reach": "Kentwood",
+                "RS": "5.13",
+                "Enc_Profile": "PF#2",
+                "Enc_Sta": 145.0,
+                "Side": "Left"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    0.50378765947858,
+                    -0.09164774601
+                ]
+            }
+        },
+        {
+            "id": "10",
+            "type": "Feature",
+            "properties": {
+                "River": "Beaver Creek",
+                "Reach": "Kentwood",
+                "RS": "5.065*",
+                "Enc_Profile": "PF#2",
+                "Enc_Sta": 264.5,
+                "Side": "Left"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    0.59867100150556,
+                    -0.1379749574311
+                ]
+            }
+        },
+        {
+            "id": "11",
+            "type": "Feature",
+            "properties": {
+                "River": "Beaver Creek",
+                "Reach": "Kentwood",
+                "RS": "5.0",
+                "Enc_Profile": "PF#2",
+                "Enc_Sta": 384.0,
+                "Side": "Left"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    0.70284530409094,
+                    -0.1732475206763
+                ]
+            }
+        },
+        {
+            "id": "0",
+            "type": "Feature",
+            "properties": {
+                "River": "Beaver Creek",
+                "Reach": "Kentwood",
+                "RS": "5.99",
+                "Enc_Profile": "PF#2",
+                "Enc_Sta": 1202.33,
+                "Side": "Right"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    0.01388839937458,
+                    0.74513518786371
+                ]
+            }
+        },
+        {
+            "id": "1",
+            "type": "Feature",
+            "properties": {
+                "River": "Beaver Creek",
+                "Reach": "Kentwood",
+                "RS": "5.875*",
+                "Enc_Profile": "PF#2",
+                "Enc_Sta": 1242.07,
+                "Side": "Right"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    0.05704636004153,
+                    0.685733938522
+                ]
+            }
+        },
+        {
+            "id": "2",
+            "type": "Feature",
+            "properties": {
+                "River": "Beaver Creek",
+                "Reach": "Kentwood",
+                "RS": "5.76",
+                "Enc_Profile": "PF#2",
+                "Enc_Sta": 1016.91,
+                "Side": "Right"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    0.07624024530036,
+                    0.58536612039423
+                ]
+            }
+        },
+        {
+            "id": "3",
+            "type": "Feature",
+            "properties": {
+                "River": "Beaver Creek",
+                "Reach": "Kentwood",
+                "RS": "5.685*",
+                "Enc_Profile": "PF#2",
+                "Enc_Sta": 1241.63,
+                "Side": "Right"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    0.11155702963727,
+                    0.53394210024077
+                ]
+            }
+        },
+        {
+            "id": "4",
+            "type": "Feature",
+            "properties": {
+                "River": "Beaver Creek",
+                "Reach": "Kentwood",
+                "RS": "5.61",
+                "Enc_Profile": "PF#2",
+                "Enc_Sta": 1326.61,
+                "Side": "Right"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    0.16475043154013,
+                    0.47702052748622
+                ]
+            }
+        },
+        {
+            "id": "5",
+            "type": "Feature",
+            "properties": {
+                "River": "Beaver Creek",
+                "Reach": "Kentwood",
+                "RS": "5.49*",
+                "Enc_Profile": "PF#2",
+                "Enc_Sta": 1232.25,
+                "Side": "Right"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    0.23254723288707,
+                    0.36363811202698
+                ]
+            }
+        },
+        {
+            "id": "6",
+            "type": "Feature",
+            "properties": {
+                "River": "Beaver Creek",
+                "Reach": "Kentwood",
+                "RS": "5.41",
+                "Enc_Profile": "PF#2",
+                "Enc_Sta": 1292.23,
+                "Side": "Right"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    0.29152704920011,
+                    0.26359860431742
+                ]
+            }
+        },
+        {
+            "id": "7",
+            "type": "Feature",
+            "properties": {
+                "River": "Beaver Creek",
+                "Reach": "Kentwood",
+                "RS": "5.39",
+                "Enc_Profile": "PF#2",
+                "Enc_Sta": 1292.23,
+                "Side": "Right"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    0.30945415041177,
+                    0.24717319851861
+                ]
+            }
+        },
+        {
+            "id": "8",
+            "type": "Feature",
+            "properties": {
+                "River": "Beaver Creek",
+                "Reach": "Kentwood",
+                "RS": "5.24*",
+                "Enc_Profile": "PF#2",
+                "Enc_Sta": 1067.45,
+                "Side": "Right"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    0.39560665779075,
+                    0.03210483108838
+                ]
+            }
+        },
+        {
+            "id": "9",
+            "type": "Feature",
+            "properties": {
+                "River": "Beaver Creek",
+                "Reach": "Kentwood",
+                "RS": "5.13",
+                "Enc_Profile": "PF#2",
+                "Enc_Sta": 660.11,
+                "Side": "Right"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    0.50378765947858,
+                    -0.09164774601
+                ]
+            }
+        },
+        {
+            "id": "10",
+            "type": "Feature",
+            "properties": {
+                "River": "Beaver Creek",
+                "Reach": "Kentwood",
+                "RS": "5.065*",
+                "Enc_Profile": "PF#2",
+                "Enc_Sta": 906.65,
+                "Side": "Right"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    0.59867100150556,
+                    -0.1379749574311
+                ]
+            }
+        },
+        {
+            "id": "11",
+            "type": "Feature",
+            "properties": {
+                "River": "Beaver Creek",
+                "Reach": "Kentwood",
+                "RS": "5.0",
+                "Enc_Profile": "PF#2",
+                "Enc_Sta": 1296.57,
+                "Side": "Right"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    0.70284530409094,
+                    -0.1732475206763
+                ]
+            }
+        }
+    ]
+}

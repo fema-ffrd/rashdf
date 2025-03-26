@@ -650,3 +650,12 @@ def test_observed_timeseries_input_rasplanhdf_error():
     with RasPlanHdf(BALD_EAGLE_P18) as phdf:
         with pytest.raises(RasPlanHdfError):
             phdf.observed_timeseries_input(vartype="Flow")
+
+
+def test_encroachment_points():
+    enc_pnts_json = TEST_JSON / "encroachment_points.json"
+    with RasPlanHdf(FLODENCR_P01) as phdf:
+        assert _gdf_matches_json_alt(
+            phdf.encroachment_points(profile_name="PF#2"),
+            enc_pnts_json,
+        )
