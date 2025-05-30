@@ -155,7 +155,7 @@ def test_reference_points_names():
 
 def test_structs_not_found():
     with RasGeomHdf(COAL_G01) as ghdf:
-        assert (ghdf.structures(), None)
+        assert ghdf.structures().empty
 
 
 def test_cross_sections():
@@ -168,7 +168,7 @@ def test_cross_sections():
 
 def test_cross_sections_not_found():
     with RasGeomHdf(COAL_G01) as ghdf:
-        assert (ghdf.cross_sections(), None)
+        assert ghdf.cross_sections().empty
 
 
 def test_river_reaches():
@@ -179,7 +179,7 @@ def test_river_reaches():
 
 def test_river_reaches_not_found():
     with RasGeomHdf(COAL_G01) as ghdf:
-        assert (ghdf.river_reaches(), None)
+        assert ghdf.river_reaches().empty
 
 
 def test_cross_sections_elevations():
@@ -190,7 +190,7 @@ def test_cross_sections_elevations():
 
 def test_cross_sections_elevations_not_found():
     with RasGeomHdf(COAL_G01) as ghdf:
-        assert (ghdf.cross_sections_elevations(), None)
+        assert ghdf.cross_sections_elevations().empty
 
 
 def test_ic_points():
