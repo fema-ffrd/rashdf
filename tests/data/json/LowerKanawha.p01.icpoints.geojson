@@ -1,0 +1,9 @@
+{
+"type": "FeatureCollection",
+"name": "LowerKanawha.p01.icpoints",
+"features": [
+{ "type": "Feature", "properties": { "icpt_id": 0, "icpt_name": "Winfield_US", "mesh_name": "LKLE", "cell_id": 17723 }, "geometry": { "type": "Point", "coordinates": [ 3977672.268671900033951, 5945020.487209799699485 ] } },
+{ "type": "Feature", "properties": { "icpt_id": 1, "icpt_name": "Winfield_DS", "mesh_name": "LKLE", "cell_id": 23136 }, "geometry": { "type": "Point", "coordinates": [ 3973175.302725099958479, 5943493.215756200253963 ] } },
+{ "type": "Feature", "properties": { "icpt_id": 2, "icpt_name": "Ohio_DS", "mesh_name": "LKLE", "cell_id": 17766 }, "geometry": { "type": "Point", "coordinates": [ 3894207.684911699965596, 6045547.190536299720407 ] } }
+]
+}

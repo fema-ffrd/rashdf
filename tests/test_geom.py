@@ -1,7 +1,9 @@
+import geopandas as gpd
 from pathlib import Path
 import h5py
 from pyproj import CRS
 from src.rashdf import RasGeomHdf
+from pandas.testing import assert_frame_equal
 
 from . import _create_hdf_with_group_attrs, _gdf_matches_json, _gdf_matches_json_alt
 
@@ -11,6 +13,9 @@ COAL_G01 = TEST_DATA / "ras/Coal.g01.hdf"
 BAXTER_P01 = TEST_DATA / "ras_1d/Baxter.p01.hdf"
 TEST_JSON = TEST_DATA / "json"
 BALD_EAGLE_P18_REF = TEST_DATA / "ras/BaldEagleDamBrk.reflines-refpts.p18.hdf"
+LOWER_KANAWHA_P01_IC_POINTS = TEST_DATA / "ras/LowerKanawha.p01.icpoints.hdf"
+# LOWER_KANAWHA_P01_IC_POINTS_CSV = TEST_DATA / "csv/LowerKanawha.p01.icpoints.csv"
+LOWER_KANAWHA_P01_IC_POINTS_JSON = TEST_JSON / "LowerKanawha.p01.icpoints.geojson"
 
 TEST_ATTRS = {"test_attribute1": "test_str1", "test_attribute2": 500}
 
@@ -187,3 +192,17 @@ def test_cross_sections_elevations():
 def test_cross_sections_elevations_not_found():
     with RasGeomHdf(COAL_G01) as ghdf:
         assert (ghdf.cross_sections_elevations(), None)
+
+
+def test_ic_points():
+    with RasGeomHdf(LOWER_KANAWHA_P01_IC_POINTS) as ghdf:
+        gdf_ic_points = ghdf.ic_points()
+        valid_gdf = gpd.read_file(
+            LOWER_KANAWHA_P01_IC_POINTS_JSON,
+            crs=ghdf.projection(),
+        )
+        assert_frame_equal(
+            gdf_ic_points,
+            valid_gdf,
+            check_dtype=False,
+        )
