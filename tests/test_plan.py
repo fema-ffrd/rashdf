@@ -351,6 +351,12 @@ def test_bc_lines_timeseries(tmp_path: Path):
     assert_frame_equal(df, valid_df)
 
 
+def test_bc_line_timeseries_error():
+    plan_hdf = RasPlanHdf(LOWER_KANAWHA_P01_BC_LINES)
+    with pytest.raises(RasPlanHdfError):
+        plan_hdf.bc_line_timeseries_output("asdf")
+
+
 def test_reference_points(tmp_path: Path):
     plan_hdf = RasPlanHdf(BALD_EAGLE_P18_REF)
     gdf = plan_hdf.reference_points(datetime_to_str=True)
@@ -400,7 +406,7 @@ def test_cross_sections_additional_velocity_total():
 
 def test_cross_sections_additional_velocity_total_not_found():
     with RasPlanHdf(COAL_G01) as phdf:
-        assert (phdf.cross_sections_additional_velocity_total(), None)
+        assert phdf.cross_sections_additional_velocity_total().empty
 
 
 def test_cross_sections_additional_area_total():
@@ -413,7 +419,7 @@ def test_cross_sections_additional_area_total():
 
 def test_cross_sections_additional_area_total_not_found():
     with RasPlanHdf(COAL_G01) as phdf:
-        assert (phdf.cross_sections_additional_area_total(), None)
+        assert phdf.cross_sections_additional_area_total().empty
 
 
 def test_steady_flow_names():
@@ -423,7 +429,7 @@ def test_steady_flow_names():
 
 def test_steady_flow_names_not_found():
     with RasPlanHdf(COAL_G01) as phdf:
-        assert (phdf.steady_flow_names(), None)
+        assert phdf.steady_flow_names() == []
 
 
 def test_cross_sections_wsel():
@@ -434,7 +440,7 @@ def test_cross_sections_wsel():
 
 def test_cross_sections_wsel_not_found():
     with RasPlanHdf(COAL_G01) as phdf:
-        assert (phdf.cross_sections_wsel(), None)
+        assert phdf.cross_sections_wsel().empty
 
 
 def test_cross_sections_additional_enc_station_right():
@@ -448,7 +454,7 @@ def test_cross_sections_additional_enc_station_right():
 
 def test_cross_sections_additional_enc_station_right_not_found():
     with RasPlanHdf(COAL_G01) as phdf:
-        assert (phdf.cross_sections_additional_enc_station_right(), None)
+        assert phdf.cross_sections_additional_enc_station_right().empty
 
 
 def test_cross_sections_additional_enc_station_left():
@@ -461,7 +467,7 @@ def test_cross_sections_additional_enc_station_left():
 
 def test_cross_sections_additional_enc_station_left_not_found():
     with RasPlanHdf(COAL_G01) as phdf:
-        assert (phdf.cross_sections_additional_enc_station_left(), None)
+        assert phdf.cross_sections_additional_enc_station_left().empty
 
 
 def test_cross_sections_flow():

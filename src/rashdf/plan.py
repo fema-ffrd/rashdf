@@ -1499,7 +1499,7 @@ class RasPlanHdf(RasGeomHdf):
 
         return GeoDataFrame(pd.concat([left_enc_points, right_enc_points]))
 
-    def steady_flow_names(self) -> list:
+    def steady_flow_names(self) -> List[str]:
         """Return the profile information for each steady flow event.
 
         Returns
@@ -1508,7 +1508,7 @@ class RasPlanHdf(RasGeomHdf):
             A Dataframe containing the profile names for each event
         """
         if self.STEADY_PROFILES_PATH not in self:
-            return pd.DataFrame()
+            return []
 
         profile_data = self[self.STEADY_PROFILES_PATH]
         profile_attrs = profile_data["Profile Names"][()]
