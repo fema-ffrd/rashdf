@@ -442,7 +442,7 @@ class RasGeomHdf(RasHdf):
         raise NotImplementedError
 
     def ic_points(self) -> GeoDataFrame:  # noqa D102
-        """Return the initial condition points.
+        """Return initial conditions points.
 
         Returns
         -------

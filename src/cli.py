@@ -21,6 +21,7 @@ COMMANDS = [
     "mesh_cell_faces",
     "refinement_regions",
     "bc_lines",
+    "ic_points",
     "breaklines",
     "reference_lines",
     "reference_points",
