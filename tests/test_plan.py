@@ -5,9 +5,11 @@ from src.rashdf.plan import (
     TimeSeriesOutputVar,
 )
 
+import builtins
 import filecmp
 import json
 from pathlib import Path
+from unittest import mock
 
 import numpy as np
 import pandas as pd
@@ -334,10 +336,12 @@ def test_bc_lines_timeseries(tmp_path: Path):
     assert "Stage" in ds.variables
 
     q = ds["Flow"]
+    assert q.chunks is not None  # Ensure Dask chunks are set
     assert q.shape == (10, 577)
     assert q.attrs["units"] == "cfs"
 
     stage = ds["Stage"]
+    assert stage.chunks is not None  # Ensure Dask chunks are set
     assert stage.shape == (10, 577)
     assert stage.attrs["units"] == "ft"
 
@@ -349,6 +353,23 @@ def test_bc_lines_timeseries(tmp_path: Path):
         dtype={"Flow": np.float32, "Stage": np.float32},
     )
     assert_frame_equal(df, valid_df)
+
+
+def test_bc_lines_timeseries_no_dask(monkeypatch):
+    """Test that the bc_lines_timeseries_output method works without Dask."""
+    original_import = builtins.__import__
+
+    def mocked_import(name, *args, **kwargs):
+        if name == "dask.array":
+            raise ImportError("Dask is not available")
+        return original_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", mocked_import)
+
+    plan_hdf = RasPlanHdf(LOWER_KANAWHA_P01_BC_LINES)
+    ds = plan_hdf.bc_lines_timeseries_output()
+    assert ds["Flow"].chunks is None  # Ensure no Dask chunks are set
+    assert ds["Stage"].chunks is None
 
 
 def test_bc_line_timeseries_error():
