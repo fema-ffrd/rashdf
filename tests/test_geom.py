@@ -14,7 +14,6 @@ BAXTER_P01 = TEST_DATA / "ras_1d/Baxter.p01.hdf"
 TEST_JSON = TEST_DATA / "json"
 BALD_EAGLE_P18_REF = TEST_DATA / "ras/BaldEagleDamBrk.reflines-refpts.p18.hdf"
 LOWER_KANAWHA_P01_IC_POINTS = TEST_DATA / "ras/LowerKanawha.p01.icpoints.hdf"
-# LOWER_KANAWHA_P01_IC_POINTS_CSV = TEST_DATA / "csv/LowerKanawha.p01.icpoints.csv"
 LOWER_KANAWHA_P01_IC_POINTS_JSON = TEST_JSON / "LowerKanawha.p01.icpoints.geojson"
 
 TEST_ATTRS = {"test_attribute1": "test_str1", "test_attribute2": 500}
