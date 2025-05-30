@@ -168,6 +168,7 @@ class RasPlanHdf(RasGeomHdf):
     UNSTEADY_TIME_SERIES_PATH = f"{BASE_OUTPUT_PATH}/Unsteady Time Series"
     REFERENCE_LINES_OUTPUT_PATH = f"{UNSTEADY_TIME_SERIES_PATH}/Reference Lines"
     REFERENCE_POINTS_OUTPUT_PATH = f"{UNSTEADY_TIME_SERIES_PATH}/Reference Points"
+    BOUNDARY_CONDITIONS_OUTPUT_PATH = f"{UNSTEADY_TIME_SERIES_PATH}/Boundary Conditions"
     OBS_FLOW_OUTPUT_PATH = f"{OBS_DATA_PATH}/Flow"
     OBS_STAGE_OUTPUT_PATH = f"{OBS_DATA_PATH}/Stage"
 
@@ -1120,6 +1121,81 @@ class RasPlanHdf(RasGeomHdf):
             An xarray Dataset with timeseries output data for reference lines.
         """
         return self.reference_timeseries_output(reftype="lines")
+
+    def bc_line_timeseries_output(self, bc_line_name: str) -> xr.Dataset:
+        """Return timeseries output data for a specific boundary condition line from a HEC-RAS HDF plan file.
+
+        Parameters
+        ----------
+        bc_line_name : str
+            The name of the boundary condition line.
+
+        Returns
+        -------
+        xr.Dataset
+            An xarray Dataset with timeseries output data for the specified boundary condition line.
+        """
+        path = f"{self.BOUNDARY_CONDITIONS_OUTPUT_PATH}/{bc_line_name}"
+        dataset = self.get(path)
+        if dataset is None:
+            raise RasPlanHdfError(
+                f"Could not find HDF group at path '{path}'."
+                f" Does the Plan HDF file contain boundary condition output data for '{bc_line_name}'?"
+            )
+        columns = [c.decode("utf-8") for c in dataset.attrs["Columns"]]
+        ds = xr.Dataset()
+        try:
+            import dask.array as da
+
+            # TODO: user-specified chunks?
+            values = da.from_array(dataset, chunks=dataset.chunks)
+        except ImportError:
+            values = dataset[:]
+        for i, col in enumerate(columns):
+            units = dataset.attrs.get(col, None)
+            if units is not None:
+                units = units.decode("utf-8")
+            da = xr.DataArray(
+                values[:, i],
+                name=col,
+                dims=["time"],
+                coords={
+                    "time": self.unsteady_datetimes(),
+                },
+                attrs={
+                    "units": units,
+                    "hdf_path": f"{path}",
+                },
+            )
+            ds[col] = da
+        return ds
+
+    def bc_lines_timeseries_output(self) -> xr.Dataset:
+        """Return timeseries output data for boundary conditions lines from a HEC-RAS HDF plan file.
+
+        Returns
+        -------
+        xr.Dataset
+            An xarray Dataset with timeseries output data for boundary conditions lines.
+        """
+        df_bc_lines = self.bc_lines()
+        bc_lines_names = df_bc_lines["name"]
+        datasets = []
+        for bc_line_name in bc_lines_names:
+            ds_bc_line = self.bc_line_timeseries_output(bc_line_name)
+            datasets.append(ds_bc_line)
+        bc_line_ids = df_bc_lines["bc_line_id"].values
+        ds: xr.Dataset = xr.concat(
+            datasets, dim=pd.Index(bc_line_ids, name="bc_line_id")
+        )
+        ds = ds.assign_coords(
+            {
+                "bc_line_name": ("bc_line_id", bc_lines_names),
+                "bc_line_type": ("bc_line_id", df_bc_lines["type"]),
+                "mesh_name": ("bc_line_id", df_bc_lines["mesh_name"]),
+            }
+        )
+        return ds
 
     def observed_timeseries_input(self, vartype: str = "Flow") -> xr.DataArray:
         """Return observed timeseries input data for reference lines and points from a HEC-RAS HDF plan file.

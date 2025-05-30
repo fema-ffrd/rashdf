@@ -32,6 +32,7 @@ BALD_EAGLE_P18_REF = TEST_DATA / "ras/BaldEagleDamBrk.reflines-refpts.p18.hdf"
 DENTON = TEST_DATA / "ras/Denton.hdf"
 MUNCIE_G05 = TEST_DATA / "ras/Muncie.g05.hdf"
 COAL_G01 = TEST_DATA / "ras/Coal.g01.hdf"
+LOWER_KANAWHA_P01_BC_LINES = TEST_DATA / "ras/LowerKanawha.p01.bclines.hdf"
 BAXTER_P01 = TEST_DATA / "ras_1d/Baxter.p01.hdf"
 FLODENCR_P01 = TEST_DATA / "ras_1d/FLODENCR.p01.hdf"
 
@@ -318,6 +319,34 @@ def test_reference_lines_timeseries(tmp_path: Path):
         index_col="time",
         parse_dates=True,
         dtype={"Water Surface": np.float32, "Flow": np.float32},
+    )
+    assert_frame_equal(df, valid_df)
+
+
+def test_bc_lines_timeseries(tmp_path: Path):
+    plan_hdf = RasPlanHdf(LOWER_KANAWHA_P01_BC_LINES)
+    ds = plan_hdf.bc_lines_timeseries_output()
+    assert "time" in ds.coords
+    assert "bc_line_id" in ds.coords
+    assert "bc_line_name" in ds.coords
+    assert "mesh_name" in ds.coords
+    assert "Flow" in ds.variables
+    assert "Stage" in ds.variables
+
+    q = ds["Flow"]
+    assert q.shape == (10, 577)
+    assert q.attrs["units"] == "cfs"
+
+    stage = ds["Stage"]
+    assert stage.shape == (10, 577)
+    assert stage.attrs["units"] == "ft"
+
+    df = ds.sel(bc_line_id=7).to_dataframe()
+    valid_df = pd.read_csv(
+        TEST_CSV / "LowerKanawha.p01.bclines.7.csv",
+        index_col="time",
+        parse_dates=True,
+        dtype={"Flow": np.float32, "Stage": np.float32},
     )
     assert_frame_equal(df, valid_df)
 
