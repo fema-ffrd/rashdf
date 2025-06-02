@@ -11,6 +11,7 @@ RasGeomHdf
              mesh_cell_points,
              mesh_cell_faces,
              bc_lines,
+             ic_points
              breaklines,
              refinement_regions,
              reference_lines,

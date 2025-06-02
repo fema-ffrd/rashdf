@@ -24,6 +24,8 @@ RasPlanHdf
              reference_summary_output,
              reference_lines_timeseries_output,
              reference_points_timeseries_output,
+             bc_line_timeseries_output,
+             bc_lines_timeseries_output,
              observed_timeseries_input,
              get_plan_info_attrs,
              get_plan_param_attrs,

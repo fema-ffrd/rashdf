@@ -5,9 +5,11 @@ from src.rashdf.plan import (
     TimeSeriesOutputVar,
 )
 
+import builtins
 import filecmp
 import json
 from pathlib import Path
+from unittest import mock
 
 import numpy as np
 import pandas as pd
@@ -32,6 +34,7 @@ BALD_EAGLE_P18_REF = TEST_DATA / "ras/BaldEagleDamBrk.reflines-refpts.p18.hdf"
 DENTON = TEST_DATA / "ras/Denton.hdf"
 MUNCIE_G05 = TEST_DATA / "ras/Muncie.g05.hdf"
 COAL_G01 = TEST_DATA / "ras/Coal.g01.hdf"
+LOWER_KANAWHA_P01_BC_LINES = TEST_DATA / "ras/LowerKanawha.p01.bclines.hdf"
 BAXTER_P01 = TEST_DATA / "ras_1d/Baxter.p01.hdf"
 FLODENCR_P01 = TEST_DATA / "ras_1d/FLODENCR.p01.hdf"
 
@@ -322,6 +325,59 @@ def test_reference_lines_timeseries(tmp_path: Path):
     assert_frame_equal(df, valid_df)
 
 
+def test_bc_lines_timeseries(tmp_path: Path):
+    plan_hdf = RasPlanHdf(LOWER_KANAWHA_P01_BC_LINES)
+    ds = plan_hdf.bc_lines_timeseries_output()
+    assert "time" in ds.coords
+    assert "bc_line_id" in ds.coords
+    assert "bc_line_name" in ds.coords
+    assert "mesh_name" in ds.coords
+    assert "Flow" in ds.variables
+    assert "Stage" in ds.variables
+
+    q = ds["Flow"]
+    assert q.chunks is not None  # Ensure Dask chunks are set
+    assert q.shape == (10, 577)
+    assert q.attrs["units"] == "cfs"
+
+    stage = ds["Stage"]
+    assert stage.chunks is not None  # Ensure Dask chunks are set
+    assert stage.shape == (10, 577)
+    assert stage.attrs["units"] == "ft"
+
+    df = ds.sel(bc_line_id=7).to_dataframe()
+    valid_df = pd.read_csv(
+        TEST_CSV / "LowerKanawha.p01.bclines.7.csv",
+        index_col="time",
+        parse_dates=True,
+        dtype={"Flow": np.float32, "Stage": np.float32},
+    )
+    assert_frame_equal(df, valid_df)
+
+
+def test_bc_lines_timeseries_no_dask(monkeypatch):
+    """Test that the bc_lines_timeseries_output method works without Dask."""
+    original_import = builtins.__import__
+
+    def mocked_import(name, *args, **kwargs):
+        if name == "dask.array":
+            raise ImportError("Dask is not available")
+        return original_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", mocked_import)
+
+    plan_hdf = RasPlanHdf(LOWER_KANAWHA_P01_BC_LINES)
+    ds = plan_hdf.bc_lines_timeseries_output()
+    assert ds["Flow"].chunks is None  # Ensure no Dask chunks are set
+    assert ds["Stage"].chunks is None
+
+
+def test_bc_line_timeseries_error():
+    plan_hdf = RasPlanHdf(LOWER_KANAWHA_P01_BC_LINES)
+    with pytest.raises(RasPlanHdfError):
+        plan_hdf.bc_line_timeseries_output("asdf")
+
+
 def test_reference_points(tmp_path: Path):
     plan_hdf = RasPlanHdf(BALD_EAGLE_P18_REF)
     gdf = plan_hdf.reference_points(datetime_to_str=True)
@@ -371,7 +427,7 @@ def test_cross_sections_additional_velocity_total():
 
 def test_cross_sections_additional_velocity_total_not_found():
     with RasPlanHdf(COAL_G01) as phdf:
-        assert (phdf.cross_sections_additional_velocity_total(), None)
+        assert phdf.cross_sections_additional_velocity_total().empty
 
 
 def test_cross_sections_additional_area_total():
@@ -384,7 +440,7 @@ def test_cross_sections_additional_area_total():
 
 def test_cross_sections_additional_area_total_not_found():
     with RasPlanHdf(COAL_G01) as phdf:
-        assert (phdf.cross_sections_additional_area_total(), None)
+        assert phdf.cross_sections_additional_area_total().empty
 
 
 def test_steady_flow_names():
@@ -394,7 +450,7 @@ def test_steady_flow_names():
 
 def test_steady_flow_names_not_found():
     with RasPlanHdf(COAL_G01) as phdf:
-        assert (phdf.steady_flow_names(), None)
+        assert phdf.steady_flow_names() == []
 
 
 def test_cross_sections_wsel():
@@ -405,7 +461,7 @@ def test_cross_sections_wsel():
 
 def test_cross_sections_wsel_not_found():
     with RasPlanHdf(COAL_G01) as phdf:
-        assert (phdf.cross_sections_wsel(), None)
+        assert phdf.cross_sections_wsel().empty
 
 
 def test_cross_sections_additional_enc_station_right():
@@ -419,7 +475,7 @@ def test_cross_sections_additional_enc_station_right():
 
 def test_cross_sections_additional_enc_station_right_not_found():
     with RasPlanHdf(COAL_G01) as phdf:
-        assert (phdf.cross_sections_additional_enc_station_right(), None)
+        assert phdf.cross_sections_additional_enc_station_right().empty
 
 
 def test_cross_sections_additional_enc_station_left():
@@ -432,7 +488,7 @@ def test_cross_sections_additional_enc_station_left():
 
 def test_cross_sections_additional_enc_station_left_not_found():
     with RasPlanHdf(COAL_G01) as phdf:
-        assert (phdf.cross_sections_additional_enc_station_left(), None)
+        assert phdf.cross_sections_additional_enc_station_left().empty
 
 
 def test_cross_sections_flow():

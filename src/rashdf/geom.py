@@ -41,6 +41,7 @@ class RasGeomHdf(RasHdf):
     GEOM_STRUCTURES_PATH = f"{GEOM_PATH}/Structures"
     FLOW_AREA_2D_PATH = f"{GEOM_PATH}/2D Flow Areas"
     BC_LINES_PATH = f"{GEOM_PATH}/Boundary Condition Lines"
+    IC_POINTS_PATH = f"{GEOM_PATH}/IC Points"
     BREAKLINES_PATH = f"{GEOM_PATH}/2D Flow Area Break Lines"
     REFERENCE_LINES_PATH = f"{GEOM_PATH}/Reference Lines"
     REFERENCE_POINTS_PATH = f"{GEOM_PATH}/Reference Points"
@@ -441,7 +442,32 @@ class RasGeomHdf(RasHdf):
         raise NotImplementedError
 
     def ic_points(self) -> GeoDataFrame:  # noqa D102
-        raise NotImplementedError
+        """Return initial conditions points.
+
+        Returns
+        -------
+        GeoDataFrame
+            A GeoDataFrame containing the initial condition points if they exist.
+        """
+        if self.IC_POINTS_PATH not in self:
+            return GeoDataFrame()
+        ic_data = self[self.IC_POINTS_PATH]
+        v_conv_str = np.vectorize(convert_ras_hdf_string)
+        names = v_conv_str(ic_data["Attributes"][()]["Name"])
+        mesh_names = v_conv_str(ic_data["Attributes"][()]["SA/2D"])
+        cell_ids = ic_data["Attributes"][()]["Cell Index"]
+        points = ic_data["Points"][()]
+        return GeoDataFrame(
+            {
+                "icpt_id": range(len(names)),
+                "icpt_name": names,
+                "mesh_name": mesh_names,
+                "cell_id": cell_ids,
+                "geometry": list(map(Point, points)),
+            },
+            geometry="geometry",
+            crs=self.projection(),
+        )
 
     def _reference_lines_points_names(
         self, reftype: str = "lines", mesh_name: Optional[str] = None
