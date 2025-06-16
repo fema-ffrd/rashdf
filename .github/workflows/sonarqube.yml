@@ -52,20 +52,28 @@ jobs:
     
     - name: Extract SonarQube Results
       run: |
+        # Wait for analysis to be processed
+        echo "Waiting for SonarQube analysis processing..."
         sleep 15
         
         echo "## SonarQube Analysis Results" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         
-        MEASURES=$(curl -s -u admin:admin "http://localhost:9000/api/measures/component?component=rashdf&metricKeys=bugs,vulnerabilities,code_smells,duplicated_lines_density,ncloc,sqale_rating,reliability_rating,security_rating")
+        # Get project measures
+        echo "Fetching project measures..."
+        MEASURES=$(curl -s -u admin:admin "http://localhost:9000/api/measures/component?component=rashdf&metricKeys=bugs,vulnerabilities,code_smells,coverage,duplicated_lines_density,ncloc,sqale_rating,reliability_rating,security_rating")
+        echo "Measures response: $MEASURES"
         
         if echo "$MEASURES" | jq -e '.component.measures' > /dev/null 2>&1; then
           echo "### Key Metrics:" >> $GITHUB_STEP_SUMMARY
           echo "$MEASURES" | jq -r '.component.measures[] | "- **\(.metric)**: \(.value // "N/A")"' >> $GITHUB_STEP_SUMMARY
           
+          # Extract specific metrics for later use
           BUGS=$(echo "$MEASURES" | jq -r '.component.measures[] | select(.metric == "bugs") | .value // "0"')
           VULNERABILITIES=$(echo "$MEASURES" | jq -r '.component.measures[] | select(.metric == "vulnerabilities") | .value // "0"')
           CODE_SMELLS=$(echo "$MEASURES" | jq -r '.component.measures[] | select(.metric == "code_smells") | .value // "0"')
+          
+          echo "Extracted metrics - Bugs: $BUGS, Vulnerabilities: $VULNERABILITIES, Code Smells: $CODE_SMELLS"
         else
           echo "### Key Metrics:" >> $GITHUB_STEP_SUMMARY
           echo "- Unable to retrieve metrics data" >> $GITHUB_STEP_SUMMARY
@@ -74,13 +82,18 @@ jobs:
           CODE_SMELLS=0
         fi
         
+        # Get issues summary
+        echo "Fetching issues summary..."
         ISSUES=$(curl -s -u admin:admin "http://localhost:9000/api/issues/search?componentKeys=rashdf&facets=severities,types")
+        echo "Issues response (first 500 chars): ${ISSUES:0:500}"
         
         echo "" >> $GITHUB_STEP_SUMMARY
         if echo "$ISSUES" | jq -e '.facets' > /dev/null 2>&1; then
           echo "### Issues Summary:" >> $GITHUB_STEP_SUMMARY
           
+          # Check if there are any issues
           TOTAL_ISSUES=$(echo "$ISSUES" | jq -r '.total // 0')
+          echo "Total issues found: $TOTAL_ISSUES"
           
           if [ "$TOTAL_ISSUES" -eq 0 ]; then
             echo "- No issues found! ✅" >> $GITHUB_STEP_SUMMARY
@@ -88,12 +101,14 @@ jobs:
             echo "**Total Issues:** $TOTAL_ISSUES" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             
+            # Show breakdown by severity
             if echo "$ISSUES" | jq -e '.facets[] | select(.property == "severities")' > /dev/null 2>&1; then
               echo "**By Severity:**" >> $GITHUB_STEP_SUMMARY
               echo "$ISSUES" | jq -r '.facets[] | select(.property == "severities") | .values[] | "- \(.val): \(.count)"' >> $GITHUB_STEP_SUMMARY
               echo "" >> $GITHUB_STEP_SUMMARY
             fi
             
+            # Show breakdown by type
             if echo "$ISSUES" | jq -e '.facets[] | select(.property == "types")' > /dev/null 2>&1; then
               echo "**By Type:**" >> $GITHUB_STEP_SUMMARY
               echo "$ISSUES" | jq -r '.facets[] | select(.property == "types") | .values[] | "- \(.val): \(.count)"' >> $GITHUB_STEP_SUMMARY
@@ -105,10 +120,111 @@ jobs:
           TOTAL_ISSUES=0
         fi
         
+        # Store results for comment step
         echo "TOTAL_ISSUES=$TOTAL_ISSUES" >> $GITHUB_ENV
         echo "BUGS=$BUGS" >> $GITHUB_ENV
         echo "VULNERABILITIES=$VULNERABILITIES" >> $GITHUB_ENV
         echo "CODE_SMELLS=$CODE_SMELLS" >> $GITHUB_ENV
+    
+    - name: Generate Detailed Report
+      run: |
+        mkdir -p sonarqube-reports
+        
+        echo "Generating detailed SonarQube report..."
+        
+        # Create main report file
+        cat > sonarqube-reports/sonarqube-analysis-report.md << 'EOF'
+        # SonarQube Analysis Report
+        
+        **Analysis Date:** $(date -u '+%Y-%m-%d %H:%M:%S UTC')
+        **Project:** rashdf
+        **Branch:** ${{ github.ref_name }}
+        **Commit:** ${{ github.sha }}
+        
+        ## Summary
+        
+        EOF
+        
+        # Add metrics to report
+        if [ -n "$MEASURES" ] && echo "$MEASURES" | jq -e '.component.measures' > /dev/null 2>&1; then
+          echo "### Key Metrics" >> sonarqube-reports/sonarqube-analysis-report.md
+          echo "" >> sonarqube-reports/sonarqube-analysis-report.md
+          echo "$MEASURES" | jq -r '.component.measures[] | "- **\(.metric)**: \(.value // "N/A")"' >> sonarqube-reports/sonarqube-analysis-report.md
+          echo "" >> sonarqube-reports/sonarqube-analysis-report.md
+        fi
+        
+        # Add issue summary
+        if [ "$TOTAL_ISSUES" -gt 0 ]; then
+          echo "### Issues Overview" >> sonarqube-reports/sonarqube-analysis-report.md
+          echo "" >> sonarqube-reports/sonarqube-analysis-report.md
+          echo "**Total Issues:** $TOTAL_ISSUES" >> sonarqube-reports/sonarqube-analysis-report.md
+          echo "" >> sonarqube-reports/sonarqube-analysis-report.md
+          
+          if echo "$ISSUES" | jq -e '.facets' > /dev/null 2>&1; then
+            echo "**By Severity:**" >> sonarqube-reports/sonarqube-analysis-report.md
+            echo "$ISSUES" | jq -r '.facets[] | select(.property == "severities") | .values[] | "- \(.val): \(.count)"' >> sonarqube-reports/sonarqube-analysis-report.md
+            echo "" >> sonarqube-reports/sonarqube-analysis-report.md
+            
+            echo "**By Type:**" >> sonarqube-reports/sonarqube-analysis-report.md
+            echo "$ISSUES" | jq -r '.facets[] | select(.property == "types") | .values[] | "- \(.val): \(.count)"' >> sonarqube-reports/sonarqube-analysis-report.md
+            echo "" >> sonarqube-reports/sonarqube-analysis-report.md
+          fi
+          
+          # Get detailed issues
+          echo "Fetching detailed issue information..."
+          DETAILED_ISSUES=$(curl -s -u admin:admin "http://localhost:9000/api/issues/search?componentKeys=rashdf&ps=500")
+          echo "$DETAILED_ISSUES" > sonarqube-reports/detailed-issues.json
+          
+          # Parse and format detailed issues
+          echo "## Detailed Issues" >> sonarqube-reports/sonarqube-analysis-report.md
+          echo "" >> sonarqube-reports/sonarqube-analysis-report.md
+          
+          if echo "$DETAILED_ISSUES" | jq -e '.issues' > /dev/null 2>&1; then
+            # Group by severity
+            for severity in BLOCKER CRITICAL MAJOR MINOR INFO; do
+              COUNT=$(echo "$DETAILED_ISSUES" | jq -r "[.issues[] | select(.severity == \"$severity\")] | length")
+              if [ "$COUNT" -gt 0 ]; then
+                echo "### $severity Issues ($COUNT)" >> sonarqube-reports/sonarqube-analysis-report.md
+                echo "" >> sonarqube-reports/sonarqube-analysis-report.md
+                
+                echo "$DETAILED_ISSUES" | jq -r ".issues[] | select(.severity == \"$severity\") | \"#### \(.rule) - \(.type)
+        
+        **File:** \(.component | split(\":\")[1] // \"N/A\")
+        **Line:** \(.line // \"N/A\")
+        **Message:** \(.message)
+        **Effort:** \(.effort // \"N/A\")
+        
+        ---
+        \"" >> sonarqube-reports/sonarqube-analysis-report.md
+              fi
+            done
+          fi
+        else
+          echo "### ✅ No Issues Found!" >> sonarqube-reports/sonarqube-analysis-report.md
+          echo "" >> sonarqube-reports/sonarqube-analysis-report.md
+          echo "Great job! Your code passed SonarQube analysis without any issues." >> sonarqube-reports/sonarqube-analysis-report.md
+        fi
+        
+        # Create CSV report for easy analysis
+        if [ "$TOTAL_ISSUES" -gt 0 ] && echo "$DETAILED_ISSUES" | jq -e '.issues' > /dev/null 2>&1; then
+          echo "Creating CSV report..."
+          echo "Severity,Type,Rule,File,Line,Message,Effort" > sonarqube-reports/issues.csv
+          echo "$DETAILED_ISSUES" | jq -r '.issues[] | [.severity, .type, .rule, (.component | split(":")[1] // "N/A"), (.line // "N/A"), .message, (.effort // "N/A")] | @csv' >> sonarqube-reports/issues.csv
+        fi
+        
+        # Save raw JSON data
+        echo "$MEASURES" > sonarqube-reports/measures.json
+        echo "$ISSUES" > sonarqube-reports/issues-summary.json
+        
+        echo "Reports generated successfully!"
+        ls -la sonarqube-reports/
+    
+    - name: Upload SonarQube Reports
+      uses: actions/upload-artifact@v4
+      with:
+        name: sonarqube-analysis-report-${{ github.run_id }}
+        path: sonarqube-reports/
+        retention-days: 30
     
     - name: Comment on PR
       if: github.event_name == 'pull_request' && (env.TOTAL_ISSUES != '0' || env.BUGS != '0' || env.VULNERABILITIES != '0' || env.CODE_SMELLS != '0')
@@ -128,7 +244,18 @@ jobs:
           - 🧹 **Code Smells:** ${codeSmells}
           - 📊 **Total Issues:** ${totalIssues}
           
-          > 💡 Review the [workflow summary](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) for detailed metrics.
+          ### 📋 Detailed Reports Available
+          
+          📥 **[Download Full Report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})** - Click "Artifacts" section
+          
+          The detailed report includes:
+          - Complete breakdown by severity and type
+          - Specific file locations and line numbers  
+          - Rule descriptions and fix suggestions
+          - CSV format for spreadsheet analysis
+          - Raw JSON data for custom processing
+          
+          > 💡 Review the [workflow summary](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) for metrics and download the artifact for complete details.
           `;
           
           github.rest.issues.createComment({
