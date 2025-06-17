@@ -4,6 +4,7 @@ import h5py
 from pyproj import CRS
 from src.rashdf import RasGeomHdf
 from pandas.testing import assert_frame_equal
+import pytest
 
 from . import _create_hdf_with_group_attrs, _gdf_matches_json, _gdf_matches_json_alt
 
@@ -35,10 +36,26 @@ def test_mesh_area_names():
         assert ghdf.mesh_area_names() == ["2D Interior Area", "Perimeter_NW"]
 
 
+def test_invalid_mesh_area_names(tmp_path):
+    test_hdf = tmp_path / "test.hdf"
+    _create_hdf_with_group_attrs(test_hdf, RasGeomHdf.GEOM_PATH, TEST_ATTRS)
+    # Test the empty Mesh Area names
+    with RasGeomHdf(test_hdf) as ghdf:
+        assert ghdf.mesh_area_names() == []
+
+
 def test_mesh_areas():
     mesh_areas_json = TEST_JSON / "mesh_areas.json"
     with RasGeomHdf(MUNCIE_G05) as ghdf:
         assert _gdf_matches_json(ghdf.mesh_areas(), mesh_areas_json)
+
+
+def test_invalid_mesh_areas(tmp_path):
+    test_hdf = tmp_path / "test.hdf"
+    _create_hdf_with_group_attrs(test_hdf, RasGeomHdf.GEOM_PATH, TEST_ATTRS)
+    # Test the empty Mesh Areas
+    with RasGeomHdf(test_hdf) as ghdf:
+        assert ghdf.mesh_areas().empty
 
 
 def test_mesh_cell_faces():
@@ -47,16 +64,41 @@ def test_mesh_cell_faces():
         assert _gdf_matches_json(ghdf.mesh_cell_faces(), mesh_cell_faces_json)
 
 
+def test_invalid_mesh_faces(tmp_path):
+    test_hdf = tmp_path / "test.hdf"
+    _create_hdf_with_group_attrs(test_hdf, RasGeomHdf.GEOM_PATH, TEST_ATTRS)
+    # Test the empty Mesh Faces
+    with RasGeomHdf(test_hdf) as ghdf:
+        assert ghdf.mesh_cell_faces().empty
+
+
 def test_mesh_cell_points():
     mesh_cell_points_json = TEST_JSON / "mesh_cell_points.json"
     with RasGeomHdf(MUNCIE_G05) as ghdf:
         assert _gdf_matches_json(ghdf.mesh_cell_points(), mesh_cell_points_json)
 
 
+def test_invalid_mesh_cell_points(tmp_path):
+    test_hdf = tmp_path / "test.hdf"
+    _create_hdf_with_group_attrs(test_hdf, RasGeomHdf.GEOM_PATH, TEST_ATTRS)
+    # Test the empty Mesh Cell Points
+    with RasGeomHdf(test_hdf) as ghdf:
+        assert ghdf.mesh_cell_points().empty
+
+
 def test_mesh_cell_polygons():
     mesh_cell_polygons_json = TEST_JSON / "mesh_cell_polygons.json"
     with RasGeomHdf(MUNCIE_G05) as ghdf:
         assert _gdf_matches_json(ghdf.mesh_cell_polygons(), mesh_cell_polygons_json)
+
+
+def test_invalid_mesh_cell_polygons(tmp_path):
+    # Create a dummy HDF file
+    test_hdf = tmp_path / "test.hdf"
+    _create_hdf_with_group_attrs(test_hdf, RasGeomHdf.GEOM_PATH, TEST_ATTRS)
+    # Test the empty Mesh Cell Polygons
+    with RasGeomHdf(test_hdf) as ghdf:
+        assert ghdf.mesh_cell_polygons().empty
 
 
 def test_mesh_cell_polygons_coal():
@@ -116,6 +158,18 @@ def test_get_geom_2d_flow_area_attrs(tmp_path):
     )
     ras_hdf = RasGeomHdf(test_hdf)
     assert ras_hdf.get_geom_2d_flow_area_attrs() == TEST_ATTRS
+
+
+def test_invalid_get_geom_2d_flow_area_attrs(tmp_path):
+    test_hdf = tmp_path / "test.hdf"
+    _create_hdf_with_group_attrs(test_hdf, RasGeomHdf.GEOM_PATH, TEST_ATTRS)
+    ras_hdf = RasGeomHdf(test_hdf)
+
+    with pytest.raises(
+        AttributeError,
+        match=f"Unable to get 2D Flow Area; {RasGeomHdf.FLOW_AREA_2D_PATH} group not found in HDF5 file.",
+    ):
+        ras_hdf.get_geom_2d_flow_area_attrs()
 
 
 def test_structs():
