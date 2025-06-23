@@ -303,7 +303,7 @@ class RasGeomHdf(RasHdf):
                 points = polyline_points[pnt_start : pnt_start + pnt_cnt]
                 if part_cnt == 1:
                     geoms.append(LineString(points))
-                else:
+                else:  # pragma: no cover | TODO: add test coverage for this
                     parts = polyline_parts[part_start : part_start + part_cnt]
                     geoms.append(
                         MultiLineString(
@@ -395,7 +395,7 @@ class RasGeomHdf(RasHdf):
                 points = rr_data["Polygon Points"][()][pnt_start : pnt_start + pnt_cnt]
                 if part_cnt == 1:
                     geoms.append(Polygon(points))
-                else:
+                else:  # pragma: no cover | TODO: add test coverage for this
                     parts = rr_data["Polygon Parts"][()][
                         part_start : part_start + part_cnt
                     ]
