@@ -313,7 +313,9 @@ class RasGeomHdf(RasHdf):
                             )
                         )
                     )
-            except Exception as e:
+            except (
+                Exception
+            ) as e:  # pragma: no cover | TODO: add test coverage for this
                 geoms.append(None)
                 warn(
                     f"Feature ID {i} within '{Path(path).name}' layer set to null due to invalid geometry. {e}",
@@ -405,7 +407,9 @@ class RasGeomHdf(RasHdf):
                             )
                         )
                     )
-            except Exception as e:
+            except (
+                Exception
+            ) as e:  # pragma: no cover | TODO: add test coverage for this
                 geoms.append(None)
                 warn(
                     f"Feature ID {i} within '{Path(self.REFINEMENT_REGIONS_PATH).name}' layer set to null due to invalid geometry. {e}",
