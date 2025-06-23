@@ -17,6 +17,8 @@ from shapely import (
 )
 
 from typing import Dict, List, Optional, Union
+from warnings import warn
+from pathlib import Path
 
 
 from .base import RasHdf
@@ -29,7 +31,7 @@ from .utils import (
 
 
 class RasGeomHdfError(Exception):
-    """HEC-RAS Plan HDF error class."""
+    """HEC-RAS Geometry HDF error class."""
 
     pass
 
@@ -43,6 +45,7 @@ class RasGeomHdf(RasHdf):
     BC_LINES_PATH = f"{GEOM_PATH}/Boundary Condition Lines"
     IC_POINTS_PATH = f"{GEOM_PATH}/IC Points"
     BREAKLINES_PATH = f"{GEOM_PATH}/2D Flow Area Break Lines"
+    REFINEMENT_REGIONS_PATH = f"{GEOM_PATH}/2D Flow Area Refinement Regions"
     REFERENCE_LINES_PATH = f"{GEOM_PATH}/Reference Lines"
     REFERENCE_POINTS_PATH = f"{GEOM_PATH}/Reference Points"
     CROSS_SECTIONS = f"{GEOM_PATH}/Cross Sections"
@@ -295,19 +298,28 @@ class RasGeomHdf(RasHdf):
         polyline_points = self[polyline_points_path][()]
 
         geoms = []
-        for pnt_start, pnt_cnt, part_start, part_cnt in polyline_info:
-            points = polyline_points[pnt_start : pnt_start + pnt_cnt]
-            if part_cnt == 1:
-                geoms.append(LineString(points))
-            else:
-                parts = polyline_parts[part_start : part_start + part_cnt]
-                geoms.append(
-                    MultiLineString(
-                        list(
-                            points[part_pnt_start : part_pnt_start + part_pnt_cnt]
-                            for part_pnt_start, part_pnt_cnt in parts
+        for i, (pnt_start, pnt_cnt, part_start, part_cnt) in enumerate(polyline_info):
+            try:
+                points = polyline_points[pnt_start : pnt_start + pnt_cnt]
+                if part_cnt == 1:
+                    geoms.append(LineString(points))
+                else:  # pragma: no cover | TODO: add test coverage for this
+                    parts = polyline_parts[part_start : part_start + part_cnt]
+                    geoms.append(
+                        MultiLineString(
+                            list(
+                                points[part_pnt_start : part_pnt_start + part_pnt_cnt]
+                                for part_pnt_start, part_pnt_cnt in parts
+                            )
                         )
                     )
+            except (
+                Exception
+            ) as e:  # pragma: no cover | TODO: add test coverage for this
+                geoms.append(None)
+                warn(
+                    f"Feature ID {i} within '{Path(path).name}' layer set to null due to invalid geometry. {e}",
+                    UserWarning,
                 )
         return geoms
 
@@ -370,25 +382,38 @@ class RasGeomHdf(RasHdf):
         GeoDataFrame
             A GeoDataFrame containing the 2D mesh area refinement regions if they exist.
         """
-        if "/Geometry/2D Flow Area Refinement Regions" not in self:
+        if self.REFINEMENT_REGIONS_PATH not in self:
             return GeoDataFrame()
-        rr_data = self["/Geometry/2D Flow Area Refinement Regions"]
+        rr_data = self[self.REFINEMENT_REGIONS_PATH]
         rr_ids = range(rr_data["Attributes"][()].shape[0])
         names = np.vectorize(convert_ras_hdf_string)(rr_data["Attributes"][()]["Name"])
         geoms = list()
-        for pnt_start, pnt_cnt, part_start, part_cnt in rr_data["Polygon Info"][()]:
-            points = rr_data["Polygon Points"][()][pnt_start : pnt_start + pnt_cnt]
-            if part_cnt == 1:
-                geoms.append(Polygon(points))
-            else:
-                parts = rr_data["Polygon Parts"][()][part_start : part_start + part_cnt]
-                geoms.append(
-                    MultiPolygon(
-                        list(
-                            points[part_pnt_start : part_pnt_start + part_pnt_cnt]
-                            for part_pnt_start, part_pnt_cnt in parts
+        for i, (pnt_start, pnt_cnt, part_start, part_cnt) in enumerate(
+            rr_data["Polygon Info"][()]
+        ):
+            try:
+                points = rr_data["Polygon Points"][()][pnt_start : pnt_start + pnt_cnt]
+                if part_cnt == 1:
+                    geoms.append(Polygon(points))
+                else:  # pragma: no cover | TODO: add test coverage for this
+                    parts = rr_data["Polygon Parts"][()][
+                        part_start : part_start + part_cnt
+                    ]
+                    geoms.append(
+                        MultiPolygon(
+                            list(
+                                points[part_pnt_start : part_pnt_start + part_pnt_cnt]
+                                for part_pnt_start, part_pnt_cnt in parts
+                            )
                         )
                     )
+            except (
+                Exception
+            ) as e:  # pragma: no cover | TODO: add test coverage for this
+                geoms.append(None)
+                warn(
+                    f"Feature ID {i} within '{Path(self.REFINEMENT_REGIONS_PATH).name}' layer set to null due to invalid geometry. {e}",
+                    UserWarning,
                 )
         return GeoDataFrame(
             {"rr_id": rr_ids, "name": names, "geometry": geoms},
