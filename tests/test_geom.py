@@ -2,9 +2,10 @@ import geopandas as gpd
 from pathlib import Path
 import h5py
 from pyproj import CRS
-from src.rashdf import RasGeomHdf
+from src.rashdf.geom import RasGeomHdf, RasGeomHdfError
 from pandas.testing import assert_frame_equal
 import pytest
+import numpy as np
 
 from . import _create_hdf_with_group_attrs, _gdf_matches_json, _gdf_matches_json_alt
 
@@ -42,6 +43,20 @@ def test_invalid_mesh_area_names(tmp_path):
     # Test the empty Mesh Area names
     with RasGeomHdf(test_hdf) as ghdf:
         assert ghdf.mesh_area_names() == []
+
+
+def test_missing_mesh_in_mesh_area(tmp_path):
+    test_hdf = tmp_path / "test.hdf"
+    mesh_name = "blw-west-fork"
+    with h5py.File(test_hdf, "w") as f:
+        dtype = np.dtype([("Name", h5py.string_dtype("utf-8"))])
+        data = np.array([(mesh_name,)], dtype=dtype)
+        f.create_dataset(f"{RasGeomHdf.FLOW_AREA_2D_PATH}/Attributes", data=data)
+
+    ras_hdf = RasGeomHdf(test_hdf)
+    expected_error_message = f"Data for mesh '{mesh_name}' not found."
+    with pytest.raises(RasGeomHdfError, match=expected_error_message):
+        ras_hdf.mesh_areas()
 
 
 def test_mesh_areas():
