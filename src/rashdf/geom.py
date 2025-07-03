@@ -106,10 +106,15 @@ class RasGeomHdf(RasHdf):
         mesh_area_names = self.mesh_area_names()
         if not mesh_area_names:
             return GeoDataFrame()
-        mesh_area_polygons = [
-            Polygon(self[f"{self.FLOW_AREA_2D_PATH}/{n}/Perimeter"][()])
-            for n in mesh_area_names
-        ]
+
+        mesh_area_polygons = []
+        for n in mesh_area_names:
+            try:
+                mesh_area_polygons.append(
+                    Polygon(self[f"{self.FLOW_AREA_2D_PATH}/{n}/Perimeter"][()])
+                )
+            except KeyError as e:
+                raise RasGeomHdfError(f"Data for mesh '{n}' not found.") from e
         return GeoDataFrame(
             {"mesh_name": mesh_area_names, "geometry": mesh_area_polygons},
             geometry="geometry",
