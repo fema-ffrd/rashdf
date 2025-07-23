@@ -1224,9 +1224,6 @@ class RasPlanHdf(RasGeomHdf):
                 f"Could not find HDF group at path '{output_path}'."
                 f" Does the Plan HDF file contain reference {vartype} output data?"
             )
-        # if "Attributes" in observed_group.keys():
-        #     attr_path = observed_group["Attributes"]
-        #     attrs_df = pd.DataFrame(attr_path[:]).map(convert_ras_hdf_value)
 
         das = {}
         for idx, site in enumerate(observed_group.keys()):
