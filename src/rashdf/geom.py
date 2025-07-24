@@ -50,6 +50,9 @@ class RasGeomHdf(RasHdf):
     REFERENCE_POINTS_PATH = f"{GEOM_PATH}/Reference Points"
     CROSS_SECTIONS = f"{GEOM_PATH}/Cross Sections"
     RIVER_CENTERLINES = f"{GEOM_PATH}/River Centerlines"
+    SA_2D = "SA/2D"
+
+    LAST_EDITED_COLUMN = "Last Edited"
 
     def __init__(self, name: str, **kwargs):
         """Open a HEC-RAS Geometry HDF file.
@@ -87,13 +90,11 @@ class RasGeomHdf(RasHdf):
             A list of the 2D mesh area names (str) within the RAS geometry if 2D areas exist.
         """
         if self.FLOW_AREA_2D_PATH not in self:
-            return list()
-        return list(
-            [
-                convert_ras_hdf_string(n)
-                for n in self[f"{self.FLOW_AREA_2D_PATH}/Attributes"][()]["Name"]
-            ]
-        )
+            return []
+        return [
+            convert_ras_hdf_string(n)
+            for n in self[f"{self.FLOW_AREA_2D_PATH}/Attributes"][()]["Name"]
+        ]
 
     def mesh_areas(self) -> GeoDataFrame:
         """Return 2D flow area perimeter polygons.
@@ -147,7 +148,9 @@ class RasGeomHdf(RasHdf):
             ][()][:, 0]
             face_id_lists = list(
                 np.vectorize(
-                    lambda cell_id: str(
+                    lambda cell_id,
+                    cell_face_values=cell_face_values,
+                    cell_face_info=cell_face_info: str(
                         cell_face_values[
                             cell_face_info[cell_id][0] : cell_face_info[cell_id][0]
                             + cell_face_info[cell_id][1]
@@ -164,7 +167,7 @@ class RasGeomHdf(RasHdf):
             cell_dict["cell_id"] += cell_ids
             cell_dict["geometry"] += list(
                 np.vectorize(
-                    lambda face_id_list: (
+                    lambda face_id_list, mesh_faces=mesh_faces: (
                         lambda geom_col: Polygon((geom_col[0] or geom_col[3]).geoms[0])
                     )(
                         polygonize_full(
@@ -237,7 +240,7 @@ class RasGeomHdf(RasHdf):
                 face_id += 1
                 face_dict["mesh_name"].append(mesh_name)
                 face_dict["face_id"].append(face_id)
-                coordinates = list()
+                coordinates = []
                 coordinates.append(facepoints_coordinates[pnt_a_index])
                 starting_row, count = faces_perimeter_info[face_id]
                 if count > 0:
@@ -312,10 +315,10 @@ class RasGeomHdf(RasHdf):
                     parts = polyline_parts[part_start : part_start + part_cnt]
                     geoms.append(
                         MultiLineString(
-                            list(
+                            [
                                 points[part_pnt_start : part_pnt_start + part_pnt_cnt]
                                 for part_pnt_start, part_pnt_cnt in parts
-                            )
+                            ]
                         )
                     )
             except (
@@ -392,7 +395,7 @@ class RasGeomHdf(RasHdf):
         rr_data = self[self.REFINEMENT_REGIONS_PATH]
         rr_ids = range(rr_data["Attributes"][()].shape[0])
         names = np.vectorize(convert_ras_hdf_string)(rr_data["Attributes"][()]["Name"])
-        geoms = list()
+        geoms = []
         for i, (pnt_start, pnt_cnt, part_start, part_cnt) in enumerate(
             rr_data["Polygon Info"][()]
         ):
@@ -406,10 +409,10 @@ class RasGeomHdf(RasHdf):
                     ]
                     geoms.append(
                         MultiPolygon(
-                            list(
+                            [
                                 points[part_pnt_start : part_pnt_start + part_pnt_cnt]
                                 for part_pnt_start, part_pnt_cnt in parts
-                            )
+                            ]
                         )
                     )
             except (
@@ -463,9 +466,9 @@ class RasGeomHdf(RasHdf):
             crs=self.projection(),
         )
         if datetime_to_str:
-            struct_gdf["Last Edited"] = struct_gdf["Last Edited"].apply(
-                lambda x: pd.Timestamp.isoformat(x)
-            )
+            struct_gdf[self.LAST_EDITED_COLUMN] = struct_gdf[
+                self.LAST_EDITED_COLUMN
+            ].apply(lambda x: pd.Timestamp.isoformat(x))
         return struct_gdf
 
     def connections(self) -> GeoDataFrame:  # noqa D102
@@ -484,7 +487,7 @@ class RasGeomHdf(RasHdf):
         ic_data = self[self.IC_POINTS_PATH]
         v_conv_str = np.vectorize(convert_ras_hdf_string)
         names = v_conv_str(ic_data["Attributes"][()]["Name"])
-        mesh_names = v_conv_str(ic_data["Attributes"][()]["SA/2D"])
+        mesh_names = v_conv_str(ic_data["Attributes"][()][self.SA_2D])
         cell_ids = ic_data["Attributes"][()]["Cell Index"]
         points = ic_data["Points"][()]
         return GeoDataFrame(
@@ -523,7 +526,7 @@ class RasGeomHdf(RasHdf):
             sa_2d_field = "SA-2D"
         elif reftype == "points":
             path = self.REFERENCE_POINTS_PATH
-            sa_2d_field = "SA/2D"
+            sa_2d_field = self.SA_2D
         else:
             raise RasGeomHdfError(
                 f"Invalid reference type: {reftype} -- must be 'lines' or 'points'."
@@ -632,7 +635,7 @@ class RasGeomHdf(RasHdf):
         attributes = ref_points_group["Attributes"][:]
         v_conv_str = np.vectorize(convert_ras_hdf_string)
         names = v_conv_str(attributes["Name"])
-        mesh_names = v_conv_str(attributes["SA/2D"])
+        mesh_names = v_conv_str(attributes[self.SA_2D])
         cell_id = attributes["Cell Index"]
         points = ref_points_group["Points"][()]
         return GeoDataFrame(
@@ -659,7 +662,7 @@ class RasGeomHdf(RasHdf):
     def terrain_modifications(self) -> GeoDataFrame:  # noqa D102
         raise NotImplementedError
 
-    def cross_sections(self, datetime_to_str: bool = False) -> GeoDataFrame:
+    def get_1d_cross_sections(self, datetime_to_str: bool = False) -> GeoDataFrame:
         """Return the model 1D cross sections.
 
         Returns
@@ -684,7 +687,7 @@ class RasGeomHdf(RasHdf):
             crs=self.projection(),
         )
         if datetime_to_str:
-            xs_gdf["Last Edited"] = xs_gdf["Last Edited"].apply(
+            xs_gdf[self.LAST_EDITED_COLUMN] = xs_gdf[self.LAST_EDITED_COLUMN].apply(
                 lambda x: pd.Timestamp.isoformat(x)
             )
         return xs_gdf
@@ -707,7 +710,6 @@ class RasGeomHdf(RasHdf):
         river_dict.update(
             {name: v_conv_val(river_attrs[name]) for name in river_attrs.dtype.names}
         )
-        geoms = list()
         geoms = self._get_polylines(self.RIVER_CENTERLINES)
         river_gdf = GeoDataFrame(
             river_dict,
@@ -715,9 +717,9 @@ class RasGeomHdf(RasHdf):
             crs=self.projection(),
         )
         if datetime_to_str:
-            river_gdf["Last Edited"] = river_gdf["Last Edited"].apply(
-                lambda x: pd.Timestamp.isoformat(x)
-            )
+            river_gdf[self.LAST_EDITED_COLUMN] = river_gdf[
+                self.LAST_EDITED_COLUMN
+            ].apply(lambda x: pd.Timestamp.isoformat(x))
         return river_gdf
 
     def flowpaths(self) -> GeoDataFrame:  # noqa D102
@@ -751,19 +753,21 @@ class RasGeomHdf(RasHdf):
             return pd.DataFrame()
 
         xselev_data = self[path]
-        xs_df = self.cross_sections()
-        elevations = list()
+        xs_df = self.get_1d_cross_sections()
+        elevations = []
         for part_start, part_cnt in xselev_data["Station Elevation Info"][()]:
             xzdata = xselev_data["Station Elevation Values"][()][
                 part_start : part_start + part_cnt
             ]
             elevations.append(xzdata)
 
+        left_bank = "Left Bank"
+        right_bank = "Right Bank"
         xs_elev_df = xs_df[
-            ["xs_id", "River", "Reach", "RS", "Left Bank", "Right Bank"]
+            ["xs_id", "River", "Reach", "RS", left_bank, right_bank]
         ].copy()
-        xs_elev_df["Left Bank"] = xs_elev_df["Left Bank"].round(round_to).astype(str)
-        xs_elev_df["Right Bank"] = xs_elev_df["Right Bank"].round(round_to).astype(str)
+        xs_elev_df[left_bank] = xs_elev_df[left_bank].round(round_to).astype(str)
+        xs_elev_df[right_bank] = xs_elev_df[right_bank].round(round_to).astype(str)
         xs_elev_df["elevation info"] = elevations
 
         return xs_elev_df
