@@ -1462,7 +1462,7 @@ class RasPlanHdf(RasGeomHdf):
         GeoDataframe
             A GeoDataFrame with cross-section encroachments represented as Point geometry features along with pertinent attributes.
         """
-        cross_sections = self.get_1d_cross_sections()
+        cross_sections = self.cross_sections()
         cross_sections["Enc_Profile"] = profile_name
 
         leftmost_sta = self.cross_sections_elevations()["elevation info"].apply(

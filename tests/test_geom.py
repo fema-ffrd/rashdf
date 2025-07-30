@@ -231,13 +231,13 @@ def test_cross_sections():
     cross_section_json = TEST_JSON / "cross_sections.json"
     with RasGeomHdf(BAXTER_P01) as ghdf:
         assert _gdf_matches_json_alt(
-            ghdf.get_1d_cross_sections(datetime_to_str=True), cross_section_json
+            ghdf.cross_sections(datetime_to_str=True), cross_section_json
         )
 
 
 def test_cross_sections_not_found():
     with RasGeomHdf(COAL_G01) as ghdf:
-        assert ghdf.get_1d_cross_sections().empty
+        assert ghdf.cross_sections().empty
 
 
 def test_river_reaches():

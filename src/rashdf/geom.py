@@ -48,7 +48,7 @@ class RasGeomHdf(RasHdf):
     REFINEMENT_REGIONS_PATH = f"{GEOM_PATH}/2D Flow Area Refinement Regions"
     REFERENCE_LINES_PATH = f"{GEOM_PATH}/Reference Lines"
     REFERENCE_POINTS_PATH = f"{GEOM_PATH}/Reference Points"
-    CROSS_SECTIONS = f"{GEOM_PATH}/Cross Sections"
+    CROSS_SECTIONS_PATH = f"{GEOM_PATH}/Cross Sections"
     RIVER_CENTERLINES = f"{GEOM_PATH}/River Centerlines"
     SA_2D = "SA/2D"
 
@@ -662,7 +662,7 @@ class RasGeomHdf(RasHdf):
     def terrain_modifications(self) -> GeoDataFrame:  # noqa D102
         raise NotImplementedError
 
-    def get_1d_cross_sections(self, datetime_to_str: bool = False) -> GeoDataFrame:
+    def cross_sections(self, datetime_to_str: bool = False) -> GeoDataFrame:
         """Return the model 1D cross sections.
 
         Returns
@@ -670,17 +670,17 @@ class RasGeomHdf(RasHdf):
         GeoDataFrame
             A GeoDataFrame containing the model 1D cross sections if they exist.
         """
-        if self.CROSS_SECTIONS not in self:
+        if self.CROSS_SECTIONS_PATH not in self:
             return GeoDataFrame()
 
-        xs_data = self[self.CROSS_SECTIONS]
+        xs_data = self[self.CROSS_SECTIONS_PATH]
         v_conv_val = np.vectorize(convert_ras_hdf_value)
         xs_attrs = xs_data["Attributes"][()]
         xs_dict = {"xs_id": range(xs_attrs.shape[0])}
         xs_dict.update(
             {name: v_conv_val(xs_attrs[name]) for name in xs_attrs.dtype.names}
         )
-        geoms = self._get_polylines(self.CROSS_SECTIONS)
+        geoms = self._get_polylines(self.CROSS_SECTIONS_PATH)
         xs_gdf = GeoDataFrame(
             xs_dict,
             geometry=geoms,
@@ -753,7 +753,7 @@ class RasGeomHdf(RasHdf):
             return pd.DataFrame()
 
         xselev_data = self[path]
-        xs_df = self.get_1d_cross_sections()
+        xs_df = self.cross_sections()
         elevations = []
         for part_start, part_cnt in xselev_data["Station Elevation Info"][()]:
             xzdata = xselev_data["Station Elevation Values"][()][
