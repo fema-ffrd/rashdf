@@ -670,12 +670,12 @@ class RasGeomHdf(RasHdf):
         GeoDataFrame
             A GeoDataFrame containing the model 1D cross sections if they exist.
         """
-        if self.CROSS_SECTIONS_PATH not in self:
+        xs_attribute_path = self.CROSS_SECTIONS_PATH + "/Attributes"
+        if xs_attribute_path not in self:
             return GeoDataFrame()
 
-        xs_data = self[self.CROSS_SECTIONS_PATH]
+        xs_attrs = self[xs_attribute_path][()]
         v_conv_val = np.vectorize(convert_ras_hdf_value)
-        xs_attrs = xs_data["Attributes"][()]
         xs_dict = {"xs_id": range(xs_attrs.shape[0])}
         xs_dict.update(
             {name: v_conv_val(xs_attrs[name]) for name in xs_attrs.dtype.names}
