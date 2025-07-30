@@ -20,6 +20,9 @@ from datetime import datetime
 from enum import Enum
 from typing import Dict, List, Optional, Tuple, Union
 
+# Shared constant
+WATER_SURFACE = "Water Surface"
+
 
 class RasPlanHdfError(Exception):
     """HEC-RAS Plan HDF error class."""
@@ -32,7 +35,7 @@ class XsSteadyOutputVar(Enum):
 
     ENERGY_GRADE = "Energy Grade"
     FLOW = "Flow"
-    WATER_SURFACE = "Water Surface"
+    WATER_SURFACE = WATER_SURFACE
     ENCROACHMENT_STATION_LEFT = "Encroachment Station Left"
     ENCROACHMENT_STATION_RIGHT = "Encroachment Station Right"
     AREA_INEFFECTIVE_TOTAL = "Area including Ineffective Total"
@@ -77,7 +80,7 @@ class TimeSeriesOutputVar(Enum):
     """Time series output variables."""
 
     # Default Outputs
-    WATER_SURFACE = "Water Surface"
+    WATER_SURFACE = WATER_SURFACE
     FACE_VELOCITY = "Face Velocity"
 
     # Optional Outputs
@@ -141,7 +144,6 @@ TIME_SERIES_OUTPUT_VARS_FACES = [
     TimeSeriesOutputVar.FACE_TANGENTIAL_VELOCITY,
     TimeSeriesOutputVar.FACE_VELOCITY,
     TimeSeriesOutputVar.FACE_WATER_SURFACE,
-    # TODO: investigate why "Face Wind Term" data gets written as a 1D array
     # TimeSeriesOutputVar.FACE_WIND_TERM,
 ]
 
@@ -177,6 +179,8 @@ class RasPlanHdf(RasGeomHdf):
     STEADY_PROFILES_PATH = f"{BASE_STEADY_PATH}/Steady Profiles"
     STEADY_XS_PATH = f"{STEADY_PROFILES_PATH}/Cross Sections"
     STEADY_XS_ADDITIONAL_PATH = f"{STEADY_XS_PATH}/Additional Variables"
+
+    INVALID_REFTYPE_ERROR = 'reftype must be either "lines" or "points".'
 
     def __init__(self, name: str, **kwargs):
         """Open a HEC-RAS Plan HDF file.
@@ -297,7 +301,7 @@ class RasPlanHdf(RasGeomHdf):
         self,
         mesh_name: str,
         var: SummaryOutputVar,
-        time_unit: str = "days",
+        time_unit: str = None,
         round_to: str = "0.1 s",
     ) -> np.ndarray[np.datetime64]:
         """Return an array of times for min/max summary output data.
@@ -321,7 +325,8 @@ class RasPlanHdf(RasGeomHdf):
         """
         start_time = self._simulation_start_time()
         max_ws_group = self._mesh_summary_output_group(mesh_name, var)
-        time_unit = self._summary_output_min_max_time_unit(max_ws_group)
+        if time_unit is None:
+            time_unit = self._summary_output_min_max_time_unit(max_ws_group)
         max_ws_raw = max_ws_group[:]
         max_ws_times_raw = max_ws_raw[1]
         # we get weirdly specific datetime values if we don't round to e.g., 0.1 seconds;
@@ -693,7 +698,7 @@ class RasPlanHdf(RasGeomHdf):
         """
         mesh_names_counts = self._2d_flow_area_names_and_counts()
         mesh_names = [mesh_name for mesh_name, _ in mesh_names_counts]
-        vars = set()
+        summary_vars = set()
         for mesh_name in mesh_names:
             path = f"{self.SUMMARY_OUTPUT_2D_FLOW_AREAS_PATH}/{mesh_name}"
             datasets = self[path].keys()
@@ -702,12 +707,12 @@ class RasPlanHdf(RasGeomHdf):
                     var = SummaryOutputVar(dataset)
                 except ValueError:
                     continue
-                vars.add(var)
+                summary_vars.add(var)
         if cells_or_faces == "cells":
-            vars = vars.intersection(SUMMARY_OUTPUT_VARS_CELLS)
+            summary_vars = summary_vars.intersection(SUMMARY_OUTPUT_VARS_CELLS)
         elif cells_or_faces == "faces":
-            vars = vars.intersection(SUMMARY_OUTPUT_VARS_FACES)
-        return sorted(list(vars), key=lambda x: x.value)
+            summary_vars = summary_vars.intersection(SUMMARY_OUTPUT_VARS_FACES)
+        return sorted(summary_vars, key=lambda x: x.value)
 
     def _mesh_summary_outputs_gdf(
         self,
@@ -894,7 +899,6 @@ class RasPlanHdf(RasGeomHdf):
         try:
             import dask.array as da
 
-            # TODO: user-specified chunks?
             values = da.from_array(group, chunks=group.chunks)
         except ImportError:
             values = group[:]
@@ -926,9 +930,7 @@ class RasPlanHdf(RasGeomHdf):
             An xarray DataArray with dimensions 'time' and 'cell_id'.
         """
         times = self.unsteady_datetimes()
-        mesh_names_counts = {
-            name: count for name, count in self._2d_flow_area_names_and_counts()
-        }
+        mesh_names_counts = dict(self._2d_flow_area_names_and_counts())
         if mesh_name not in mesh_names_counts:
             raise ValueError(f"Mesh '{mesh_name}' not found in the Plan HDF file.")
         if isinstance(var, str):
@@ -1067,7 +1069,7 @@ class RasPlanHdf(RasGeomHdf):
             output_path = self.REFERENCE_POINTS_OUTPUT_PATH
             abbrev = "refpt"
         else:
-            raise ValueError('reftype must be either "lines" or "points".')
+            raise ValueError(self.INVALID_REFTYPE_ERROR)
         reference_group = self.get(output_path)
         if reference_group is None:
             raise RasPlanHdfError(
@@ -1085,14 +1087,13 @@ class RasPlanHdf(RasGeomHdf):
         times = self.unsteady_datetimes()
 
         das = {}
-        for var in ["Flow", "Velocity", "Water Surface"]:
+        for var in ["Flow", "Velocity", WATER_SURFACE]:
             group = reference_group.get(var)
             if group is None:
                 continue
             try:
                 import dask.array as da
 
-                # TODO: user-specified chunks?
                 values = da.from_array(group, chunks=group.chunks)
             except ImportError:
                 values = group[:]
@@ -1147,7 +1148,6 @@ class RasPlanHdf(RasGeomHdf):
         try:
             import dask.array as da
 
-            # TODO: user-specified chunks?
             values = da.from_array(dataset, chunks=dataset.chunks)
         except ImportError:
             values = dataset[:]
@@ -1224,9 +1224,6 @@ class RasPlanHdf(RasGeomHdf):
                 f"Could not find HDF group at path '{output_path}'."
                 f" Does the Plan HDF file contain reference {vartype} output data?"
             )
-        if "Attributes" in observed_group.keys():
-            attr_path = observed_group["Attributes"]
-            attrs_df = pd.DataFrame(attr_path[:]).map(convert_ras_hdf_value)
 
         das = {}
         for idx, site in enumerate(observed_group.keys()):
@@ -1288,19 +1285,19 @@ class RasPlanHdf(RasGeomHdf):
         elif reftype == "points":
             abbrev = "refpt"
         else:
-            raise ValueError('reftype must be either "lines" or "points".')
+            raise ValueError(self.INVALID_REFTYPE_ERROR)
         ds = self.reference_timeseries_output(reftype=reftype)
         result = {
             f"{abbrev}_id": ds[f"{abbrev}_id"],
             f"{abbrev}_name": ds[f"{abbrev}_name"],
             "mesh_name": ds.mesh_name,
         }
-        vars = {
+        var_abbrevs = {
             "Flow": "q",
-            "Water Surface": "ws",
+            WATER_SURFACE: "ws",
             "Velocity": "v",
         }
-        for var, abbrev in vars.items():
+        for var, abbrev in var_abbrevs.items():
             if var not in ds:
                 continue
             max_var = ds[var].max(dim="time")
@@ -1326,7 +1323,7 @@ class RasPlanHdf(RasGeomHdf):
             abbrev = "refpt"
             gdf = super().reference_points()
         else:
-            raise ValueError('reftype must be either "lines" or "points".')
+            raise ValueError(self.INVALID_REFTYPE_ERROR)
         if include_output is False:
             return gdf
         summary_output = self.reference_summary_output(reftype=reftype)
@@ -1650,7 +1647,6 @@ class RasPlanHdf(RasGeomHdf):
             # and a bit risky because these private methods are more likely
             # to change, but short of reimplementing these functions ourselves
             # it's the best way to get the metadata we need.
-            # TODO: raise an issue in Kerchunk to expose this functionality?
             filters = SingleHdf5ToZarr._decode_filters(None, hdf_ds)
             encoding[var] = {"compressor": None, "filters": filters}
             storage_info = SingleHdf5ToZarr._storage_info(None, hdf_ds)

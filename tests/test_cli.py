@@ -4,6 +4,7 @@ from src.cli import (
     docstring_to_help,
     fiona_supported_drivers,
     pyogrio_supported_drivers,
+    _load_hdf_class,
 )
 
 import geopandas as gpd
@@ -13,6 +14,7 @@ import pytest
 import builtins
 import json
 from pathlib import Path
+from argparse import Namespace
 
 TEST_DATA = Path("./tests/data")
 MUNCIE_G05 = TEST_DATA / "ras/Muncie.g05.hdf"
@@ -168,3 +170,20 @@ def test_print_fiona_supported_drivers(capfd):
     assert "GeoJSON" in captured.out
     assert "GPKG" in captured.out
     assert "MBTiles" not in captured.out
+
+
+def test_load_hdf_class_remote_plan(monkeypatch):
+    import src.cli
+
+    fake_uri_path = "s3://some-bucket/BaldEagle.p18.hdf"
+    args = Namespace(hdf_file=fake_uri_path)
+
+    class MockRasPlanHdf:
+        def open_uri(path):
+            return Namespace(path=path)
+
+    # Replace RasPlanHdf with Mock so open_uri() works with fake path
+    monkeypatch.setattr(src.cli, "RasPlanHdf", MockRasPlanHdf)
+
+    geom_hdf = _load_hdf_class(args)
+    assert geom_hdf.path == fake_uri_path

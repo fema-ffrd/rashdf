@@ -42,14 +42,14 @@ def parse_ras_datetime(datetime_str: str) -> datetime:
     -------
         datetime: A datetime object representing the parsed datetime.
     """
-    format = "%d%b%Y %H:%M:%S"
+    datetime_format = "%d%b%Y %H:%M:%S"
 
     if datetime_str.endswith("24:00:00"):
         datetime_str = datetime_str.replace("24:00:00", "00:00:00")
-        parsed_dt = datetime.strptime(datetime_str, format)
+        parsed_dt = datetime.strptime(datetime_str, datetime_format)
         parsed_dt += timedelta(days=1)
     else:
-        parsed_dt = datetime.strptime(datetime_str, format)
+        parsed_dt = datetime.strptime(datetime_str, datetime_format)
 
     return parsed_dt
 
@@ -68,14 +68,14 @@ def parse_ras_simulation_window_datetime(datetime_str) -> datetime:
     -------
         datetime: A datetime object representing the parsed datetime.
     """
-    format = "%d%b%Y %H%M"
+    datetime_format = "%d%b%Y %H%M"
 
     if datetime_str.endswith("2400"):
         datetime_str = datetime_str.replace("2400", "0000")
-        parsed_dt = datetime.strptime(datetime_str, format)
+        parsed_dt = datetime.strptime(datetime_str, datetime_format)
         parsed_dt += timedelta(days=1)
     else:
-        parsed_dt = datetime.strptime(datetime_str, format)
+        parsed_dt = datetime.strptime(datetime_str, datetime_format)
 
     return parsed_dt
 
@@ -190,8 +190,6 @@ def convert_ras_hdf_value(
         The converted value, which could be None, a boolean, a string, a list of strings, an integer, a float, a list
         of integers, a list of floats, or the original value as a string if no other conditions are met.
     """
-    # TODO (?): handle "8-bit bitfield" values in 2D Flow Area groups
-
     # Check for NaN (np.nan)
     if isinstance(value, np.floating) and np.isnan(value):
         return None

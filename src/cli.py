@@ -88,12 +88,10 @@ def parse_args(args: str) -> argparse.Namespace:
         action="store_true",
         help="List the drivers supported by pyogrio for writing output files.",
     )
-    fiona_installed = False
     engines = ["pyogrio"]
     try:
         import fiona
 
-        fiona_installed = True
         engines.append("fiona")
         parser.add_argument(
             "--fiona-drivers",
@@ -142,62 +140,81 @@ def parse_args(args: str) -> argparse.Namespace:
     return args
 
 
-def export(args: argparse.Namespace) -> Optional[str]:
-    """Act on parsed arguments to extract data from HEC-RAS HDF files."""
+def _print_requested_drivers(args: argparse.Namespace) -> bool:
     if args.pyogrio_drivers:
         for driver in pyogrio_supported_drivers():
             print(driver)
-        return
+        return True
     if hasattr(args, "fiona_drivers") and args.fiona_drivers:
         for driver in fiona_supported_drivers():
             print(driver)
-        return
+        return True
+    return False
+
+
+def _load_hdf_class(args: argparse.Namespace):
     if re.match(r"^.*\.p\d\d\.hdf$", args.hdf_file):
         ras_hdf_class = RasPlanHdf
     else:
         ras_hdf_class = RasGeomHdf
+
     if re.match(r"^\w+://", args.hdf_file):
-        geom_hdf = ras_hdf_class.open_uri(args.hdf_file)
+        return ras_hdf_class.open_uri(args.hdf_file)
     else:
-        geom_hdf = ras_hdf_class(args.hdf_file)
+        return ras_hdf_class(args.hdf_file)
+
+
+def _print_stdout_geojson(gdf: GeoDataFrame, kwargs: dict) -> str:
+    # If an output file path isn't provided, write the GeoDataFrame to stdout
+    # as GeoJSON. Convert any datetime columns to strings.
+    gdf = df_datetimes_to_str(gdf)
+    with warnings.catch_warnings():
+        # Squash warnings about converting the CRS to OGC URN format.
+        # Likely to come up since USACE's Albers projection is a custom CRS.
+        # A warning written to stdout might cause issues with downstream processing.
+        warnings.filterwarnings(
+            "ignore",
+            (
+                "GeoDataFrame's CRS is not representable in URN OGC format."
+                " Resulting JSON will contain no CRS information."
+            ),
+        )
+        result = gdf.to_json(**kwargs)
+    print("No output file!")
+    print(result)
+    return result
+
+
+def _write_to_file(gdf: GeoDataFrame, args: argparse.Namespace, kwargs: dict):
+    output_file_path = Path(args.output_file)
+    output_file_ext = output_file_path.suffix
+    if output_file_ext not in [".gpkg"]:
+        # Unless the user specifies a format that supports datetime,
+        # convert any datetime columns to string.
+        gdf = df_datetimes_to_str(gdf)
+    gdf.to_file(args.output_file, engine=args.engine, **kwargs)
+
+
+def export(args: argparse.Namespace) -> Optional[str]:
+    """Act on parsed arguments to extract data from HEC-RAS HDF files."""
+    if _print_requested_drivers(args):
+        return
+
+    geom_hdf = _load_hdf_class(args)
     func = getattr(geom_hdf, args.func)
     gdf: GeoDataFrame = func()
     kwargs = literal_eval(args.kwargs) if args.kwargs else {}
     if args.to_crs:
         gdf = gdf.to_crs(args.to_crs)
     if not args.output_file:
-        # If an output file path isn't provided, write the GeoDataFrame to stdout
-        # as GeoJSON. Convert any datetime columns to strings.
-        gdf = df_datetimes_to_str(gdf)
-        with warnings.catch_warnings():
-            # Squash warnings about converting the CRS to OGC URN format.
-            # Likely to come up since USACE's Albers projection is a custom CRS.
-            # A warning written to stdout might cause issues with downstream processing.
-            warnings.filterwarnings(
-                "ignore",
-                (
-                    "GeoDataFrame's CRS is not representable in URN OGC format."
-                    " Resulting JSON will contain no CRS information."
-                ),
-            )
-            result = gdf.to_json(**kwargs)
-        print("No output file!")
-        print(result)
-        return result
+        return _print_stdout_geojson(gdf, kwargs)
     elif args.parquet:
         gdf.to_parquet(args.output_file, **kwargs)
         return
     elif args.feather:
         gdf.to_feather(args.output_file, **kwargs)
         return
-    output_file_path = Path(args.output_file)
-    output_file_ext = output_file_path.suffix
-    if output_file_ext not in [".gpkg"]:
-        # Unless the user specifies a format that supports datetime,
-        # convert any datetime columns to string.
-        # TODO: besides Geopackage, which of the standard Fiona drivers allow datetime?
-        gdf = df_datetimes_to_str(gdf)
-    gdf.to_file(args.output_file, engine=args.engine, **kwargs)
+    _write_to_file(gdf, args, kwargs)
 
 
 def main():

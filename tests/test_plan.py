@@ -715,3 +715,21 @@ def test_encroachment_points():
             phdf.encroachment_points(profile_name="PF#2"),
             enc_pnts_json,
         )
+
+
+def test_invalid_reference_type_reference_timeseries_output():
+    with RasPlanHdf(BALD_EAGLE_P18) as phdf:
+        with pytest.raises(ValueError):
+            phdf.reference_timeseries_output(reftype="Not supported type")
+
+
+def test_invalid_group_reference_timeseries_output():
+    with RasPlanHdf(BALD_EAGLE_P18) as phdf:
+        with pytest.raises(RasPlanHdfError):
+            phdf.reference_timeseries_output()
+
+
+def test_invalid_group_reference_summary_output():
+    with RasPlanHdf(BALD_EAGLE_P18) as phdf:
+        with pytest.raises(ValueError):
+            phdf.reference_summary_output(reftype="Not supported type")
