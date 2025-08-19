@@ -42,14 +42,22 @@ def parse_ras_datetime(datetime_str: str) -> datetime:
     -------
         datetime: A datetime object representing the parsed datetime.
     """
-    datetime_format = "%d%b%Y %H:%M:%S"
+    datetime_formats = ["%d%b%Y %H:%M:%S", "%b/%d/%Y %H:%M:%S", "%b-%d-%Y %H:%M:%S"]
 
-    if datetime_str.endswith("24:00:00"):
-        datetime_str = datetime_str.replace("24:00:00", "00:00:00")
-        parsed_dt = datetime.strptime(datetime_str, datetime_format)
-        parsed_dt += timedelta(days=1)
-    else:
-        parsed_dt = datetime.strptime(datetime_str, datetime_format)
+    parsed_dt = None
+    for datetime_format in datetime_formats:
+        try:
+            if datetime_str.endswith("24:00:00"):
+                datetime_str = datetime_str.replace("24:00:00", "00:00:00")
+                parsed_dt = datetime.strptime(datetime_str, datetime_format)
+                parsed_dt += timedelta(days=1)
+            else:
+                parsed_dt = datetime.strptime(datetime_str, datetime_format)
+        except ValueError as e:
+            continue
+        break
+    if not parsed_dt:
+        raise ValueError(f"Invalid date format: {datetime_str}") from e
 
     return parsed_dt
 
