@@ -35,7 +35,51 @@ def test_convert_ras_hdf_value():
     assert utils.convert_ras_hdf_value(b"15Mar2024 2315") == datetime(
         2024, 3, 15, 23, 15, 0
     )
-
+    assert utils.convert_ras_hdf_value(b"15Mar2024 2400") == datetime(
+        2024, 3, 16, 0, 0, 0
+    )
+    assert utils.convert_ras_hdf_value(b"03/15/2024 2400") == datetime(
+        2024, 3, 16, 0, 0, 0
+    )
+    assert utils.convert_ras_hdf_value(b"03-15-2024 2400") == datetime(
+        2024, 3, 16, 0, 0, 0
+    )
+    assert utils.convert_ras_hdf_value(b"2024/03/15 2400") == datetime(
+        2024, 3, 16, 0, 0, 0
+    )
+    assert utils.convert_ras_hdf_value(b"2024-03-15 2400") == datetime(
+        2024, 3, 16, 0, 0, 0
+    )
+    assert utils.convert_ras_hdf_value(b"15Mar2024 0000") == datetime(
+        2024, 3, 15, 0, 0, 0
+    )
+    assert utils.convert_ras_hdf_value(b"03/15/2024 0000") == datetime(
+        2024, 3, 15, 0, 0, 0
+    )
+    assert utils.convert_ras_hdf_value(b"03-15-2024 0000") == datetime(
+        2024, 3, 15, 0, 0, 0
+    )
+    assert utils.convert_ras_hdf_value(b"2024/03/15 0000") == datetime(
+        2024, 3, 15, 0, 0, 0
+    )
+    assert utils.convert_ras_hdf_value(b"2024-03-15 0000") == datetime(
+        2024, 3, 15, 0, 0, 0
+    )
+    assert utils.convert_ras_hdf_value(b"15Mar2024 23:59:59") == datetime(
+        2024, 3, 15, 23, 59, 59
+    )
+    assert utils.convert_ras_hdf_value(b"03/15/2024 23:59:59") == datetime(
+        2024, 3, 15, 23, 59, 59
+    )
+    assert utils.convert_ras_hdf_value(b"03-15-2024 23:59:59") == datetime(
+        2024, 3, 15, 23, 59, 59
+    )
+    assert utils.convert_ras_hdf_value(b"2024/03/15 23:59:59") == datetime(
+        2024, 3, 15, 23, 59, 59
+    )
+    assert utils.convert_ras_hdf_value(b"2024-03-15 23:59:59") == datetime(
+        2024, 3, 15, 23, 59, 59
+    )
     assert utils.convert_ras_hdf_value(b"15Mar2024 1639 to 16Mar2024 1639") == [
         datetime(2024, 3, 15, 16, 39, 0),
         datetime(2024, 3, 16, 16, 39, 0),

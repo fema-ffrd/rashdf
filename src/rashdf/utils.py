@@ -10,6 +10,36 @@ from typing import Any, Callable, List, Tuple, Union, Optional
 import warnings
 
 
+def deprecated(func) -> Callable:
+    """
+    Deprecate a function.
+
+    This is a decorator which can be used to mark functions as deprecated.
+    It will result in a warning being emitted when the function is used.
+
+    Parameters
+    ----------
+        func: The function to be deprecated.
+
+    Returns
+    -------
+        The decorated function.
+    """
+
+    def new_func(*args, **kwargs):
+        warnings.warn(
+            f"{func.__name__} is deprecated and will be removed in a future version.",
+            category=DeprecationWarning,
+            stacklevel=2,
+        )
+        return func(*args, **kwargs)
+
+    new_func.__name__ = func.__name__
+    new_func.__doc__ = func.__doc__
+    new_func.__dict__.update(func.__dict__)
+    return new_func
+
+
 def parse_ras_datetime_ms(datetime_str: str) -> datetime:
     """Parse a datetime string with milliseconds from a RAS file into a datetime object.
 
@@ -36,24 +66,37 @@ def parse_ras_datetime(datetime_str: str) -> datetime:
 
     Parameters
     ----------
-        datetime_str (str): The datetime string to be parsed. The string should be in the format "ddMMMyyyy HH:mm:ss".
+        datetime_str (str): The datetime string to be parsed.
 
     Returns
     -------
         datetime: A datetime object representing the parsed datetime.
     """
-    datetime_format = "%d%b%Y %H:%M:%S"
+    date_formats = ["%d%b%Y", "%m/%d/%Y", "%m-%d-%Y", "%Y/%m/%d", "%Y-%m-%d"]
+    time_formats = ["%H:%M:%S", "%H%M"]
+    datetime_formats = [
+        f"{date} {time}" for date in date_formats for time in time_formats
+    ]
 
-    if datetime_str.endswith("24:00:00"):
-        datetime_str = datetime_str.replace("24:00:00", "00:00:00")
-        parsed_dt = datetime.strptime(datetime_str, datetime_format)
-        parsed_dt += timedelta(days=1)
-    else:
-        parsed_dt = datetime.strptime(datetime_str, datetime_format)
+    is_2400 = datetime_str.endswith((" 24:00:00", " 2400", " 24:00"))
+    if is_2400:
+        datetime_str = datetime_str.split()[0] + " 00:00:00"
 
-    return parsed_dt
+    last_exception = None
+    for fmt in datetime_formats:
+        try:
+            parsed_dt = datetime.strptime(datetime_str, fmt)
+            if is_2400:
+                parsed_dt += timedelta(days=1)
+            return parsed_dt
+        except ValueError as e:
+            last_exception = e
+            continue
+
+    raise ValueError(f"Invalid date format: {datetime_str}") from last_exception
 
 
+@deprecated
 def parse_ras_simulation_window_datetime(datetime_str) -> datetime:
     """
     Parse a datetime string from a RAS simulation window into a datetime object.
@@ -139,32 +182,37 @@ def convert_ras_hdf_string(
         a list of datetime strings, a timedelta objects, or the original string
         if no other conditions are met.
     """
-    ras_datetime_format1_re = r"\d{2}\w{3}\d{4} \d{2}:\d{2}:\d{2}"
-    ras_datetime_format2_re = r"\d{2}\w{3}\d{4} \d{2}\d{2}"
     ras_duration_format_re = r"\d{2}:\d{2}:\d{2}"
+    date_patterns_re = [
+        r"\d{2}\w{3}\d{4}",
+        r"\d{2}/\d{2}/\d{4}",
+        r"\d{2}-\d{2}-\d{4}",
+        r"\d{4}/\d{2}/\d{2}",
+        r"\d{4}-\d{2}-\d{2}",
+    ]
+    time_patterns_re = [
+        r"\d{2}:\d{2}:\d{2}",
+        r"\d{4}",
+    ]
+    datetime_patterns_re = [
+        f"{date} {time}" for date in date_patterns_re for time in time_patterns_re
+    ]
     s = value.decode("utf-8")
     if s == "True":
         return True
     elif s == "False":
         return False
-    elif re.match(rf"^{ras_datetime_format1_re}", s):
-        if re.match(rf"^{ras_datetime_format1_re} to {ras_datetime_format1_re}$", s):
-            split = s.split(" to ")
-            return [
-                parse_ras_datetime(split[0]),
-                parse_ras_datetime(split[1]),
-            ]
-        return parse_ras_datetime(s)
-    elif re.match(rf"^{ras_datetime_format2_re}", s):
-        if re.match(rf"^{ras_datetime_format2_re} to {ras_datetime_format2_re}$", s):
-            split = s.split(" to ")
-            return [
-                parse_ras_simulation_window_datetime(split[0]),
-                parse_ras_simulation_window_datetime(split[1]),
-            ]
-        return parse_ras_simulation_window_datetime(s)
     elif re.match(rf"^{ras_duration_format_re}$", s):
         return parse_duration(s)
+    for dt_re in datetime_patterns_re:
+        if re.match(rf"^{dt_re}", s):
+            if re.match(rf"^{dt_re} to {dt_re}$", s):
+                start, end = s.split(" to ")
+                return [
+                    parse_ras_datetime(start),
+                    parse_ras_datetime(end),
+                ]
+            return parse_ras_datetime(s)
     return s
 
 
@@ -306,33 +354,3 @@ def ras_timesteps_to_datetimes(
         start_time + pd.Timedelta(timestep, unit=time_unit).round(round_to)
         for timestep in timesteps.astype(np.float64)
     ]
-
-
-def deprecated(func) -> Callable:
-    """
-    Deprecate a function.
-
-    This is a decorator which can be used to mark functions as deprecated.
-    It will result in a warning being emitted when the function is used.
-
-    Parameters
-    ----------
-        func: The function to be deprecated.
-
-    Returns
-    -------
-        The decorated function.
-    """
-
-    def new_func(*args, **kwargs):
-        warnings.warn(
-            f"{func.__name__} is deprecated and will be removed in a future version.",
-            category=DeprecationWarning,
-            stacklevel=2,
-        )
-        return func(*args, **kwargs)
-
-    new_func.__name__ = func.__name__
-    new_func.__doc__ = func.__doc__
-    new_func.__dict__.update(func.__dict__)
-    return new_func
