@@ -733,3 +733,18 @@ def test_invalid_group_reference_summary_output():
     with RasPlanHdf(BALD_EAGLE_P18) as phdf:
         with pytest.raises(ValueError):
             phdf.reference_summary_output(reftype="Not supported type")
+
+
+def test_bc_lines_include_output_false():
+    bc_lines_json = TEST_JSON / "bc_lines.json"
+    with RasPlanHdf(MUNCIE_G05) as plan_hdf:
+        assert _gdf_matches_json(plan_hdf.bc_lines(include_output=False), bc_lines_json)
+
+
+def test_bc_lines_include_output_true():
+    bc_lines_with_output_json = TEST_JSON / "bc_lines_with_output.json"
+    with RasPlanHdf(LOWER_KANAWHA_P01_BC_LINES) as plan_hdf:
+        assert _gdf_matches_json(
+            plan_hdf.bc_lines(include_output=True, datetime_to_str=True),
+            bc_lines_with_output_json,
+        )
