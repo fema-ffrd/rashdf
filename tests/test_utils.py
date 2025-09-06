@@ -5,6 +5,14 @@ import pandas as pd
 import pytest
 
 from datetime import datetime, timedelta
+from shapely.geometry import LineString, MultiLineString
+import geopandas as gpd
+from pathlib import Path
+
+from . import _gdf_matches_json_alt
+
+TEST_DATA = Path("./tests/data")
+TEST_JSON = TEST_DATA / "json"
 
 
 def test_convert_ras_hdf_value():
@@ -116,4 +124,107 @@ def test_parse_ras_datetime_ms():
     )
     assert utils.parse_ras_datetime_ms("15Mar2024 24:00:00.000") == datetime(
         2024, 3, 16, 0, 0, 0, 0
+    )
+
+
+def test_trim_line():
+    gdf = gpd.GeoDataFrame(
+        {
+            "id": [1, 2, 3],
+            "geometry": [
+                LineString([(0, 0), (5, 5), (10, 10)]),
+                LineString([(0, 0), (5, 5), (10, 10), (15, 15)]),
+                MultiLineString(
+                    [
+                        [(0, 0), (3, 3)],
+                        [(3, 3), (6, 6), (9, 9)],
+                        [(3, 3), (6, 6), (9, 9), (12, 12), (15, 15)],
+                    ]
+                ),
+            ],
+        },
+    )
+    assert gdf.geometry.apply(utils.remove_line_ends).equals(
+        gpd.GeoSeries(
+            [
+                LineString([(0, 0), (5, 5), (10, 10)]),
+                LineString(
+                    [
+                        (5, 5),
+                        (10, 10),
+                    ]
+                ),
+                MultiLineString(
+                    [
+                        [(0, 0), (3, 3)],
+                        [(3, 3), (6, 6), (9, 9)],
+                        [(6, 6), (9, 9), (12, 12)],
+                    ]
+                ),
+            ]
+        )
+    )
+
+
+def test_reverse_line():
+    gdf = gpd.GeoDataFrame(
+        {
+            "id": [1, 2, 3],
+            "geometry": [
+                LineString([(0, 0), (5, 5), (10, 10)]),
+                LineString([(0, 0), (5, 5), (10, 10), (15, 15)]),
+                MultiLineString(
+                    [
+                        [(0, 0), (3, 3)],
+                        [(3, 3), (6, 6), (9, 9)],
+                        [(3, 3), (6, 6), (9, 9), (12, 12), (15, 15)],
+                    ]
+                ),
+            ],
+        },
+    )
+    assert gdf.geometry.apply(utils.reverse_line).equals(
+        gpd.GeoSeries(
+            [
+                LineString([(10, 10), (5, 5), (0, 0)]),
+                LineString([(15, 15), (10, 10), (5, 5), (0, 0)]),
+                MultiLineString(
+                    [
+                        [(3, 3), (0, 0)],
+                        [(9, 9), (6, 6), (3, 3)],
+                        [(15, 15), (12, 12), (9, 9), (6, 6), (3, 3)],
+                    ]
+                ),
+            ]
+        )
+    )
+
+
+def test_copy_lines_parallel():
+    gdf = gpd.GeoDataFrame(
+        {
+            "id": [1, 2, 3],
+            "geometry": [
+                LineString([(0, 0), (5, 5), (10, 10)]),
+                LineString([(20, 20), (30, 30), (40, 40), (50, 50)]),
+                MultiLineString(
+                    [
+                        [(100.0, 100.0), (103.0, 103.0)],
+                        [(103.0, 103.0), (106.0, 106.0), (109.0, 109.0)],
+                        [
+                            (103.0, 103.0),
+                            (106.0, 106.0),
+                            (109.0, 109.0),
+                            (112.0, 112.0),
+                            (115.0, 115.0),
+                        ],
+                    ]
+                ),
+            ],
+        },
+    )
+    offsets = np.array([1, 2, 3])
+    copied = utils.copy_lines_parallel(gdf, offsets)
+    assert _gdf_matches_json_alt(
+        copied.geometry, TEST_JSON / "copy_lines_parallel.json"
     )

@@ -27,6 +27,7 @@ from .utils import (
     convert_ras_hdf_value,
     get_first_hdf_group,
     hdf5_attrs_to_dict,
+    copy_lines_parallel,
 )
 
 
@@ -473,6 +474,51 @@ class RasGeomHdf(RasHdf):
 
     def connections(self) -> GeoDataFrame:  # noqa D102
         raise NotImplementedError
+
+    def bridge_xs_lines(self, datetime_to_str: bool = False) -> GeoDataFrame:
+        """Return the 2D bridge cross-section lines.
+
+        Parameters
+        ----------
+        datetime_to_str : bool, optional
+            If True, convert datetime values to string format (default: False).
+
+        Returns
+        -------
+        GeoDataFrame
+            A GeoDataFrame containing the 2D bridge cross-section lines if they exist.
+        """
+        structs = self.structures().merge(
+            pd.DataFrame(self[self.GEOM_STRUCTURES_PATH + "/Table Info"][()]),
+            left_index=True,
+            right_index=True,
+        )
+        if structs.empty:
+            return GeoDataFrame()
+
+        bridges = structs[structs["Mode"] == "Bridge Opening"].copy()
+        if bridges.empty:
+            return GeoDataFrame()
+
+        inside_buffer_widths = bridges["Weir Width"] / 2
+        inside_bridge_xs = copy_lines_parallel(bridges, inside_buffer_widths.values)
+        inside_bridge_xs["level"] = "inside"
+
+        outside_buffer_widths = inside_buffer_widths + bridges["Upstream Distance"]
+        outside_bridge_xs = copy_lines_parallel(bridges, outside_buffer_widths.values)
+        outside_bridge_xs["level"] = "outside"
+
+        br_xs = GeoDataFrame(
+            pd.concat([inside_bridge_xs, outside_bridge_xs], ignore_index=True),
+            geometry="geometry",
+        )
+
+        if datetime_to_str:
+            br_xs[self.LAST_EDITED_COLUMN] = br_xs[self.LAST_EDITED_COLUMN].apply(
+                lambda x: pd.Timestamp.isoformat(x)
+            )
+
+        return br_xs
 
     def ic_points(self) -> GeoDataFrame:  # noqa D102
         """Return initial conditions points.

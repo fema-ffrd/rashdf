@@ -8,6 +8,8 @@ from datetime import datetime, timedelta
 import re
 from typing import Any, Callable, List, Tuple, Union, Optional
 import warnings
+from shapely import LineString, MultiLineString
+import geopandas as gpd
 
 
 def deprecated(func) -> Callable:
@@ -354,3 +356,113 @@ def ras_timesteps_to_datetimes(
         start_time + pd.Timedelta(timestep, unit=time_unit).round(round_to)
         for timestep in timesteps.astype(np.float64)
     ]
+
+
+def remove_line_ends(
+    geom: Union[LineString, MultiLineString],
+) -> Union[LineString, MultiLineString]:
+    """
+    Remove endpoints from a LineString or each LineString in a MultiLineString if longer than 3 points.
+
+    Parameters
+    ----------
+    geom : LineString or MultiLineString
+        The geometry to trim.
+
+    Returns
+    -------
+    LineString or MultiLineString
+        The trimmed geometry, or original if not enough points to trim.
+    """
+    if isinstance(geom, LineString):
+        coords = list(geom.coords)
+        if len(coords) > 3:
+            return LineString(coords[1:-1])
+        return geom
+    elif isinstance(geom, MultiLineString):
+        trimmed = []
+        for line in geom.geoms:
+            coords = list(line.coords)
+            if len(coords) > 3:
+                trimmed.append(LineString(coords[1:-1]))
+            else:
+                trimmed.append(line)
+        return MultiLineString(trimmed)
+    return geom
+
+
+def reverse_line(
+    line: Union[LineString, MultiLineString],
+) -> Union[LineString, MultiLineString]:
+    """
+    Reverse the order of coordinates in a LineString or each LineString in a MultiLineString.
+
+    Parameters
+    ----------
+    line : LineString or MultiLineString
+        The geometry to reverse.
+
+    Returns
+    -------
+    LineString or MultiLineString
+        The reversed geometry.
+    """
+    return (
+        MultiLineString([LineString(list(line.coords)[::-1]) for line in line.geoms])
+        if isinstance(line, MultiLineString)
+        else LineString(list(line.coords)[::-1])
+    )
+
+
+def copy_lines_parallel(
+    lines: gpd.GeoDataFrame, offset_ft: Union[np.ndarray, float]
+) -> gpd.GeoDataFrame:
+    """
+    Create parallel copies of line geometries offset to the left and right, then trim and erase overlaps.
+
+    Parameters
+    ----------
+    lines : gpd.GeoDataFrame
+        GeoDataFrame containing line geometries.
+    offset_ft : float or np.ndarray
+        Offset distance (in feet) for parallel lines.
+
+    Returns
+    -------
+    gpd.GeoDataFrame
+        GeoDataFrame with trimmed, parallel left and right offset lines.
+    """
+    # Offset lines to the left
+    left = lines.copy()
+    left.geometry = lines.buffer(
+        offset_ft, cap_style="flat", single_sided=True, resolution=3
+    ).boundary
+    left["side"] = "left"
+
+    # Offset lines to the right (reverse direction first)
+    reversed_lines = lines.copy()
+    reversed_lines.geometry = reversed_lines.geometry.apply(reverse_line)
+    right = lines.copy()
+    right.geometry = reversed_lines.buffer(
+        offset_ft, cap_style="flat", single_sided=True, resolution=3
+    ).boundary
+    right["side"] = "right"
+
+    # Combine left and right boundaries
+    boundaries = pd.concat([left, right], ignore_index=True)
+    boundaries_gdf = gpd.GeoDataFrame(boundaries, crs=lines.crs, geometry="geometry")
+
+    # Erase caps
+    erase_buffer = 0.1
+    eraser = gpd.GeoDataFrame(
+        geometry=lines.buffer(
+            offset_ft - erase_buffer, cap_style="square", resolution=3
+        ),
+        crs=lines.crs,
+    )
+    erased = gpd.overlay(boundaries_gdf, eraser, how="difference")
+
+    # Trim lines to remove endpoints (if longer than 3 points)
+    erased["geometry"] = erased["geometry"].apply(remove_line_ends)
+
+    return erased
