@@ -415,7 +415,9 @@ def reverse_line(
 
 
 def copy_lines_parallel(
-    lines: gpd.GeoDataFrame, offset_ft: Union[np.ndarray, float]
+    lines: gpd.GeoDataFrame,
+    offset_ft: Union[np.ndarray, float],
+    id_col: str = "id",
 ) -> gpd.GeoDataFrame:
     """
     Create parallel copies of line geometries offset to the left and right, then trim and erase overlaps.
@@ -426,6 +428,8 @@ def copy_lines_parallel(
         GeoDataFrame containing line geometries.
     offset_ft : float or np.ndarray
         Offset distance (in feet) for parallel lines.
+    id_col : str
+        Name of the column containing unique structure IDs. Default is "id".
 
     Returns
     -------
@@ -452,17 +456,30 @@ def copy_lines_parallel(
     boundaries = pd.concat([left, right], ignore_index=True)
     boundaries_gdf = gpd.GeoDataFrame(boundaries, crs=lines.crs, geometry="geometry")
 
-    # Erase caps
+    # Erase buffer caps
     erase_buffer = 0.1
+    cleaned_list = []
     eraser = gpd.GeoDataFrame(
-        geometry=lines.buffer(
-            offset_ft - erase_buffer, cap_style="square", resolution=3
+        dict(
+            id_col=lines[id_col],
+            geometry=lines.buffer(
+                offset_ft - erase_buffer, cap_style="square", resolution=3
+            ),
         ),
         crs=lines.crs,
     )
-    erased = gpd.overlay(boundaries_gdf, eraser, how="difference")
+    for id in lines[id_col].unique():
+        cleaned_list.append(
+            gpd.overlay(
+                boundaries_gdf[boundaries_gdf[id_col] == id],
+                eraser,
+                how="difference",
+            )
+        )
+    cleaned = gpd.GeoDataFrame(
+        pd.concat(cleaned_list, ignore_index=True), crs=lines.crs, geometry="geometry"
+    )
 
-    # Trim lines to remove endpoints (if longer than 3 points)
-    erased["geometry"] = erased["geometry"].apply(remove_line_ends)
-
-    return erased
+    # trim ends
+    cleaned["geometry"] = cleaned["geometry"].apply(remove_line_ends)
+    return cleaned

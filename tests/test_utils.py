@@ -225,6 +225,4 @@ def test_copy_lines_parallel():
     )
     offsets = np.array([1, 2, 3])
     copied = utils.copy_lines_parallel(gdf, offsets)
-    assert _gdf_matches_json_alt(
-        copied.geometry, TEST_JSON / "copy_lines_parallel.json"
-    )
+    assert _gdf_matches_json_alt(copied, TEST_JSON / "copy_lines_parallel.json")

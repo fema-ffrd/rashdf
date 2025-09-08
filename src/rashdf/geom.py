@@ -487,6 +487,8 @@ class RasGeomHdf(RasHdf):
         -------
         GeoDataFrame
             A GeoDataFrame containing the 2D bridge cross-section lines if they exist.
+
+        TODO: add test coverage for this method.
         """
         structs = self.structures().merge(
             pd.DataFrame(self[self.GEOM_STRUCTURES_PATH + "/Table Info"][()]),
@@ -501,11 +503,15 @@ class RasGeomHdf(RasHdf):
             return GeoDataFrame()
 
         inside_buffer_widths = bridges["Weir Width"] / 2
-        inside_bridge_xs = copy_lines_parallel(bridges, inside_buffer_widths.values)
+        inside_bridge_xs = copy_lines_parallel(
+            bridges, inside_buffer_widths.values, "struct_id"
+        )
         inside_bridge_xs["level"] = "inside"
 
         outside_buffer_widths = inside_buffer_widths + bridges["Upstream Distance"]
-        outside_bridge_xs = copy_lines_parallel(bridges, outside_buffer_widths.values)
+        outside_bridge_xs = copy_lines_parallel(
+            bridges, outside_buffer_widths.values, "struct_id"
+        )
         outside_bridge_xs["level"] = "outside"
 
         br_xs = GeoDataFrame(
