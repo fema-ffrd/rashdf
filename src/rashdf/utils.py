@@ -449,7 +449,7 @@ def copy_lines_parallel(
     right = lines.copy()
     right.geometry = reversed_lines.buffer(
         offset_ft, cap_style="flat", single_sided=True, resolution=3
-    ).boundary
+    ).boundary.apply(reverse_line)
     right["side"] = "right"
 
     # Combine left and right boundaries

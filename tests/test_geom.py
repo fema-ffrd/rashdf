@@ -17,6 +17,7 @@ TEST_JSON = TEST_DATA / "json"
 BALD_EAGLE_P18_REF = TEST_DATA / "ras/BaldEagleDamBrk.reflines-refpts.p18.hdf"
 LOWER_KANAWHA_P01_IC_POINTS = TEST_DATA / "ras/LowerKanawha.p01.icpoints.hdf"
 LOWER_KANAWHA_P01_IC_POINTS_JSON = TEST_JSON / "LowerKanawha.p01.icpoints.geojson"
+ROSEBERRY_G01 = TEST_DATA / "ras/Roseberry_Creek.g01.hdf"
 
 TEST_ATTRS = {"test_attribute1": "test_str1", "test_attribute2": 500}
 
@@ -274,3 +275,16 @@ def test_ic_points():
             valid_gdf,
             check_dtype=False,
         )
+
+
+def test_bridge_xs_lines():
+    bridge_xs_json = TEST_JSON / "bridge_xs_lines.json"
+    with RasGeomHdf(ROSEBERRY_G01) as ghdf:
+        assert _gdf_matches_json(
+            ghdf.bridge_xs_lines(datetime_to_str=True), bridge_xs_json
+        )
+
+
+def test_bridge_xs_lines_not_found():
+    with RasGeomHdf(MUNCIE_G05) as ghdf:
+        assert ghdf.bridge_xs_lines().empty

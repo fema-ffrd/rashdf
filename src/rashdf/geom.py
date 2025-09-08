@@ -487,11 +487,10 @@ class RasGeomHdf(RasHdf):
         -------
         GeoDataFrame
             A GeoDataFrame containing the 2D bridge cross-section lines if they exist.
-
-        TODO: add test coverage for this method.
         """
+        profile_info = self.get(self.GEOM_STRUCTURES_PATH + "/Table Info")
         structs = self.structures().merge(
-            pd.DataFrame(self[self.GEOM_STRUCTURES_PATH + "/Table Info"][()]),
+            pd.DataFrame(profile_info[()] if profile_info is not None else None),
             left_index=True,
             right_index=True,
         )
@@ -517,6 +516,9 @@ class RasGeomHdf(RasHdf):
         br_xs = GeoDataFrame(
             pd.concat([inside_bridge_xs, outside_bridge_xs], ignore_index=True),
             geometry="geometry",
+        )
+        br_xs.side = br_xs.side.apply(
+            lambda x: "upstream" if x == "right" else "downstream"
         )
 
         if datetime_to_str:
