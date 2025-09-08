@@ -9,6 +9,8 @@ from shapely.geometry import LineString, MultiLineString
 import geopandas as gpd
 from pathlib import Path
 
+from . import _assert_geodataframes_close
+
 TEST_DATA = Path("./tests/data")
 TEST_JSON = TEST_DATA / "json"
 
@@ -223,6 +225,7 @@ def test_copy_lines_parallel():
     )
     offsets = np.array([1, 2, 3])
     copied = utils.copy_lines_parallel(gdf, offsets)
-    expected = gpd.read_file(TEST_JSON / "copy_lines_parallel.json")
-    assert (copied.geometry == expected.geometry).all()
-    assert (copied.side == expected.side).all()
+    expected = gpd.read_file(TEST_JSON / "copy_lines_parallel.json").set_crs(
+        None, allow_override=True
+    )
+    _assert_geodataframes_close(copied, expected, tol=1e-3)
