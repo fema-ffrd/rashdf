@@ -438,6 +438,7 @@ def copy_lines_parallel(
     """
     # Offset lines to the left
     left = lines.copy()
+    offset_ft = offset_ft.astype(float)
     left.geometry = lines.buffer(
         offset_ft, cap_style="flat", single_sided=True, resolution=3
     ).boundary
@@ -460,19 +461,19 @@ def copy_lines_parallel(
     erase_buffer = 0.1
     cleaned_list = []
     eraser = gpd.GeoDataFrame(
-        dict(
-            id_col=lines[id_col],
-            geometry=lines.buffer(
+        {
+            id_col: lines[id_col],
+            "geometry": lines.buffer(
                 offset_ft - erase_buffer, cap_style="square", resolution=3
             ),
-        ),
+        },
         crs=lines.crs,
     )
     for id in lines[id_col].unique():
         cleaned_list.append(
             gpd.overlay(
                 boundaries_gdf[boundaries_gdf[id_col] == id],
-                eraser,
+                eraser[eraser[id_col] == id],
                 how="difference",
             )
         )
