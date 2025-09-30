@@ -1178,7 +1178,7 @@ class RasPlanHdf(RasGeomHdf):
         xr.Dataset
             An xarray Dataset with timeseries output data for boundary conditions lines.
         """
-        df_bc_lines = self.bc_lines()
+        df_bc_lines = super().bc_lines()
         bc_lines_names = df_bc_lines["name"]
         datasets = []
         for bc_line_name in bc_lines_names:
@@ -1196,6 +1196,57 @@ class RasPlanHdf(RasGeomHdf):
             }
         )
         return ds
+
+    def bc_lines(
+        self, include_output: bool = True, datetime_to_str: bool = False
+    ) -> GeoDataFrame:
+        """Return the boundary condition lines from a HEC-RAS HDF plan file.
+
+        Optionally include summary output data for each boundary condition line.
+
+        Parameters
+        ----------
+        include_output : bool, optional
+            If True, include summary output data in the GeoDataFrame. (default: True)
+        datetime_to_str : bool, optional
+            If True, convert datetime columns to strings. (default: False)
+
+        Returns
+        -------
+        GeoDataFrame
+            A GeoDataFrame with boundary condition line geometry and summary output data.
+        """
+        gdf = super().bc_lines()
+        if include_output is False:
+            return gdf
+
+        ds = self.bc_lines_timeseries_output()
+        summary = {
+            "bc_line_id": ds.coords["bc_line_id"].values,
+            "name": ds.coords["bc_line_name"].values,
+            "mesh_name": ds.coords["mesh_name"].values,
+            "type": ds.coords["bc_line_type"].values,
+        }
+
+        for var in ds.data_vars:
+            abbrev = "q" if var.lower() == "flow" else "ws"
+            summary[f"max_{abbrev}"] = ds[var].max(dim="time").values
+            summary[f"max_{abbrev}_time"] = (
+                ds[var].time[ds[var].argmax(dim="time")].values
+            )
+            summary[f"min_{abbrev}"] = ds[var].min(dim="time").values
+            summary[f"min_{abbrev}_time"] = (
+                ds[var].time[ds[var].argmin(dim="time")].values
+            )
+
+        gdf_with_output = gdf.merge(
+            pd.DataFrame(summary),
+            on=["bc_line_id", "name", "mesh_name", "type"],
+            how="left",
+        )
+        return (
+            df_datetimes_to_str(gdf_with_output) if datetime_to_str else gdf_with_output
+        )
 
     def observed_timeseries_input(self, vartype: str = "Flow") -> xr.DataArray:
         """Return observed timeseries input data for reference lines and points from a HEC-RAS HDF plan file.
