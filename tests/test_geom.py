@@ -277,14 +277,14 @@ def test_ic_points():
         )
 
 
-def test_bridge_xs_lines():
+def test_generate_bridge_xs_lines():
     bridge_xs_json = TEST_JSON / "bridge_xs_lines.json"
     with RasGeomHdf(ROSEBERRY_G01) as ghdf:
         assert _gdf_matches_json(
-            ghdf.bridge_xs_lines(datetime_to_str=True), bridge_xs_json
+            ghdf.generate_bridge_xs_lines(datetime_to_str=True), bridge_xs_json
         )
 
 
-def test_bridge_xs_lines_not_found():
+def test_generate_bridge_xs_lines_not_found():
     with RasGeomHdf(MUNCIE_G05) as ghdf:
-        assert ghdf.bridge_xs_lines().empty
+        assert ghdf.generate_bridge_xs_lines().empty

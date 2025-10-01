@@ -28,6 +28,7 @@ from .utils import (
     get_first_hdf_group,
     hdf5_attrs_to_dict,
     copy_lines_parallel,
+    experimental,
 )
 
 
@@ -475,8 +476,16 @@ class RasGeomHdf(RasHdf):
     def connections(self) -> GeoDataFrame:  # noqa D102
         raise NotImplementedError
 
-    def bridge_xs_lines(self, datetime_to_str: bool = False) -> GeoDataFrame:
-        """Return the 2D bridge cross-section lines.
+    @experimental
+    def generate_bridge_xs_lines(self, datetime_to_str: bool = False) -> GeoDataFrame:
+        """[EXPERIMENTAL] Attempt to return the 2D bridge cross-section lines.
+
+        This method attempts to generate the cross-section lines for bridges modeled
+        within 2D mesh areas. It should be noted that these lines are not explicitly
+        stored within the HEC-RAS Geometry HDF file, and are instead generated based
+        on the bridge attributes and centerline geometry. As such, the accuracy of
+        these lines may vary depending on the complexity of the bridge geometry and
+        output from this method should be reviewed for accuracy.
 
         Parameters
         ----------

@@ -12,6 +12,36 @@ from shapely import LineString, MultiLineString
 import geopandas as gpd
 
 
+def experimental(func) -> Callable:
+    """
+    Declare a function to be experimental.
+
+    This is a decorator which can be used to mark functions as experimental.
+    It will result in a warning being emitted when the function is used.
+
+    Parameters
+    ----------
+        func: The function to be declared experimental.
+
+    Returns
+    -------
+        The decorated function.
+    """
+
+    def new_func(*args, **kwargs):
+        warnings.warn(
+            f"{func.__name__} is experimental and could change in the future. Please review output carefully.",
+            category=UserWarning,
+            stacklevel=2,
+        )
+        return func(*args, **kwargs)
+
+    new_func.__name__ = func.__name__
+    new_func.__doc__ = func.__doc__
+    new_func.__dict__.update(func.__dict__)
+    return new_func
+
+
 def deprecated(func) -> Callable:
     """
     Deprecate a function.
