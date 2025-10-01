@@ -27,6 +27,8 @@ from .utils import (
     convert_ras_hdf_value,
     get_first_hdf_group,
     hdf5_attrs_to_dict,
+    copy_lines_parallel,
+    experimental,
 )
 
 
@@ -473,6 +475,67 @@ class RasGeomHdf(RasHdf):
 
     def connections(self) -> GeoDataFrame:  # noqa D102
         raise NotImplementedError
+
+    @experimental
+    def generate_bridge_xs_lines(self, datetime_to_str: bool = False) -> GeoDataFrame:
+        """[EXPERIMENTAL] Attempt to return the 2D bridge cross-section lines.
+
+        This method attempts to generate the cross-section lines for bridges modeled
+        within 2D mesh areas. It should be noted that these lines are not explicitly
+        stored within the HEC-RAS Geometry HDF file, and are instead generated based
+        on the bridge attributes and centerline geometry. As such, the accuracy of
+        these lines may vary depending on the complexity of the bridge geometry and
+        output from this method should be reviewed for accuracy.
+
+        Parameters
+        ----------
+        datetime_to_str : bool, optional
+            If True, convert datetime values to string format (default: False).
+
+        Returns
+        -------
+        GeoDataFrame
+            A GeoDataFrame containing the 2D bridge cross-section lines if they exist.
+        """
+        profile_info = self.get(self.GEOM_STRUCTURES_PATH + "/Table Info")
+        structs = self.structures().merge(
+            pd.DataFrame(profile_info[()] if profile_info is not None else None),
+            left_index=True,
+            right_index=True,
+        )
+        if structs.empty:
+            return GeoDataFrame()
+
+        bridges = structs[structs["Mode"] == "Bridge Opening"].copy()
+        if bridges.empty:
+            return GeoDataFrame()
+
+        inside_buffer_widths = bridges["Weir Width"] / 2
+        inside_bridge_xs = copy_lines_parallel(
+            bridges, inside_buffer_widths.values, "struct_id"
+        )
+        inside_bridge_xs["level"] = "inside"
+
+        outside_buffer_widths = inside_buffer_widths + bridges["Upstream Distance"]
+        outside_bridge_xs = copy_lines_parallel(
+            bridges, outside_buffer_widths.values, "struct_id"
+        )
+        outside_bridge_xs["level"] = "outside"
+
+        br_xs = GeoDataFrame(
+            pd.concat([inside_bridge_xs, outside_bridge_xs], ignore_index=True),
+            geometry="geometry",
+        )
+        br_xs.side = br_xs.side.apply(
+            lambda x: "upstream" if x == "right" else "downstream"
+        )
+
+        if datetime_to_str:
+            br_xs[self.LAST_EDITED_COLUMN] = br_xs[self.LAST_EDITED_COLUMN].apply(
+                lambda x: pd.Timestamp.isoformat(x)
+            )
+
+        return br_xs
 
     def ic_points(self) -> GeoDataFrame:  # noqa D102
         """Return initial conditions points.

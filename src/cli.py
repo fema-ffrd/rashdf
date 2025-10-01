@@ -26,6 +26,7 @@ COMMANDS = [
     "reference_lines",
     "reference_points",
     "structures",
+    "generate_bridge_xs_lines",
 ]
 
 
