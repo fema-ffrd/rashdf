@@ -748,3 +748,78 @@ def test_bc_lines_include_output_true():
             plan_hdf.bc_lines(include_output=True, datetime_to_str=True),
             bc_lines_with_output_json,
         )
+
+
+def test_dataframe_reference_lines_flow_output(tmp_path: Path):
+    plan_hdf = RasPlanHdf(BALD_EAGLE_P18_REF)
+    df = plan_hdf.dataframe_reference_lines_flow_output()
+
+    assert "time" in df.columns
+    assert "refln_id" in df.columns
+    assert "refln_name" in df.columns
+    assert "mesh_name" in df.columns
+    assert "Flow" in df.columns
+
+    assert df["Flow"].attrs["units"] == "cfs"
+
+    assert len(df) == 37 * 4  # flattened DataFrame so 37x4
+
+    df_refln2 = df[df["refln_id"] == 2].set_index("time")[["Flow"]]
+    valid_df = pd.read_csv(
+        TEST_CSV / "BaldEagleDamBrk.reflines.2.csv",
+        index_col="time",
+        parse_dates=True,
+        usecols=["time", "Flow"],
+        dtype={"Flow": np.float32},
+    )
+    assert_frame_equal(df_refln2, valid_df)
+
+
+def test_dataframe_reference_points_stage_output():
+    plan_hdf = RasPlanHdf(BALD_EAGLE_P18_REF)
+    df = plan_hdf.dataframe_reference_points_stage_output()
+
+    assert "time" in df.columns
+    assert "refpt_id" in df.columns
+    assert "refpt_name" in df.columns
+    assert "mesh_name" in df.columns
+    assert "Water Surface" in df.columns
+
+    assert df["Water Surface"].attrs["units"] == "ft"
+
+    assert len(df) == 37 * 3  # flattened DataFrame so 37x3
+
+    df_refpt1 = df[df["refpt_id"] == 1].set_index("time")[["Water Surface"]]
+    valid_df = pd.read_csv(
+        TEST_CSV / "BaldEagleDamBrk.refpoints.1.csv",
+        index_col="time",
+        parse_dates=True,
+        usecols=["time", "Water Surface"],
+        dtype={"Water Surface": np.float32},
+    )
+    assert_frame_equal(df_refpt1, valid_df)
+
+
+def test_dataframe_bc_lines_flow_output(tmp_path: Path):
+    plan_hdf = RasPlanHdf(LOWER_KANAWHA_P01_BC_LINES)
+    df = plan_hdf.dataframe_bc_lines_flow_output()
+
+    assert "time" in df.columns
+    assert "bc_line_id" in df.columns
+    assert "bc_line_name" in df.columns
+    assert "mesh_name" in df.columns
+    assert "Flow" in df.columns
+
+    assert df["Flow"].attrs["units"] == "cfs"
+
+    assert len(df) == 10 * 577  # flattened DataFrame so 10x577
+
+    df_bcline7 = df[df["bc_line_id"] == 7].set_index("time")[["Flow"]]
+    valid_df = pd.read_csv(
+        TEST_CSV / "LowerKanawha.p01.bclines.7.csv",
+        index_col="time",
+        parse_dates=True,
+        usecols=["time", "Flow"],
+        dtype={"Flow": np.float32},
+    )
+    assert_frame_equal(df_bcline7, valid_df)
