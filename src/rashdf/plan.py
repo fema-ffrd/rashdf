@@ -1786,7 +1786,7 @@ class RasPlanHdf(RasGeomHdf):
         Returns
         -------
         DataFrame
-            Flattened DataFrame for reference lines timeseries flow output including column-level metadata, such as units and HDF path.
+            Flattened DataFrame for reference lines timeseries flow output.
         """
         ds = self.reference_lines_timeseries_output()
         if "Flow" not in ds:
@@ -1806,7 +1806,7 @@ class RasPlanHdf(RasGeomHdf):
         Returns
         -------
         DataFrame
-            Flattened DataFrame for reference points timeseries stage output including column-level metadata, such as units and HDF path.
+            Flattened DataFrame for reference points timeseries stage output.
         """
         ds = self.reference_points_timeseries_output()
         if WATER_SURFACE not in ds:
@@ -1828,7 +1828,7 @@ class RasPlanHdf(RasGeomHdf):
         Returns
         -------
         DataFrame
-            Flattened DataFrame for boundary condition lines timeseries flow output including column-level metadata, such as units and HDF path.
+            Flattened DataFrame for boundary condition lines timeseries flow output.
         """
         ds = self.bc_lines_timeseries_output()
         if "Flow" not in ds:
