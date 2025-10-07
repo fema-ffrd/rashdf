@@ -1779,3 +1779,67 @@ class RasPlanHdf(RasGeomHdf):
         """
         ds = self.reference_points_timeseries_output()
         return self._zmeta(ds)
+
+    def dataframe_reference_lines_flow_output(self) -> DataFrame:
+        """Return flattened DataFrame for reference lines timeseries flow data.
+
+        Returns
+        -------
+        DataFrame
+            Flattened DataFrame for reference lines timeseries flow output including column-level metadata, such as units and HDF path.
+        """
+        ds = self.reference_lines_timeseries_output()
+        if "Flow" not in ds:
+            raise ValueError("Flow data not found in reference lines timeseries output")
+
+        df = ds["Flow"].to_dataframe().dropna().reset_index()
+        df["Flow"].attrs = {
+            "units": ds["Flow"].attrs.get("units", None),
+            "hdf_path": ds["Flow"].attrs.get("hdf_path", None),
+        }
+
+        return df
+
+    def dataframe_reference_points_stage_output(self) -> DataFrame:
+        """Return flattened DataFrame for reference points timeseries stage data.
+
+        Returns
+        -------
+        DataFrame
+            Flattened DataFrame for reference points timeseries stage output including column-level metadata, such as units and HDF path.
+        """
+        ds = self.reference_points_timeseries_output()
+        if WATER_SURFACE not in ds:
+            raise ValueError(
+                "Stage data not found in reference points timeseries output"
+            )
+
+        df = ds[WATER_SURFACE].to_dataframe().dropna().reset_index()
+        df[WATER_SURFACE].attrs = {
+            "units": ds[WATER_SURFACE].attrs.get("units", None),
+            "hdf_path": ds[WATER_SURFACE].attrs.get("hdf_path", None),
+        }
+
+        return df
+
+    def dataframe_bc_lines_flow_output(self) -> DataFrame:
+        """Return flattened DataFrame for boundary condition lines timeseries flow data.
+
+        Returns
+        -------
+        DataFrame
+            Flattened DataFrame for boundary condition lines timeseries flow output including column-level metadata, such as units and HDF path.
+        """
+        ds = self.bc_lines_timeseries_output()
+        if "Flow" not in ds:
+            raise ValueError(
+                "Flow data not found in boundary condition lines timeseries output"
+            )
+
+        df = ds["Flow"].to_dataframe().dropna().reset_index()
+        df["Flow"].attrs = {
+            "units": ds["Flow"].attrs.get("units", None),
+            "hdf_path": ds["Flow"].attrs.get("hdf_path", None),
+        }
+
+        return df
