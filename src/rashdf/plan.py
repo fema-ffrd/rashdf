@@ -1780,66 +1780,150 @@ class RasPlanHdf(RasGeomHdf):
         ds = self.reference_points_timeseries_output()
         return self._zmeta(ds)
 
-    def dataframe_reference_lines_flow_output(self) -> DataFrame:
-        """Return flattened DataFrame for reference lines timeseries flow data.
+    def reference_lines_flow(self, use_names: bool = False) -> DataFrame:
+        """Return wide-format DataFrame for reference lines timeseries flow data.
+
+        Parameters
+        ----------
+        use_names : bool, optional
+            (Default) If False, use reference line IDs as column headers.
+            If True, use reference line names as column headers.
 
         Returns
         -------
         DataFrame
-            Flattened DataFrame for reference lines timeseries flow output.
+            Wide-format DataFrame with time as index and reference line IDs (or names) as columns.
         """
         ds = self.reference_lines_timeseries_output()
-        if "Flow" not in ds:
-            raise ValueError("Flow data not found in reference lines timeseries output")
+        return self._timeseries_to_wide_dataframe(
+            ds=ds,
+            var="Flow",
+            id_column="refln_id",
+            name_column="refln_name",
+            mesh_column="mesh_name",
+            use_names_as_col=use_names,
+        )
 
-        df = ds["Flow"].to_dataframe().dropna().reset_index()
-        df["Flow"].attrs = {
-            "units": ds["Flow"].attrs.get("units", None),
-            "hdf_path": ds["Flow"].attrs.get("hdf_path", None),
-        }
+    def reference_points_stage(self, use_names: bool = False) -> DataFrame:
+        """Return Wide-format DataFrame for reference points timeseries stage data.
 
-        return df
-
-    def dataframe_reference_points_stage_output(self) -> DataFrame:
-        """Return flattened DataFrame for reference points timeseries stage data.
+        Parameters
+        ----------
+        use_names : bool, optional
+            (Default) If False, use reference point IDs as column headers.
+            If True, use reference point names as column headers.
 
         Returns
         -------
         DataFrame
-            Flattened DataFrame for reference points timeseries stage output.
+            Wide-format DataFrame with time as index and reference point IDs (or names) as columns.
         """
         ds = self.reference_points_timeseries_output()
-        if WATER_SURFACE not in ds:
-            raise ValueError(
-                "Stage data not found in reference points timeseries output"
-            )
+        return self._timeseries_to_wide_dataframe(
+            ds=ds,
+            var=WATER_SURFACE,
+            id_column="refpt_id",
+            name_column="refpt_name",
+            mesh_column="mesh_name",
+            use_names_as_col=use_names,
+        )
 
-        df = ds[WATER_SURFACE].to_dataframe().dropna().reset_index()
-        df[WATER_SURFACE].attrs = {
-            "units": ds[WATER_SURFACE].attrs.get("units", None),
-            "hdf_path": ds[WATER_SURFACE].attrs.get("hdf_path", None),
-        }
+    def bc_lines_flow(self, use_names: bool = False) -> DataFrame:
+        """Return wide-format DataFrame for boundary condition lines timeseries flow data with.
 
-        return df
-
-    def dataframe_bc_lines_flow_output(self) -> DataFrame:
-        """Return flattened DataFrame for boundary condition lines timeseries flow data.
+        Parameters
+        ----------
+        use_names : bool, optional
+            (Default) If False, use BC line IDs as column headers.
+            If True, use BC line names as column headers.
 
         Returns
         -------
         DataFrame
-            Flattened DataFrame for boundary condition lines timeseries flow output.
+            Wide-format DataFrame with time as index and BC line IDs (or names) as columns.
         """
         ds = self.bc_lines_timeseries_output()
-        if "Flow" not in ds:
-            raise ValueError(
-                "Flow data not found in boundary condition lines timeseries output"
-            )
+        return self._timeseries_to_wide_dataframe(
+            ds=ds,
+            var="Flow",
+            id_column="bc_line_id",
+            name_column="bc_line_name",
+            mesh_column="mesh_name",
+            use_names_as_col=use_names,
+        )
 
-        df = ds["Flow"].to_dataframe().dropna().reset_index()
-        df["Flow"].attrs = {
-            "units": ds["Flow"].attrs.get("units", None),
-            "hdf_path": ds["Flow"].attrs.get("hdf_path", None),
+    def _timeseries_to_wide_dataframe(
+        self,
+        ds: xr.Dataset,
+        var: str,
+        id_column: str,
+        name_column: str,
+        mesh_column: str,
+        use_names_as_col: bool = False,
+    ) -> DataFrame:
+        """Convert xarray timeseries Dataset to wide-format DataFrame with metadata.
+
+        Parameters
+        ----------
+        ds : xr.Dataset
+            xarray Dataset containing timeseries data
+        var : str
+            Variable name to extract (e.g. "Flow", "Water Surface")
+        id_column : str
+            ID column name for pivoting (e.g. "refln_id", "refpt_id", "bc_line_id")
+        name_column : str
+            Name column for creating readable column names (e.g. "refln_name", "refpt_name")
+        mesh_column : str
+            Mesh column name (e.g. "mesh_name")
+        use_names_as_col : bool, optional
+            If True, use names as column headers.
+            (default) If False, use IDs.
+
+        Returns
+        -------
+        DataFrame
+            Wide-format DataFrame with time as index and IDs or names as columns.
+            Metadata stored in DataFrame.attrs including name and mesh mappings.
+        """
+        if var not in ds:
+            raise ValueError(f"{var} data not found in timeseries output")
+
+        df = ds[var].to_dataframe().dropna().reset_index()
+
+        # check for duplicate names when using names as columns
+        if use_names_as_col:
+            unique_names = df[name_column].nunique()
+            unique_ids = df[id_column].nunique()
+            if unique_names < unique_ids:  # should have one name for every one id
+                name_counts = (
+                    df[[id_column, name_column]]
+                    .drop_duplicates()[name_column]
+                    .value_counts()
+                )
+                duplicates = name_counts[name_counts > 1].index.tolist()
+                raise ValueError(
+                    f"Cannot use names as columns. The following names are not unique: {duplicates}. "
+                )
+
+        pivot_column = name_column if use_names_as_col else id_column
+        wide_df = df.pivot(index="time", columns=pivot_column, values=var)
+
+        lookup = df[[id_column, name_column, mesh_column]].drop_duplicates()
+        if use_names_as_col:
+            # when using names as columns, key=name -> value=id
+            id_mapping = lookup.set_index(name_column)[id_column].to_dict()
+            mesh_mapping = lookup.set_index(name_column)[mesh_column].to_dict()
+        else:
+            # when using IDs as columns, key=id -> value=name
+            id_mapping = lookup.set_index(id_column)[name_column].to_dict()
+            mesh_mapping = lookup.set_index(id_column)[mesh_column].to_dict()
+
+        wide_df.attrs = {
+            "variable": var,
+            "units": ds[var].attrs.get("units", None),
+            "hdf_path": ds[var].attrs.get("hdf_path", None),
+            "id_mapping": id_mapping,
+            "mesh_mapping": mesh_mapping,
         }
 
-        return df
+        return wide_df
