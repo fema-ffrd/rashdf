@@ -748,3 +748,89 @@ def test_bc_lines_include_output_true():
             plan_hdf.bc_lines(include_output=True, datetime_to_str=True),
             bc_lines_with_output_json,
         )
+
+
+def test_reference_lines_flow(tmp_path: Path):
+    plan_hdf = RasPlanHdf(BALD_EAGLE_P18_REF)
+    df = plan_hdf.reference_lines_flow()
+
+    assert df.index.name == "time"
+    assert df.shape == (37, 4)
+    assert list(df.columns) == [0, 1, 2, 3]
+
+    # Check metadata
+    assert df.attrs["variable"] == "Flow"
+    assert df.attrs["units"] == "cfs"
+
+    # Check mappings
+    assert "id_mapping" in df.attrs
+    assert len(df.attrs["id_mapping"]) == 4
+    assert "mesh_mapping" in df.attrs
+    assert len(df.attrs["mesh_mapping"]) == 4
+
+    df_refln2 = df[2].to_frame(name="Flow")
+    valid_df = pd.read_csv(
+        TEST_CSV / "BaldEagleDamBrk.reflines.2.csv",
+        index_col="time",
+        parse_dates=True,
+        usecols=["time", "Flow"],
+        dtype={"Flow": np.float32},
+    )
+    assert_frame_equal(df_refln2, valid_df, check_dtype=False)
+
+
+def test_reference_points_stage(tmp_path: Path):
+    plan_hdf = RasPlanHdf(BALD_EAGLE_P18_REF)
+    df = plan_hdf.reference_points_stage()
+
+    assert df.index.name == "time"
+    assert df.shape == (37, 3)
+    assert list(df.columns) == [0, 1, 2]
+
+    # Check metadata
+    assert df.attrs["variable"] == "Water Surface"
+    assert df.attrs["units"] == "ft"
+
+    # Check mappings
+    assert "id_mapping" in df.attrs
+    assert len(df.attrs["id_mapping"]) == 3
+    assert "mesh_mapping" in df.attrs
+    assert len(df.attrs["mesh_mapping"]) == 3
+
+    df_refpt1 = df[1].to_frame(name="Water Surface")
+    valid_df = pd.read_csv(
+        TEST_CSV / "BaldEagleDamBrk.refpoints.1.csv",
+        index_col="time",
+        parse_dates=True,
+        usecols=["time", "Water Surface"],
+        dtype={"Water Surface": np.float32},
+    )
+    assert_frame_equal(df_refpt1, valid_df, check_dtype=False)
+
+
+def test_bc_lines_flow(tmp_path: Path):
+    plan_hdf = RasPlanHdf(LOWER_KANAWHA_P01_BC_LINES)
+    df = plan_hdf.bc_lines_flow()
+
+    assert df.index.name == "time"
+    assert df.shape == (577, 10)
+
+    # Check metadata
+    assert df.attrs["variable"] == "Flow"
+    assert df.attrs["units"] == "cfs"
+
+    # Check mappings
+    assert "id_mapping" in df.attrs
+    assert len(df.attrs["id_mapping"]) == 10
+    assert "mesh_mapping" in df.attrs
+    assert len(df.attrs["mesh_mapping"]) == 10
+
+    df_bcline7 = df[7].to_frame(name="Flow")
+    valid_df = pd.read_csv(
+        TEST_CSV / "LowerKanawha.p01.bclines.7.csv",
+        index_col="time",
+        parse_dates=True,
+        usecols=["time", "Flow"],
+        dtype={"Flow": np.float32},
+    )
+    assert_frame_equal(df_bcline7, valid_df, check_dtype=False)
