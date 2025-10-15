@@ -1876,8 +1876,8 @@ class RasPlanHdf(RasGeomHdf):
         mesh_column : str
             Mesh column name (e.g. "mesh_name")
         use_names_as_col : bool, optional
+            (Default) If False, use IDs.
             If True, use names as column headers.
-            (default) If False, use IDs.
 
         Returns
         -------
