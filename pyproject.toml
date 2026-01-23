@@ -27,7 +27,8 @@ dev = [
     "fsspec",
     "s3fs",
     "fiona==1.9.6",
-    "numcodecs<0.16"
+    "numcodecs<0.16",
+    "rioxarray",
 ]
 docs = ["sphinx", "numpydoc", "sphinx_rtd_theme"]
 

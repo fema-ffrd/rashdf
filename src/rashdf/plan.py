@@ -4,6 +4,7 @@ from .geom import RasGeomHdf
 from .utils import (
     df_datetimes_to_str,
     ras_timesteps_to_datetimes,
+    parse_ras_datetime,
     parse_ras_datetime_ms,
     deprecated,
     convert_ras_hdf_value,
@@ -18,7 +19,7 @@ import xarray as xr
 
 from datetime import datetime
 from enum import Enum
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union, Sequence
 
 # Shared constant
 WATER_SURFACE = "Water Surface"
@@ -1927,3 +1928,76 @@ class RasPlanHdf(RasGeomHdf):
         }
 
         return wide_df
+
+    def gridded_precip(
+        self,
+        timestamps: Optional[Union[Sequence[datetime], pd.Series[pd.Timestamp]]] = None,
+        precip_attrs: Optional[Dict] = None,
+    ) -> xr.DataArray:
+        """Return precipitation timeseries input data from a HEC-RAS HDF plan file.
+
+        Parameters
+        ----------
+        timestamps : Optional[Union[Sequence[datetime], pd.Series[pd.Timestamp]]], optional
+            Optional sequence of timestamps to use for the time coordinate. If None, timestamps will be read from the HDF file.
+        precip_attrs : Optional[Dict], optional
+            Optional dictionary of precipitation attributes. If None, attributes will be read from the HDF file.
+
+        Returns
+        -------
+        xr.DataArray
+            An xarray DataArray with precipitation timeseries input data.
+        """
+        import rioxarray
+
+        precip_group = self.get(self.PRECIP_PATH)
+        if precip_group is None:
+            raise RasPlanHdfError(
+                f"Could not find HDF group at path '{self.PRECIP_PATH}'."
+                f" Does the Plan HDF file contain precipitation input data?"
+            )
+        precip_values: h5py.Dataset = precip_group.get("Values")
+        if precip_values is None:
+            raise RasPlanHdfError(
+                f"Could not find gridded precip 'Values' dataset at path '{self.PRECIP_PATH}'."
+            )
+        if timestamps is None:
+            timestamps: h5py.Dataset = precip_group.get("Timestamp")
+            if timestamps is None:
+                raise RasPlanHdfError(
+                    f"Could not find gridded precip 'Timestamp' dataset in HDF group at path '{self.PRECIP_PATH}'."
+                )
+            timestamps = pd.Series(timestamps.asstr()[:]).map(parse_ras_datetime)
+        if precip_attrs is None:
+            precip_attrs = self.get_meteorology_precip_attrs()
+            if precip_attrs is None:
+                raise RasPlanHdfError(
+                    f"Could not find attributes for HDF group at path '{self.PRECIP_PATH}'."
+                )
+        crs = precip_attrs.get("Projection")
+        rows = precip_attrs.get("Raster Rows")
+        cols = precip_attrs.get("Raster Cols")
+        top = precip_attrs.get("Raster Top")
+        left = precip_attrs.get("Raster Left")
+        cell_size = precip_attrs.get("Raster Cellsize")
+
+        precip_values: np.ndarray = precip_values[:]
+        precip_values = precip_values.reshape(precip_values.shape[0], rows, cols)
+        x_coords = left + np.arange(cols) * cell_size + cell_size / 2
+        y_coords = top - np.arange(rows) * cell_size - cell_size / 2
+        precip = xr.DataArray(
+            precip_values,
+            name="Precipitation",
+            dims=["time", "y", "x"],
+            coords={
+                "time": timestamps,
+                "y": y_coords,
+                "x": x_coords,
+            },
+            attrs={
+                "units": precip_attrs.get("Units"),
+                "hdf_path": f"{self.PRECIP_PATH}/Values",
+            },
+        )
+        precip = precip.rio.write_crs(crs)
+        return precip
