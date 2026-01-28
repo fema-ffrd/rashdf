@@ -1931,14 +1931,14 @@ class RasPlanHdf(RasGeomHdf):
 
     def gridded_precip(
         self,
-        timestamps: Optional[Union[Sequence[datetime], pd.Series[pd.Timestamp]]] = None,
+        timestamps: Optional[Union[Sequence[datetime], pd.Series]] = None,
         precip_attrs: Optional[Dict] = None,
     ) -> xr.DataArray:
         """Return precipitation timeseries input data from a HEC-RAS HDF plan file.
 
         Parameters
         ----------
-        timestamps : Optional[Union[Sequence[datetime], pd.Series[pd.Timestamp]]], optional
+        timestamps : Optional[Union[Sequence[datetime], pd.Series]], optional
             Optional sequence of timestamps to use for the time coordinate. If None, timestamps will be read from the HDF file.
         precip_attrs : Optional[Dict], optional
             Optional dictionary of precipitation attributes. If None, attributes will be read from the HDF file.
