@@ -30,10 +30,9 @@ def copy_group_recursive(source_group, dest_group, ignore_groups=None):
             print(f"Skipping ignored group: {key}")
             continue
 
-        print(key, item)
         if isinstance(item, h5py.Dataset):
             # Copy dataset with data and attributes
-            dest_group.create_dataset(key, data=item[0:24])
+            dest_group.create_dataset(key, data=item[()])
             copy_attributes(item, dest_group[key])
         elif isinstance(item, h5py.Group):
             # Create subgroup and recursively copy
