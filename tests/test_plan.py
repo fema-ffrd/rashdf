@@ -836,8 +836,21 @@ def test_bc_lines_flow(tmp_path: Path):
     assert_frame_equal(df_bcline7, valid_df, check_dtype=False)
 
 
-def test_gridded_precip(tmp_path: Path):
-    plan_hdf = RasPlanHdf("/mnt/c/temp/ElkMiddle.p01.hdf")
+def test_gridded_precip():
+    plan_hdf = RasPlanHdf(TEST_DATA / "ras/ElkMiddle.gridded-precip.p01.hdf")
     precip = plan_hdf.gridded_precip()
+    assert precip.shape == (24, 160, 110)
+    assert (
+        precip.attrs["units"]
+        == plan_hdf["/Event Conditions/Meteorology/Precipitation"]
+        .attrs["Units"]
+        .decode()
+    )
 
-    assert False
+
+def test_gridded_precip_bad_precip_attrs():
+    plan_hdf = RasPlanHdf(TEST_DATA / "ras/ElkMiddle.gridded-precip.p01.hdf")
+    precip_attrs = plan_hdf.get_meteorology_precip_attrs()
+    precip_attrs.pop("Raster Rows")
+    with pytest.raises(RasPlanHdfError):
+        plan_hdf.gridded_precip(precip_attrs=precip_attrs)

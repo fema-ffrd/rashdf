@@ -1936,6 +1936,8 @@ class RasPlanHdf(RasGeomHdf):
     ) -> xr.DataArray:
         """Return precipitation timeseries input data from a HEC-RAS HDF plan file.
 
+        Requires the 'rioxarray' package.
+
         Parameters
         ----------
         timestamps : Optional[Union[Sequence[datetime], pd.Series]], optional
@@ -1950,36 +1952,22 @@ class RasPlanHdf(RasGeomHdf):
         """
         import rioxarray
 
-        precip_group = self.get(self.PRECIP_PATH)
-        if precip_group is None:
-            raise RasPlanHdfError(
-                f"Could not find HDF group at path '{self.PRECIP_PATH}'."
-                f" Does the Plan HDF file contain precipitation input data?"
-            )
-        precip_values: h5py.Dataset = precip_group.get("Values")
-        if precip_values is None:
-            raise RasPlanHdfError(
-                f"Could not find gridded precip 'Values' dataset at path '{self.PRECIP_PATH}'."
-            )
-        if timestamps is None:
-            timestamps: h5py.Dataset = precip_group.get("Timestamp")
-            if timestamps is None:
-                raise RasPlanHdfError(
-                    f"Could not find gridded precip 'Timestamp' dataset in HDF group at path '{self.PRECIP_PATH}'."
-                )
-            timestamps = pd.Series(timestamps.asstr()[:]).map(parse_ras_datetime)
+        precip_group = self[self.PRECIP_PATH]
+        precip_values: h5py.Dataset = precip_group["Values"]
+        timestamps: h5py.Dataset = precip_group["Timestamp"]
+        timestamps = pd.Series(timestamps.asstr()[:]).map(parse_ras_datetime)
         if precip_attrs is None:
             precip_attrs = self.get_meteorology_precip_attrs()
-            if precip_attrs is None:
-                raise RasPlanHdfError(
-                    f"Could not find attributes for HDF group at path '{self.PRECIP_PATH}'."
-                )
         crs = precip_attrs.get("Projection")
         rows = precip_attrs.get("Raster Rows")
         cols = precip_attrs.get("Raster Cols")
         top = precip_attrs.get("Raster Top")
         left = precip_attrs.get("Raster Left")
         cell_size = precip_attrs.get("Raster Cellsize")
+        if not all([rows, cols, top, left, cell_size]):
+            raise RasPlanHdfError(
+                "Precipitation raster metadata is missing or incomplete."
+            )
 
         precip_values: np.ndarray = precip_values[:]
         precip_values = precip_values.reshape(precip_values.shape[0], rows, cols)
