@@ -18,6 +18,7 @@ dependencies = [
     "geopandas>=1.0,<2.0",
     "pyarrow",
     "xarray<=2025.4.0",
+    "pandas>=2.0,<3.0"
 ]
 
 [project.optional-dependencies]
