@@ -1954,8 +1954,9 @@ class RasPlanHdf(RasGeomHdf):
 
         precip_group = self[self.PRECIP_PATH]
         precip_values: h5py.Dataset = precip_group["Values"]
-        ds_timestamps: h5py.Dataset = precip_group["Timestamp"]
-        timestamps = pd.Series(ds_timestamps.asstr()[:]).map(parse_ras_datetime)
+        if timestamps is None:
+            ds_timestamps: h5py.Dataset = precip_group["Timestamp"]
+            timestamps = pd.Series(ds_timestamps.asstr()[:]).map(parse_ras_datetime)
         if precip_attrs is None:
             precip_attrs = self.get_meteorology_precip_attrs()
         crs = precip_attrs.get("Projection")
