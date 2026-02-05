@@ -42,6 +42,7 @@ RasPlanHdf
              cross_sections_wsel,
              steady_flow_names,
              steady_profile_xs_output,
+             gridded_precip,
              zmeta_mesh_cells_timeseries_output,
              zmeta_mesh_faces_timeseries_output,
              zmeta_reference_lines_timeseries_output,

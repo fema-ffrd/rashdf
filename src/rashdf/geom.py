@@ -150,13 +150,13 @@ class RasGeomHdf(RasHdf):
             ][()][:, 0]
             face_id_lists = list(
                 np.vectorize(
-                    lambda cell_id,
-                    cell_face_values=cell_face_values,
-                    cell_face_info=cell_face_info: str(
-                        cell_face_values[
-                            cell_face_info[cell_id][0] : cell_face_info[cell_id][0]
-                            + cell_face_info[cell_id][1]
-                        ]
+                    lambda cell_id, cell_face_values=cell_face_values, cell_face_info=cell_face_info: (
+                        str(
+                            cell_face_values[
+                                cell_face_info[cell_id][0] : cell_face_info[cell_id][0]
+                                + cell_face_info[cell_id][1]
+                            ]
+                        )
                     )
                 )(cell_ids)
             )
