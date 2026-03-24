@@ -12,7 +12,7 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
 ]
 requires-python = ">=3.11"
-version = "0.11.1"
+version = "0.12.0"
 dependencies = [
     "h5py",
     "geopandas>=1.0",
