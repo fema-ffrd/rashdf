@@ -382,8 +382,17 @@ def ras_timesteps_to_datetimes(
     -------
         List[datetime]: A list of datetime objects corresponding to the timesteps.
     """
+    # Workaround for https://github.com/pandas-dev/pandas/issues/64828:
+    # pd.Timedelta.round() raises ZeroDivisionError in pandas 3.x when the
+    # Timedelta's internal resolution unit is coarser than the target frequency
+    # (e.g. unit='days' or unit='s' rounded to sub-second frequencies). Converting
+    # explicitly to microseconds first avoids the broken code path.
     return [
-        start_time + pd.Timedelta(timestep, unit=time_unit).round(round_to)
+        start_time
+        + pd.Timedelta(
+            int(pd.Timedelta(timestep, unit=time_unit).total_seconds() * 1_000_000),
+            unit="us",
+        ).round(round_to)
         for timestep in timesteps.astype(np.float64)
     ]
 

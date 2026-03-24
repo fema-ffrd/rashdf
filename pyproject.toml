@@ -12,13 +12,13 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
 ]
-version = "0.11.0"
+version = "0.11.1"
 dependencies = [
     "h5py",
-    "geopandas>=1.0,<2.0",
+    "geopandas>=1.0",
     "pyarrow",
-    "xarray<=2025.4.0",
-    "pandas>=2.0,<3.0"
+    "xarray",
+    "pandas>=2.0"
 ]
 
 [project.optional-dependencies]
@@ -27,13 +27,13 @@ dev = [
     "ruff",
     "pytest",
     "pytest-cov",
-    "kerchunk",
-    "zarr==2.18.2",
+    "kerchunk>=0.2.9",
+    "zarr>=3.0",
     "dask",
     "fsspec",
     "s3fs",
-    "fiona==1.9.6",
-    "numcodecs<0.16",
+    "fiona>=1.10",
+    "numcodecs",
     "rioxarray",
 ]
 docs = ["sphinx", "numpydoc", "sphinx_rtd_theme"]
