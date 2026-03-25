@@ -111,9 +111,9 @@ def test_df_datetimes_to_str():
             ],
         }
     )
-    assert df["datetime"].dtype.name == "datetime64[ns]"
+    assert pd.api.types.is_datetime64_any_dtype(df["datetime"])
     df = utils.df_datetimes_to_str(df)
-    assert df["datetime"].dtype.name == "object"
+    assert pd.api.types.is_string_dtype(df["datetime"])
     assert df["datetime"].tolist() == ["2024-03-15T16:39:01", "2024-03-16T16:39:01"]
     assert df["asdf"].tolist() == [0.123, 0.456]
 

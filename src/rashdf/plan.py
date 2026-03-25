@@ -1191,9 +1191,15 @@ class RasPlanHdf(RasGeomHdf):
         )
         ds = ds.assign_coords(
             {
-                "bc_line_name": ("bc_line_id", bc_lines_names),
-                "bc_line_type": ("bc_line_id", df_bc_lines["type"]),
-                "mesh_name": ("bc_line_id", df_bc_lines["mesh_name"]),
+                "bc_line_name": ("bc_line_id", bc_lines_names.to_numpy(dtype=object)),
+                "bc_line_type": (
+                    "bc_line_id",
+                    df_bc_lines["type"].to_numpy(dtype=object),
+                ),
+                "mesh_name": (
+                    "bc_line_id",
+                    df_bc_lines["mesh_name"].to_numpy(dtype=object),
+                ),
             }
         )
         return ds
@@ -1311,7 +1317,8 @@ class RasPlanHdf(RasGeomHdf):
                 da = da.expand_dims({f"{ref_type}_id": [idx - 1]})
                 da = da.expand_dims({f"{ref_type}_name": [site_name]})
                 das[site_name] = da
-        das = xr.concat([das[site] for site in das.keys()], dim="time")
+        # join="outer" is the pre-xarray-2026 default
+        das = xr.concat([das[site] for site in das.keys()], dim="time", join="outer")
         return das
 
     def reference_points_timeseries_output(self) -> xr.Dataset:
@@ -1712,15 +1719,21 @@ class RasPlanHdf(RasGeomHdf):
         zarr_tmp = MemoryStore()
         # Use compute=False here because we don't _actually_ want to write
         # the data to the zarr store, we just want to generate the metadata.
-        ds.to_zarr(zarr_tmp, mode="w", compute=False, encoding=encoding)
+        # zarr_format=2 is required because kerchunk's reference format is built around
+        # zarr v2 metadata (.zarray/.zgroup). kerchunk does not yet support zarr v3
+        # metadata (see https://github.com/fsspec/kerchunk/issues/235). Can remove this
+        # if kerchunk ever adds zarr v3 reference support.
+        ds.to_zarr(zarr_tmp, mode="w", compute=False, encoding=encoding, zarr_format=2)
         zarr_meta = {"version": 1, "refs": {}}
         # Loop through the in-memory Zarr store, decode the data to strings,
         # and add it to the final metadata dictionary.
-        for key, value in zarr_tmp.items():
+        for key, value in zarr_tmp._store_dict.items():
+            # zarr 3.x stores values as Buffer objects. Use .to_bytes() to get raw bytes.
+            raw = value.to_bytes()
             try:
-                value_str = value.decode("utf-8")
+                value_str = raw.decode("utf-8")
             except UnicodeDecodeError:
-                value_str = "base64:" + base64.b64encode(value).decode("utf-8")
+                value_str = "base64:" + base64.b64encode(raw).decode("utf-8")
             zarr_meta["refs"][key] = value_str
         zarr_meta["refs"].update(chunk_meta)
         return zarr_meta

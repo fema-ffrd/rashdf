@@ -1,5 +1,6 @@
 {
 "type": "FeatureCollection",
+"name": "temp-bald-eagle-mesh-cell-polygons",
 "crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
 "features": [
 { "type": "Feature", "properties": { "mesh_name": "BaldEagleCr", "cell_id": 0, "max_ws_err": 0.0, "max_ws_err_time": "1999-01-01T12:00:00", "max_ws": 658.76220703125, "max_ws_time": "1999-01-01T12:00:00", "min_ws": 658.76220703125, "min_ws_time": "1999-01-01T12:00:20" }, "geometry": { "type": "Polygon", "coordinates": [ [ [ -77.330638582957079, 41.18406304644602 ], [ -77.330646645268359, 41.182805104628699 ], [ -77.332463089436047, 41.182811734779698 ], [ -77.333663832945007, 41.183727648901382 ], [ -77.332072946789154, 41.183925789908741 ], [ -77.330638582957079, 41.18406304644602 ] ] ] } },

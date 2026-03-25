@@ -1,5 +1,6 @@
 {
 "type": "FeatureCollection",
+"name": "temp-bald-eagle-reference-lines",
 "crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
 "features": [
 { "type": "Feature", "properties": { "refln_id": 0, "refln_name": "Reference Line 1", "mesh_name": "BaldEagleCr", "type": "", "max_q": 95974.4765625, "max_q_time": "1999-01-03T12:00:00", "min_q": 0.0, "min_q_time": "1999-01-01T12:00:00", "max_ws": 599.296142578125, "max_ws_time": "1999-01-03T12:00:00", "min_ws": 576.70416259765625, "min_ws_time": "1999-01-01T12:00:00" }, "geometry": { "type": "LineString", "coordinates": [ [ -77.597178187596228, 41.06349551295316 ], [ -77.591407812979455, 41.057799422007768 ] ] } },
