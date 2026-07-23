@@ -289,7 +289,9 @@ def convert_ras_hdf_value(
         return value
 
     elif isinstance(value, (list, tuple, np.ndarray)):
-        if len(value) > 1:
+        if len(value) == 0:
+            return None
+        elif len(value) > 1:
             return [convert_ras_hdf_value(v) for v in value]
         else:
             return convert_ras_hdf_value(value[0])
