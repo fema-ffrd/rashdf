@@ -96,6 +96,10 @@ def test_convert_ras_hdf_value():
         datetime(2024, 3, 19, 0, 0, 0),
         datetime(2024, 3, 20, 0, 0, 0),
     ]
+    # Empty sequences should return cleanly rather than raising IndexError.
+    assert utils.convert_ras_hdf_value([]) is None
+    assert utils.convert_ras_hdf_value(()) is None
+    assert utils.convert_ras_hdf_value(np.array([])) is None
 
 
 def test_df_datetimes_to_str():
